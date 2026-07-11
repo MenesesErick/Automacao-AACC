@@ -1,0 +1,1 @@
+# Todo: aacc_plataforma_unitins/backend/academico/__init__.py
