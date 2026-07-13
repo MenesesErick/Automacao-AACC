@@ -3,5 +3,5 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    # Adicionaremos as rotas dos apps (accounts, academico) aqui posteriormente
+    path("api/academico/", include("academico.urls")),
 ]
