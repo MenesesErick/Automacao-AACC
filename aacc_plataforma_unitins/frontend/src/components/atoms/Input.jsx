@@ -1,0 +1,79 @@
+import { forwardRef } from 'react'
+import { cn } from '@/utils/cn'
+
+/**
+ * Átomo Input com suporte a label, helper text, erro, ícones e estados.
+ */
+export const Input = forwardRef(function Input(
+  {
+    label,
+    helperText,
+    error,
+    leftIcon,
+    rightIcon,
+    size = 'md',
+    fullWidth = false,
+    className,
+    id,
+    ...props
+  },
+  ref,
+) {
+  const inputId = id ?? label?.toLowerCase().replace(/\s+/g, '-')
+
+  const sizes = {
+    sm: 'h-8  text-label px-3',
+    md: 'h-9  text-label px-3',
+    lg: 'h-10 text-body  px-4',
+  }
+
+  return (
+    <div className={cn('flex flex-col gap-1', fullWidth && 'w-full')}>
+      {label && (
+        <label htmlFor={inputId} className="text-label font-medium text-text-primary">
+          {label}
+        </label>
+      )}
+
+      <div className="relative flex items-center">
+        {leftIcon && (
+          <span className="absolute left-3 text-text-secondary flex items-center pointer-events-none">
+            {leftIcon}
+          </span>
+        )}
+
+        <input
+          ref={ref}
+          id={inputId}
+          {...props}
+          className={cn(
+            'w-full rounded-xs border bg-bg-surface text-text-primary placeholder:text-text-disabled',
+            'transition-colors duration-normal',
+            'focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary',
+            'disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-bg',
+            sizes[size],
+            leftIcon  && 'pl-9',
+            rightIcon && 'pr-9',
+            error
+              ? 'border-danger focus:ring-danger'
+              : 'border-border hover:border-border-strong',
+            'shadow-xs',
+            className,
+          )}
+        />
+
+        {rightIcon && (
+          <span className="absolute right-3 text-text-secondary flex items-center">
+            {rightIcon}
+          </span>
+        )}
+      </div>
+
+      {(helperText || error) && (
+        <p className={cn('text-helper', error ? 'text-danger' : 'text-text-secondary')}>
+          {error ?? helperText}
+        </p>
+      )}
+    </div>
+  )
+})
