@@ -24,3 +24,5 @@ build/
 .vscode/
 .idea/
 .DS_Store
+
+aacc_plataforma_unitins/frontend/node_modules/

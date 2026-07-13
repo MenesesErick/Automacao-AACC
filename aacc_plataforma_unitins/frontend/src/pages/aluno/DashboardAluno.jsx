@@ -34,13 +34,13 @@ const COLUMNS = [
   { key: 'data_envio', label: 'Data' },
 ]
 
-export default function DashboardPage() {
+export default function DashboardAluno() {
   return (
     <AppLayout
       breadcrumb={
         <div>
-          <p className="text-helper text-text-secondary">Bem-vindo de volta 👋</p>
-          <h1 className="text-h3 font-bold text-text-primary">Dashboard</h1>
+          <p className="text-helper text-text-secondary">Portal do Aluno</p>
+          <h1 className="text-h3 font-bold text-text-primary">Meu Progresso AACC</h1>
         </div>
       }
     >

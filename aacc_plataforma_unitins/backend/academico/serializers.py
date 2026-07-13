@@ -8,7 +8,7 @@ são declarados como read_only para impedir que o cliente os sobrescreva.
 
 from rest_framework import serializers
 
-from academico.models import CategoriaAACC, Certificado
+from academico.models import CategoriaAACC, Certificado, RuleValidationLog, Requerimento
 
 
 class CategoriaAACCSerializer(serializers.ModelSerializer):
@@ -56,21 +56,45 @@ class CertificadoSerializer(serializers.ModelSerializer):
             "arquivo_pdf",
             "horas_declaradas",
             # --- campos controlados pelo motor de regras ---
+            "texto_extraido_ocr",
             "horas_validadas_ocr",
             "horas_computadas_final",
+            "horas_descartadas",
             "indice_confianca_ocr",
             "status",
             "status_display",
+            "motivo_status",
             # --- timestamps ---
             "data_envio",
             "data_atualizacao",
         ]
         read_only_fields = [
+            "texto_extraido_ocr",
             "horas_validadas_ocr",
             "horas_computadas_final",
+            "horas_descartadas",
             "indice_confianca_ocr",
             "status",
             "status_display",
+            "motivo_status",
             "data_envio",
             "data_atualizacao",
         ]
+
+
+class RuleValidationLogSerializer(serializers.ModelSerializer):
+    """Serializer somente-leitura para Logs de Auditoria."""
+    
+    usuario_nome = serializers.CharField(source="usuario_responsavel.get_full_name", read_only=True, default="Sistema")
+
+    class Meta:
+        model = RuleValidationLog
+        fields = "__all__"
+
+
+class RequerimentoSerializer(serializers.ModelSerializer):
+    """Serializer para Requerimentos de Horas (Anexo I)."""
+
+    class Meta:
+        model = Requerimento
+        fields = "__all__"

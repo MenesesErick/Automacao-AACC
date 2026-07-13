@@ -108,14 +108,32 @@ class CertificadoViewSet(viewsets.ModelViewSet):
             certificado.status = resultado["status_sugerido"]
             certificado.horas_validadas_ocr = int(horas_declaradas)
             certificado.horas_computadas_final = int(resultado["horas_finais"])
+            certificado.horas_descartadas = int(resultado["horas_descartadas"])
             certificado.indice_confianca_ocr = resultado["confianca_ocr"]
+            certificado.texto_extraido_ocr = resultado["texto_extraido"]
+            certificado.motivo_status = resultado["motivo"]
+            
             certificado.save(
                 update_fields=[
                     "status",
                     "horas_validadas_ocr",
                     "horas_computadas_final",
+                    "horas_descartadas",
                     "indice_confianca_ocr",
+                    "texto_extraido_ocr",
+                    "motivo_status",
                 ]
+            )
+
+            from academico.models import RuleValidationLog
+            RuleValidationLog.objects.create(
+                certificado=certificado,
+                usuario_responsavel=None,
+                regra_aplicada=f"Teto: {limite_categoria}h ({categoria.nome})",
+                justificativa=resultado["motivo"],
+                horas_enviadas=int(horas_declaradas),
+                horas_computadas=int(resultado["horas_finais"]),
+                horas_descartadas=int(resultado["horas_descartadas"])
             )
 
             logger.info(

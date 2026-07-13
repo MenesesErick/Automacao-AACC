@@ -74,12 +74,15 @@ class Certificado(models.Model):
     arquivo_pdf = models.FileField(upload_to='uploads_alunos/', verbose_name="Arquivo PDF")
     horas_declaradas = models.DecimalField(max_digits=6, decimal_places=2, verbose_name="Horas Declaradas")
     
+    texto_extraido_ocr = models.TextField(blank=True, null=True, verbose_name="Texto Bruto Extraído (OCR)")
     horas_validadas_ocr = models.IntegerField(null=True, blank=True, verbose_name="Horas Validadas OCR")
     horas_computadas_final = models.IntegerField(null=True, blank=True, verbose_name="Horas Computadas Final")
+    horas_descartadas = models.IntegerField(default=0, verbose_name="Horas Descartadas")
     
     indice_confianca_ocr = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name="Índice de Confiança OCR (%)")
     
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='pendente_ocr', verbose_name="Status")
+    motivo_status = models.CharField(max_length=255, blank=True, null=True, verbose_name="Motivo/Justificativa do Status")
     
     data_envio = models.DateTimeField(auto_now_add=True, verbose_name="Data de Envio")
     data_atualizacao = models.DateTimeField(auto_now=True, verbose_name="Última Atualização")
@@ -91,3 +94,41 @@ class Certificado(models.Model):
 
     def __str__(self):
         return f"Certificado {self.id} - {self.aluno.matricula} ({self.get_status_display()})"
+
+
+class RuleValidationLog(models.Model):
+    certificado = models.ForeignKey(Certificado, on_delete=models.CASCADE, related_name='logs_auditoria', verbose_name="Certificado")
+    usuario_responsavel = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, verbose_name="Usuário Responsável")
+    
+    regra_aplicada = models.CharField(max_length=255, verbose_name="Regra Aplicada")
+    artigo_resolucao = models.CharField(max_length=255, default="Resolução CONSUNI nº 057/2025", verbose_name="Artigo/Resolução")
+    justificativa = models.TextField(verbose_name="Justificativa")
+    
+    horas_enviadas = models.IntegerField(verbose_name="Horas Enviadas")
+    horas_computadas = models.IntegerField(verbose_name="Horas Computadas")
+    horas_descartadas = models.IntegerField(verbose_name="Horas Descartadas")
+    
+    data_validacao = models.DateTimeField(auto_now_add=True, verbose_name="Data da Validação")
+
+    class Meta:
+        verbose_name = "Log de Validação de Regra"
+        verbose_name_plural = "Logs de Validação de Regras"
+        ordering = ['-data_validacao']
+
+    def __str__(self):
+        return f"Log Certificado {self.certificado.id} - {self.regra_aplicada}"
+
+
+class Requerimento(models.Model):
+    aluno = models.ForeignKey(AlunoPerfil, on_delete=models.CASCADE, related_name='requerimentos', verbose_name="Aluno")
+    certificados = models.ManyToManyField(Certificado, related_name='requerimentos', verbose_name="Certificados Aprovados")
+    data_geracao = models.DateTimeField(auto_now_add=True, verbose_name="Data de Geração")
+    arquivo_pdf = models.FileField(upload_to='requerimentos_gerados/', null=True, blank=True, verbose_name="PDF do Anexo I")
+
+    class Meta:
+        verbose_name = "Requerimento (Anexo I)"
+        verbose_name_plural = "Requerimentos (Anexo I)"
+        ordering = ['-data_geracao']
+
+    def __str__(self):
+        return f"Requerimento {self.id} - {self.aluno.matricula}"

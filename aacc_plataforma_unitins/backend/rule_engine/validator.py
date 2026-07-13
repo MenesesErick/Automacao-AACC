@@ -51,30 +51,25 @@ class ValidadorCertificado:
 
     def simular_leitura_ocr(
         self, horas_informadas: float
-    ) -> tuple[float, float]:
+    ) -> tuple[float, float, str]:
         """
         Mock do motor OCR — substitui temporariamente a integração real com o
         módulo ``ocr_engine``.
 
         Simula que a IA leu o documento com perfeição: devolve as horas
-        exatamente como foram informadas pelo aluno e um índice de confiança
-        de 100.0%.
+        exatamente como foram informadas pelo aluno, um índice de confiança
+        de 100.0% e um texto simulado.
 
         Args:
             horas_informadas (float): Horas declaradas pelo aluno no certificado.
 
         Returns:
-            tuple[float, float]: Par ``(horas_lidas, indice_confianca)`` onde
-                                 ``horas_lidas == horas_informadas`` e
-                                 ``indice_confianca == 100.0``.
-
-        Note:
-            Este método deve ser substituído pela chamada real ao ``ocr_engine``
-            assim que o módulo de extração de PDF estiver implementado.
+            tuple[float, float, str]: Tuplo ``(horas_lidas, indice_confianca, texto_extraido)``.
         """
         horas_lidas: float = horas_informadas
         indice_confianca: float = 100.0
-        return horas_lidas, indice_confianca
+        texto_extraido: str = f"[SIMULAÇÃO OCR] Certificado validado automaticamente. Carga horária identificada: {horas_lidas}h."
+        return horas_lidas, indice_confianca, texto_extraido
 
     def processar_certificado(
         self,
@@ -102,24 +97,15 @@ class ValidadorCertificado:
 
         Returns:
             dict: Dicionário de resultado com as seguintes chaves:
-                - ``status_sugerido`` (str): ``'revisao_manual'`` ou ``'aprovado'``.
-                - ``horas_finais`` (float): Horas efetivamente aprovadas (0.0 em
-                  caso de revisão manual).
-                - ``confianca_ocr`` (float): Índice de confiança retornado pelo OCR.
-
-        Examples:
-            >>> v = ValidadorCertificado()
-
-            # Cenário aprovado — horas cabem dentro do teto
-            >>> v.processar_certificado(30.0, 60.0, 10.0)
-            {'status_sugerido': 'aprovado', 'horas_finais': 30.0, 'confianca_ocr': 100.0}
-
-            # Cenário aprovado — horas excedem o teto; corte aplicado
-            >>> v.processar_certificado(80.0, 60.0, 40.0)
-            {'status_sugerido': 'aprovado', 'horas_finais': 20.0, 'confianca_ocr': 100.0}
+                - ``status_sugerido`` (str)
+                - ``horas_finais`` (float)
+                - ``horas_descartadas`` (float)
+                - ``confianca_ocr`` (float)
+                - ``texto_extraido`` (str)
+                - ``motivo`` (str)
         """
         # Passo 1: leitura (simulada) do documento
-        horas_lidas, confianca = self.simular_leitura_ocr(horas_informadas)
+        horas_lidas, confianca, texto_extraido = self.simular_leitura_ocr(horas_informadas)
 
         # Passo 2: auditoria de confiança (RN04)
         status: str = self.avaliar_confianca_ocr(confianca)
@@ -129,7 +115,10 @@ class ValidadorCertificado:
             return {
                 "status_sugerido": "revisao_manual",
                 "horas_finais": 0.0,
+                "horas_descartadas": 0.0,
                 "confianca_ocr": confianca,
+                "texto_extraido": texto_extraido,
+                "motivo": "Índice de confiança do OCR abaixo do limiar mínimo. Necessária revisão manual.",
             }
 
         # Passo 4: aprovado — aplica as regras de cômputo da Resolução 057
@@ -138,9 +127,21 @@ class ValidadorCertificado:
             limite_categoria=limite_cat,
             saldo_atual=saldo_cat,
         )
+        
+        horas_descartadas = horas_lidas - horas_finais
+        
+        motivo = "Aprovado integralmente."
+        if horas_descartadas > 0:
+            if horas_finais == 0:
+                motivo = "Teto máximo da categoria já atingido. Nenhuma hora foi aproveitada."
+            else:
+                motivo = f"Aprovado parcialmente. Teto da categoria atingido, descartando {horas_descartadas}h."
 
         return {
             "status_sugerido": "aprovado",
             "horas_finais": horas_finais,
+            "horas_descartadas": horas_descartadas,
             "confianca_ocr": confianca,
+            "texto_extraido": texto_extraido,
+            "motivo": motivo,
         }
