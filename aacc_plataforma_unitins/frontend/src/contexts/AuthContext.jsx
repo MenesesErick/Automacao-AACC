@@ -1,35 +1,74 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { jwtDecode } from 'jwt-decode'
+import api, { setTokens, clearTokens } from '@/services/api/client'
 
 const AuthContext = createContext({})
 
+/**
+ * Extrai os dados relevantes do payload do JWT e mapeia para o estado do utilizador.
+ * Funciona com os claims customizados definidos em accounts/serializers.py.
+ */
+function extrairPerfilDoToken(accessToken) {
+  try {
+    const payload = jwtDecode(accessToken)
+    return {
+      id:              payload.user_id,
+      nome:            payload.nome   || 'Utilizador',
+      email:           payload.email  || '',
+      // O role é derivado dos claims de perfil injetados no backend
+      role:            payload.is_coordenador ? 'coordenador' : 'aluno',
+      is_aluno:        payload.is_aluno        ?? false,
+      is_coordenador:  payload.is_coordenador  ?? false,
+    }
+  } catch {
+    return null
+  }
+}
+
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
+  const [user, setUser]       = useState(null)
   const [loading, setLoading] = useState(true)
 
+  // Hidrata o estado a partir do token guardado no localStorage
   useEffect(() => {
-    // Simular carregamento inicial do localStorage
-    const savedUser = localStorage.getItem('@aacc_mock_user')
-    if (savedUser) {
-      setUser(JSON.parse(savedUser))
+    const token = localStorage.getItem('access_token')
+    if (token) {
+      const perfil = extrairPerfilDoToken(token)
+      if (perfil) {
+        setUser(perfil)
+      } else {
+        // Token corrompido ou expirado — limpa
+        clearTokens()
+      }
     }
     setLoading(false)
   }, [])
 
-  const login = (role) => {
-    const mockUser = {
-      id: role === 'aluno' ? 1 : 2,
-      name: role === 'aluno' ? 'João Silva' : 'Prof. Carlos Admin',
-      email: role === 'aluno' ? 'joao.silva@unitins.br' : 'carlos.coord@unitins.br',
-      role: role,
-    }
-    setUser(mockUser)
-    localStorage.setItem('@aacc_mock_user', JSON.stringify(mockUser))
-  }
+  /**
+   * Autentica o utilizador via POST /api/accounts/token/.
+   * @param {string} email    - Email institucional (@unitins.br)
+   * @param {string} password - Senha
+   * @throws {Error} friendlyMessage vindo da API (ex: domínio inválido)
+   */
+  const login = useCallback(async (email, password) => {
+    // O simplejwt usa o campo "username" por padrão
+    const { data } = await api.post('/accounts/token/', {
+      username: email,
+      password,
+    })
 
-  const logout = () => {
+    setTokens({ access: data.access, refresh: data.refresh })
+
+    const perfil = extrairPerfilDoToken(data.access)
+    setUser(perfil)
+
+    return perfil
+  }, [])
+
+  const logout = useCallback(() => {
+    clearTokens()
     setUser(null)
-    localStorage.removeItem('@aacc_mock_user')
-  }
+  }, [])
 
   return (
     <AuthContext.Provider value={{ user, loading, login, logout }}>
