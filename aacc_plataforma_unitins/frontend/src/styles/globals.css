@@ -25,8 +25,8 @@
   }
 
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
   }
   ::-webkit-scrollbar-track {
     @apply bg-transparent;
@@ -74,4 +74,14 @@
   .sidebar-item.active .sidebar-icon {
     @apply text-sidebar-iconActive;
   }
+
+  /* ── Animação do Drawer ────────────────────────────── */
+  .animate-drawer-in {
+    animation: drawer-slide-in 0.25s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+  }
+  @keyframes drawer-slide-in {
+    from { transform: translateX(100%); }
+    to   { transform: translateX(0); }
+  }
 }
+

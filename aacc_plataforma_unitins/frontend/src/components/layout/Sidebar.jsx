@@ -1,27 +1,24 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, FileText, BookOpen, Users,
-  Settings, ChevronLeft, Search, GraduationCap, LogOut, ShieldCheck
+  Settings, PanelLeft, GraduationCap, LogOut,
+  ShieldCheck, SendHorizonal
 } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import { Avatar } from '@/components/atoms/Avatar'
 import { useAuth } from '@/contexts/AuthContext'
 
 const NAV_ALUNO = [
-  { label: 'Dashboard',    icon: LayoutDashboard, to: '/aluno/dashboard' },
-  { label: 'Meus Certificados', icon: FileText, to: '/aluno/certificados' },
-  { label: 'Enviar Novo',  icon: GraduationCap,   to: '/aluno/enviar' },
+  { label: 'Dashboard',       icon: LayoutDashboard, to: '/aluno/dashboard' },
+  { label: 'Enviar Novo',     icon: SendHorizonal,   to: '/aluno/enviar' },
+  { label: 'Meus Certificados', icon: FileText,       to: '/aluno/certificados' },
 ]
 
 const NAV_COORDENADOR = [
-  { label: 'Dashboard',    icon: LayoutDashboard, to: '/coordenador/dashboard' },
-  { label: 'Fila de Revisão', icon: ShieldCheck, to: '/coordenador/revisao' },
-  { label: 'Gestão de Alunos', icon: Users,      to: '/coordenador/alunos' },
-  { label: 'Categorias AACC',  icon: BookOpen,   to: '/coordenador/categorias' },
-]
-
-const BOTTOM_ITEMS = [
-  { label: 'Configurações', icon: Settings, to: '/configuracoes' },
+  { label: 'Dashboard',       icon: LayoutDashboard, to: '/coordenador/dashboard' },
+  { label: 'Fila de Revisão', icon: ShieldCheck,     to: '/coordenador/revisao' },
+  { label: 'Alunos',          icon: Users,            to: '/coordenador/alunos' },
+  { label: 'Categorias',      icon: BookOpen,         to: '/coordenador/categorias' },
 ]
 
 export function Sidebar({ collapsed, onToggle }) {
@@ -29,11 +26,7 @@ export function Sidebar({ collapsed, onToggle }) {
   const navigate = useNavigate()
 
   const navItems = user?.role === 'coordenador' ? NAV_COORDENADOR : NAV_ALUNO
-
-  const handleLogout = () => {
-    logout()
-    navigate('/login')
-  }
+  const handleLogout = () => { logout(); navigate('/login') }
 
   return (
     <aside
@@ -41,40 +34,41 @@ export function Sidebar({ collapsed, onToggle }) {
         'fixed left-0 top-0 h-screen z-30',
         'bg-sidebar-bg border-r border-border',
         'flex flex-col transition-[width] duration-300 ease-in-out',
-        collapsed ? 'w-16' : 'w-sidebar',
+        collapsed ? 'w-16' : 'w-60',
       )}
     >
-      {/* Logo */}
-      <div className="flex items-center border-b border-border shrink-0 h-header px-4 gap-3">
-        <div className="h-8 w-8 rounded-xs bg-primary flex items-center justify-center shrink-0">
-          <GraduationCap className="h-5 w-5 text-text-inverse" />
+      {/* ── Logo ─────────────────────────────────────────────── */}
+      <div className="flex items-center border-b border-border shrink-0 h-14 px-3 gap-2.5">
+        <div className="h-7 w-7 rounded-xs bg-primary flex items-center justify-center shrink-0">
+          <GraduationCap className="h-4 w-4 text-white" />
         </div>
         {!collapsed && (
-          <div className="flex flex-col min-w-0">
+          <div className="flex flex-col min-w-0 flex-1">
             <span className="text-label font-bold text-text-primary leading-tight truncate">
               AACC Platform
             </span>
-            <span className="text-helper text-text-secondary truncate">
+            <span className="text-helper text-text-secondary truncate" style={{ fontSize: '10px' }}>
               {user?.role === 'coordenador' ? 'Coordenação' : 'Portal do Aluno'}
             </span>
           </div>
         )}
         <button
           onClick={onToggle}
+          title={collapsed ? 'Expandir menu' : 'Colapsar menu'}
           className={cn(
-            'ml-auto rounded-xs p-1 text-text-secondary hover:bg-bg hover:text-text-primary transition-colors',
+            'rounded-xs p-1.5 text-text-secondary hover:bg-bg hover:text-text-primary transition-colors',
             collapsed && 'mx-auto',
           )}
         >
-          <ChevronLeft className={cn('h-4 w-4 transition-transform duration-300', collapsed && 'rotate-180')} />
+          <PanelLeft className={cn('h-4 w-4 transition-transform duration-300', collapsed && 'rotate-180')} />
         </button>
       </div>
 
-      {/* Navegação */}
-      <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5 mt-2">
+      {/* ── Navegação ────────────────────────────────────────── */}
+      <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
         {!collapsed && (
-          <p className="px-3 mb-1 text-helper text-text-disabled font-semibold uppercase tracking-wider">
-            Menu
+          <p className="px-2 mb-2 text-helper text-text-disabled font-semibold uppercase tracking-widest">
+            {user?.role === 'coordenador' ? 'Gestão' : 'Aluno'}
           </p>
         )}
         {navItems.map((item) => (
@@ -82,35 +76,35 @@ export function Sidebar({ collapsed, onToggle }) {
         ))}
       </nav>
 
-      {/* Bottom Profile */}
-      <div className="px-2 py-3 border-t border-border space-y-0.5 shrink-0">
-        {BOTTOM_ITEMS.map((item) => (
-          <SidebarLink key={item.to} item={item} collapsed={collapsed} />
-        ))}
+      {/* ── Rodapé ───────────────────────────────────────────── */}
+      <div className="px-2 py-2 border-t border-border shrink-0 space-y-0.5">
+        <SidebarLink item={{ label: 'Configurações', icon: Settings, to: '/configuracoes' }} collapsed={collapsed} />
 
-        <div 
+        <button
           onClick={handleLogout}
+          title="Sair"
           className={cn(
-            'flex items-center gap-3 px-3 py-2 rounded-xs cursor-pointer',
-            'hover:bg-danger-light hover:text-danger transition-colors duration-normal mt-1 text-text-secondary group',
+            'w-full flex items-center gap-3 px-3 py-2 rounded-xs',
+            'text-text-secondary hover:bg-danger-light hover:text-danger',
+            'transition-colors duration-normal group mt-1',
             collapsed && 'justify-center',
           )}
         >
-          <Avatar name={user?.name} size="sm" className="shrink-0" />
+          <Avatar name={user?.nome || user?.name || 'U'} size="xs" className="shrink-0" />
           {!collapsed && (
-            <div className="min-w-0 flex-1">
-              <p className="text-label font-medium text-text-primary group-hover:text-danger truncate">
-                {user?.name || 'Usuário'}
-              </p>
-              <p className="text-helper text-text-secondary group-hover:text-danger/80 truncate">
-                {user?.email || 'email@unitins.br'}
-              </p>
-            </div>
+            <>
+              <div className="min-w-0 flex-1 text-left">
+                <p className="text-label font-medium text-text-primary group-hover:text-danger truncate leading-tight">
+                  {user?.nome || user?.name || 'Utilizador'}
+                </p>
+                <p className="text-helper text-text-secondary group-hover:text-danger/70 truncate" style={{ fontSize: '10px' }}>
+                  {user?.email || '—'}
+                </p>
+              </div>
+              <LogOut className="h-3.5 w-3.5 shrink-0 opacity-60 group-hover:opacity-100" />
+            </>
           )}
-          {!collapsed && (
-            <LogOut className="h-4 w-4 shrink-0 transition-colors" />
-          )}
-        </div>
+        </button>
       </div>
     </aside>
   )
@@ -120,14 +114,14 @@ function SidebarLink({ item, collapsed }) {
   return (
     <NavLink
       to={item.to}
-      className={({ isActive }) => cn('sidebar-item', isActive && 'active')}
       title={collapsed ? item.label : undefined}
+      className={({ isActive }) => cn('sidebar-item', isActive && 'active')}
     >
       {({ isActive }) => (
         <>
           <item.icon
             className={cn(
-              'h-4 w-4 shrink-0 sidebar-icon transition-colors',
+              'h-4 w-4 shrink-0 sidebar-icon',
               isActive ? 'text-sidebar-iconActive' : 'text-sidebar-icon',
             )}
           />
