@@ -117,11 +117,14 @@ export function CertificadoDrawer({ certificado, onClose, onAvaliado }) {
   const cfg = STATUS_CONFIG[certificado.status] ?? STATUS_CONFIG.pendente_ocr
   const { label, variant, Icon: StatusIcon, bannerClass } = cfg
 
-  const pdfUrl = certificado.arquivo_pdf
-    ? (certificado.arquivo_pdf.startsWith('http')
-      ? certificado.arquivo_pdf
-      : `/media/${certificado.arquivo_pdf}`)
-    : null
+  const getPdfUrl = (path) => {
+    if (!path) return null
+    if (path.startsWith('http')) return path
+    // Se o Django nao enviar com /media/, adiciona-o
+    const cleanPath = path.startsWith('/media') ? path : `/media/${path}`
+    return `http://127.0.0.1:8000${cleanPath}`
+  }
+  const pdfUrl = getPdfUrl(certificado.arquivo_pdf)
 
   const dataEnvio = certificado.data_envio
     ? new Date(certificado.data_envio).toLocaleDateString('pt-BR', {
