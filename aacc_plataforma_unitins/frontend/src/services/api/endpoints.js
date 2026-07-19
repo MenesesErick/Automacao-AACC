@@ -8,6 +8,7 @@ export const certificadosService = {
   }),
   atualizar: (id, data) => api.patch(`/academico/certificados/${id}/`, data),
   remover:   (id)       => api.delete(`/academico/certificados/${id}/`),
+  avaliar:   (id, data) => api.patch(`/academico/certificados/${id}/avaliar/`, data),
 }
 
 export const categoriasService = {

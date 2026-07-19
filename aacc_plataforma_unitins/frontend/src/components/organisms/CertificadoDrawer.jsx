@@ -1,12 +1,14 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   X, FileText, Clock, CheckCircle2, XCircle,
   AlertTriangle, Eye, Download, Calendar, Hash,
-  Layers, Hourglass, TrendingDown, Info
+  Layers, Hourglass, TrendingDown, Info, Loader2
 } from 'lucide-react'
 import { Badge } from '@/components/atoms/Badge'
 import { cn } from '@/utils/cn'
+import { useAuth } from '@/contexts/AuthContext'
+import { certificadosService } from '@/services/api/endpoints'
 
 // ── Mapa de status → Badge + ícone + texto ──────────────────────────────────
 const STATUS_CONFIG = {
@@ -58,7 +60,44 @@ function MetaRow({ icon: Icon, label, value, valueClass = '' }) {
   )
 }
 
-export function CertificadoDrawer({ certificado, onClose }) {
+export function CertificadoDrawer({ certificado, onClose, onAvaliado }) {
+  const { user } = useAuth()
+  const [horasValidadas, setHorasValidadas] = useState('')
+  const [motivo, setMotivo] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [erro, setErro] = useState('')
+
+  // Ao abrir um novo certificado, resetar o form e pré-preencher as horas
+  useEffect(() => {
+    if (certificado) {
+      setHorasValidadas(certificado.horas_declaradas || '')
+      setMotivo('')
+      setErro('')
+    }
+  }, [certificado])
+
+  const handleAvaliar = async (statusDecisao) => {
+    if (!horasValidadas) {
+      setErro('Informe as horas validadas.')
+      return
+    }
+    try {
+      setSubmitting(true)
+      setErro('')
+      await certificadosService.avaliar(certificado.id, {
+        status: statusDecisao,
+        horas_computadas_final: horasValidadas,
+        motivo_status: motivo
+      })
+      onAvaliado?.()
+      onClose()
+    } catch (err) {
+      setErro(err.friendlyMessage ?? 'Erro ao avaliar certificado.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   // Fechar com Escape
   useEffect(() => {
     if (!certificado) return
@@ -197,6 +236,61 @@ export function CertificadoDrawer({ certificado, onClose }) {
                 )}
               </div>
             </div>
+
+            {/* ── Área de Decisão (Apenas Coordenador) ── */}
+            {user?.role === 'coordenador' && ['pendente_ocr', 'revisao_manual'].includes(certificado.status) && (
+              <div className="mt-6 pt-6 border-t border-border">
+                <p className="text-helper text-text-primary font-bold uppercase tracking-wider mb-4">
+                  Decisão do Coordenador
+                </p>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-helper font-medium text-text-primary mb-1 block">
+                      Horas Validadas
+                    </label>
+                    <input
+                      type="number"
+                      value={horasValidadas}
+                      onChange={(e) => setHorasValidadas(e.target.value)}
+                      className="w-full h-9 rounded-xs border border-border px-3 text-label focus:ring-2 focus:ring-primary outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-helper font-medium text-text-primary mb-1 block">
+                      Motivo / Justificativa (Opcional)
+                    </label>
+                    <textarea
+                      value={motivo}
+                      onChange={(e) => setMotivo(e.target.value)}
+                      rows={3}
+                      className="w-full rounded-xs border border-border p-3 text-label focus:ring-2 focus:ring-primary outline-none resize-none"
+                      placeholder="Ex: Deferido."
+                    />
+                  </div>
+
+                  {erro && <p className="text-helper text-danger">{erro}</p>}
+
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      onClick={() => handleAvaliar('rejeitado')}
+                      disabled={submitting}
+                      className="flex-1 h-9 rounded-xs border border-danger text-danger font-medium hover:bg-danger hover:text-white transition-colors flex items-center justify-center gap-2"
+                    >
+                      {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Indeferir'}
+                    </button>
+                    <button
+                      onClick={() => handleAvaliar('aprovado')}
+                      disabled={submitting}
+                      className="flex-1 h-9 rounded-xs bg-success text-white font-medium hover:bg-success/90 transition-colors flex items-center justify-center gap-2"
+                    >
+                      {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Deferir'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Coluna Direita — Preview do PDF */}

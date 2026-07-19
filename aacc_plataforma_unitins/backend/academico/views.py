@@ -14,6 +14,8 @@ Segurança:
 import logging
 
 from rest_framework import mixins, viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 
 from academico.models import AlunoPerfil, CategoriaAACC, Certificado
@@ -181,3 +183,77 @@ class CertificadoViewSet(viewsets.ModelViewSet):
             logger.exception(
                 "Erro ao processar certificado %s: %s", certificado.id, exc
             )
+
+    # ── Auditoria / Human-in-the-Loop ───────────────────────────────────────
+    @action(detail=True, methods=["patch"])
+    def avaliar(self, request, pk=None):
+        """
+        Permite ao Coordenador deferir/indeferir certificados que caíram
+        em revisao_manual ou pendente_ocr.
+        """
+        user = request.user
+        if not user.is_coordenador:
+            raise PermissionDenied("Apenas coordenadores podem avaliar certificados.")
+
+        certificado = self.get_object()
+        data = request.data
+
+        status = data.get("status")
+        if status not in ["aprovado", "rejeitado"]:
+            return Response(
+                {"detail": "Status inválido. Deve ser 'aprovado' ou 'rejeitado'."},
+                status=400,
+            )
+
+        try:
+            horas_computadas = int(data.get("horas_computadas_final", 0))
+        except (ValueError, TypeError):
+            return Response(
+                {"detail": "horas_computadas_final deve ser um número inteiro."},
+                status=400,
+            )
+
+        motivo = data.get("motivo_status", "")
+        if status == "rejeitado" and not motivo:
+            motivo = "Indeferido pelo coordenador após revisão manual."
+        elif status == "aprovado" and not motivo:
+            motivo = "Deferido pelo coordenador após revisão manual."
+
+        # Atualiza o certificado
+        horas_declaradas = int(certificado.horas_declaradas)
+        certificado.status = status
+        certificado.horas_computadas_final = horas_computadas if status == "aprovado" else 0
+        certificado.horas_descartadas = horas_declaradas - certificado.horas_computadas_final
+        certificado.motivo_status = motivo
+        
+        certificado.save(
+            update_fields=[
+                "status",
+                "horas_computadas_final",
+                "horas_descartadas",
+                "motivo_status",
+                "data_atualizacao",
+            ]
+        )
+
+        # Gera log de auditoria da ação manual
+        from academico.models import RuleValidationLog
+        RuleValidationLog.objects.create(
+            certificado=certificado,
+            usuario_responsavel=user,
+            regra_aplicada="Revisão Manual (Coordenador)",
+            justificativa=motivo,
+            horas_enviadas=horas_declaradas,
+            horas_computadas=certificado.horas_computadas_final,
+            horas_descartadas=certificado.horas_descartadas,
+        )
+
+        logger.info(
+            "Certificado %s %s por %s. Horas: %s",
+            certificado.id,
+            status,
+            user.username,
+            certificado.horas_computadas_final,
+        )
+
+        return Response({"detail": f"Certificado {status} com sucesso."})
