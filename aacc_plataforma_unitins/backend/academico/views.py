@@ -13,10 +13,14 @@ Segurança:
 
 import logging
 
-from rest_framework import mixins, viewsets
+from django.shortcuts import get_object_or_404
+from django.db.models import Sum
+
+from rest_framework import mixins, viewsets, status as http_status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.views import APIView
 
 from academico.models import AlunoPerfil, CategoriaAACC, Certificado
 from academico.serializers import CategoriaAACCSerializer, CertificadoSerializer
@@ -206,10 +210,10 @@ class CertificadoViewSet(viewsets.ModelViewSet):
             )
 
         try:
-            horas_computadas = int(data.get("horas_computadas_final", 0))
+            horas_computadas = int(float(data.get("horas_computadas_final", 0)))
         except (ValueError, TypeError):
             return Response(
-                {"detail": "horas_computadas_final deve ser um número inteiro."},
+                {"detail": "horas_computadas_final deve ser um número válido."},
                 status=400,
             )
 
@@ -257,3 +261,113 @@ class CertificadoViewSet(viewsets.ModelViewSet):
         )
 
         return Response({"detail": f"Certificado {status} com sucesso."})
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  RN02 — Extrato do Aluno / Diversidade de Eixos
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _calcular_extrato(perfil: AlunoPerfil) -> dict:
+    """
+    Função pura que calcula o extrato de horas de um AlunoPerfil.
+    Reutilizável pelas duas views (aluno e coordenador).
+
+    Regras aplicadas:
+        RN02 — Diversidade de Eixos: apto_formatura = True somente se
+               total_horas >= meta E eixos_contemplados >= 2.
+        RN03 — Apenas certificados com status 'aprovado' contam.
+    """
+    META = int(
+        perfil.matriz_curricular.horas_totais_exigidas
+        if perfil.matriz_curricular_id
+        else 120
+    )
+
+    EIXOS = ["Ensino", "Pesquisa", "Extensao"]
+
+    # Suma de horas agrupadas por eixo usando ORM (um único query)
+    qs = (
+        Certificado.objects
+        .filter(aluno=perfil, status="aprovado")
+        .exclude(horas_computadas_final__isnull=True)
+        .values("categoria__eixo")
+        .annotate(total=Sum("horas_computadas_final"))
+    )
+
+    horas_por_eixo = {eixo: 0 for eixo in EIXOS}
+    for row in qs:
+        eixo_db = row["categoria__eixo"]  # ex: 'Extensao'
+        if eixo_db in horas_por_eixo:
+            horas_por_eixo[eixo_db] = row["total"]
+
+    total_horas = sum(horas_por_eixo.values())
+    eixos_contemplados = sum(1 for h in horas_por_eixo.values() if h > 0)
+
+    # RN02 — necessita pelo menos 2 eixos E atingir a meta
+    apto_formatura = (total_horas >= META) and (eixos_contemplados >= 2)
+
+    progresso_percentual = min(round((total_horas / META) * 100), 100) if META else 0
+
+    return {
+        "aluno_nome": perfil.usuario.get_full_name() or perfil.usuario.username,
+        "matricula": perfil.matricula,
+        "curso": perfil.curso.nome if perfil.curso_id else "—",
+        "total_horas_aprovadas": total_horas,
+        "meta_horas": META,
+        "horas_por_eixo": horas_por_eixo,
+        "eixos_contemplados": eixos_contemplados,
+        "apto_formatura": apto_formatura,
+        "progresso_percentual": progresso_percentual,
+        # Detalhe útil para o frontend mostrar o que falta
+        "faltam_horas": max(META - total_horas, 0),
+        "faltam_eixos": max(2 - eixos_contemplados, 0),
+    }
+
+
+class ExtratoAlunoMeView(APIView):
+    """
+    GET /api/academico/alunos/meu-extrato/
+
+    Devolve o extrato de horas e aptidão à formatura do ALUNO autenticado.
+    Apenas alunos têm acesso — coordenadores usam ExtratoAlunoCoordenadorView.
+    """
+
+    def get(self, request):
+        user = request.user
+
+        if user.is_coordenador:
+            return Response(
+                {"detail": "Use o endpoint /api/academico/alunos/<id>/extrato/ para ver o extrato de um aluno."},
+                status=http_status.HTTP_403_FORBIDDEN,
+            )
+
+        try:
+            perfil = user.perfil_aluno
+        except AlunoPerfil.DoesNotExist:
+            return Response(
+                {"detail": "Perfil de aluno não encontrado para este utilizador."},
+                status=http_status.HTTP_404_NOT_FOUND,
+            )
+
+        return Response(_calcular_extrato(perfil))
+
+
+class ExtratoAlunoCoordenadorView(APIView):
+    """
+    GET /api/academico/alunos/<perfil_id>/extrato/
+
+    Permite ao COORDENADOR consultar o extrato de qualquer aluno.
+    Alunos não têm acesso a esta rota.
+    """
+
+    def get(self, request, perfil_id: int):
+        user = request.user
+
+        if not user.is_coordenador:
+            return Response(
+                {"detail": "Apenas coordenadores podem consultar extratos de outros alunos."},
+                status=http_status.HTTP_403_FORBIDDEN,
+            )
+
+        perfil = get_object_or_404(AlunoPerfil, pk=perfil_id)
+        return Response(_calcular_extrato(perfil))
