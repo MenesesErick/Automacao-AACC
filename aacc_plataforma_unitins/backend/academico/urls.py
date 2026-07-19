@@ -24,6 +24,7 @@ from academico.views import (
     CertificadoViewSet,
     ExtratoAlunoMeView,
     ExtratoAlunoCoordenadorView,
+    ListaAlunosView,
 )
 
 router = DefaultRouter()
@@ -33,9 +34,8 @@ router.register(r"certificados", CertificadoViewSet,   basename="certificado")
 urlpatterns = [
     path("", include(router.urls)),
 
-    # ── Extrato do Aluno (RN02 — Diversidade de Eixos) ──────────────────────
-    # Aluno autenticado: GET /api/academico/alunos/meu-extrato/
-    path("alunos/meu-extrato/", ExtratoAlunoMeView.as_view(), name="extrato-aluno-me"),
-    # Coordenador: GET /api/academico/alunos/<id>/extrato/
+    # ── Alunos (RN02) ───────────────────────────────────────────────────────
+    path("alunos/",                        ListaAlunosView.as_view(),              name="lista-alunos"),
+    path("alunos/meu-extrato/",            ExtratoAlunoMeView.as_view(),           name="extrato-aluno-me"),
     path("alunos/<int:perfil_id>/extrato/", ExtratoAlunoCoordenadorView.as_view(), name="extrato-aluno-coordenador"),
 ]

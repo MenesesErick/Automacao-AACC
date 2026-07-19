@@ -1,0 +1,165 @@
+/**
+ * Componentes visuais reutilizáveis para o Extrato do Aluno (RN02).
+ * Usados tanto no DashboardAluno (visão própria) quanto no
+ * AlunoRaioXDrawer (visão do Coordenador).
+ */
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, Cell, RadialBarChart, RadialBar, PolarAngleAxis
+} from 'recharts'
+import { Info, PartyPopper, TriangleAlert } from 'lucide-react'
+
+// ── Design System cores ───────────────────────────────────────────────────────
+export const CORES = {
+  primary: '#0B5ED7',
+  success: '#16A34A',
+  warning: '#EAB308',
+  danger:  '#DC2626',
+  muted:   '#E5E7EB',
+  text:    '#667085',
+}
+
+export const COR_EIXO = {
+  Ensino:   '#0B5ED7',
+  Pesquisa: '#7C3AED',
+  Extensao: '#16A34A',
+}
+
+// ── Tooltip customizado ───────────────────────────────────────────────────────
+export function CustomTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null
+  return (
+    <div className="bg-white border border-border rounded-xs shadow-md px-3 py-2">
+      <p className="text-helper font-semibold text-text-primary">{label}</p>
+      <p className="text-label font-bold" style={{ color: payload[0]?.fill }}>
+        {payload[0]?.value}h
+      </p>
+    </div>
+  )
+}
+
+// ── Banner de Aptidão à Formatura ─────────────────────────────────────────────
+export function BannerFormatura({ extrato, loading, compact = false }) {
+  if (loading) {
+    return <div className="rounded-sm p-4 mb-4 animate-pulse h-14 bg-border" />
+  }
+  if (!extrato) return null
+
+  const { apto_formatura, faltam_horas, faltam_eixos } = extrato
+
+  if (apto_formatura) {
+    return (
+      <div className="flex items-center gap-3 rounded-sm p-4 mb-4 bg-success-light border border-success-muted">
+        <PartyPopper className="h-5 w-5 text-success shrink-0" />
+        <div>
+          <p className="text-label font-bold text-success">
+            {compact ? 'Apto para formatura!' : 'Parabéns! Você cumpriu todos os requisitos de AACC.'}
+          </p>
+          {!compact && (
+            <p className="text-helper text-success/80 mt-0.5">
+              Você pode solicitar a geração do Anexo I para entrega na Secretaria Acadêmica.
+            </p>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  const partes = []
+  if (faltam_horas > 0) partes.push(`${faltam_horas}h`)
+  if (faltam_eixos > 0) partes.push(`${faltam_eixos} eixo(s)`)
+
+  return (
+    <div className="flex items-start gap-3 rounded-sm p-4 mb-4 bg-warning-light border border-warning-muted">
+      <TriangleAlert className="h-5 w-5 text-warning shrink-0 mt-0.5" />
+      <div>
+        <p className="text-label font-bold text-yellow-700">Requisitos não cumpridos</p>
+        {!compact && (
+          <p className="text-helper text-yellow-600 mt-0.5">
+            {partes.length > 0
+              ? `Faltam ${partes.join(' e ')} — exige ≥ 2 eixos distintos.`
+              : 'Verifique as condições com o coordenador.'}
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Gráfico Radial de Progresso ───────────────────────────────────────────────
+export function GraficoProgresso({ pct, horasAprovadas, meta }) {
+  const data = [{ value: pct, fill: pct >= 100 ? CORES.success : CORES.primary }]
+  return (
+    <div className="surface rounded-sm p-5 flex flex-col items-center justify-center gap-2">
+      <p className="text-helper text-text-disabled font-semibold uppercase tracking-wider self-start">
+        Progresso Geral
+      </p>
+      <div className="relative w-full max-w-[180px] mx-auto" style={{ height: 180 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <RadialBarChart
+            cx="50%" cy="50%"
+            innerRadius="68%" outerRadius="90%"
+            startAngle={90} endAngle={-270}
+            data={data}
+          >
+            <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
+            <RadialBar dataKey="value" cornerRadius={6} background={{ fill: CORES.muted }} />
+          </RadialBarChart>
+        </ResponsiveContainer>
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <span className="text-h3 font-bold text-text-primary tabular-nums">{pct}%</span>
+          <span className="text-helper text-text-secondary">{horasAprovadas}h / {meta}h</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Gráfico de Barras por Eixo ────────────────────────────────────────────────
+export function GraficoEixos({ horas_por_eixo, meta }) {
+  const safeEixos = horas_por_eixo ?? {}
+  const data = Object.entries(safeEixos).map(([eixo, horas]) => ({
+    eixo,
+    horas,
+    fill: COR_EIXO[eixo] ?? CORES.primary,
+  }))
+
+  const maxValue = Math.max(meta, ...Object.values(safeEixos), 0) + 10
+
+  return (
+    <div className="surface rounded-sm p-5 flex flex-col gap-3 flex-1">
+      <div className="flex items-center justify-between">
+        <p className="text-helper text-text-disabled font-semibold uppercase tracking-wider">
+          Horas por Eixo (RN02)
+        </p>
+        <div className="flex items-center gap-1 text-helper text-text-disabled">
+          <Info className="h-3.5 w-3.5" />
+          <span>≥ 2 eixos para formatura</span>
+        </div>
+      </div>
+
+      <ResponsiveContainer width="100%" height={180}>
+        <BarChart data={data} barSize={36} margin={{ top: 4, right: 8, bottom: 0, left: -16 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke={CORES.muted} vertical={false} />
+          <XAxis dataKey="eixo" tick={{ fontSize: 12, fill: CORES.text }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 11, fill: CORES.text }} axisLine={false} tickLine={false} domain={[0, maxValue]} />
+          <Tooltip content={<CustomTooltip />} cursor={{ fill: '#F7F9FC' }} />
+          <Bar dataKey="horas" radius={[6, 6, 0, 0]}>
+            {data.map((d, i) => <Cell key={i} fill={d.fill} />)}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+
+      <div className="flex flex-wrap gap-x-4 gap-y-1">
+        {data.map((d) => (
+          <div key={d.eixo} className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: d.fill }} />
+            <span className="text-helper text-text-secondary">
+              {d.eixo}: <strong className="text-text-primary">{d.horas}h</strong>
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}

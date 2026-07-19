@@ -12,8 +12,9 @@ export const certificadosService = {
 }
 
 export const alunoService = {
-  obterMeuExtrato: () => api.get('/academico/alunos/meu-extrato/'),
-  obterExtrato:    (perfilId) => api.get(`/academico/alunos/${perfilId}/extrato/`),
+  listarAlunos:    ()          => api.get('/academico/alunos/'),
+  obterMeuExtrato: ()          => api.get('/academico/alunos/meu-extrato/'),
+  obterExtrato:    (perfilId)  => api.get(`/academico/alunos/${perfilId}/extrato/`),
 }
 
 export const categoriasService = {

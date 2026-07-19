@@ -11,6 +11,7 @@ import EnviarCertificado from '@/pages/aluno/EnviarCertificado'
 // Coordenador
 import DashboardCoordenador from '@/pages/coordenador/DashboardCoordenador'
 import FilaRevisao from '@/pages/coordenador/FilaRevisao'
+import GestaoAlunos from '@/pages/coordenador/GestaoAlunos'
 
 // Protected Route Component
 function RoleRoute({ children, allowedRole }) {
@@ -79,6 +80,14 @@ export function AppRouter() {
           element={
             <RoleRoute allowedRole="coordenador">
               <FilaRevisao />
+            </RoleRoute>
+          } 
+        />
+        <Route 
+          path="/coordenador/alunos" 
+          element={
+            <RoleRoute allowedRole="coordenador">
+              <GestaoAlunos />
             </RoleRoute>
           } 
         />

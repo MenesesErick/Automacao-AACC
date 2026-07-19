@@ -371,3 +371,51 @@ class ExtratoAlunoCoordenadorView(APIView):
 
         perfil = get_object_or_404(AlunoPerfil, pk=perfil_id)
         return Response(_calcular_extrato(perfil))
+
+
+class ListaAlunosView(APIView):
+    """
+    GET /api/academico/alunos/
+
+    Devolve a lista de todos os AlunoPerfis do sistema.
+    Acessível apenas por coordenadores.
+    """
+
+    def get(self, request):
+        user = request.user
+        if not user.is_coordenador:
+            return Response(
+                {"detail": "Apenas coordenadores podem listar os alunos."},
+                status=http_status.HTTP_403_FORBIDDEN,
+            )
+
+        from django.db.models import Count, Sum, Q
+
+        perfis = (
+            AlunoPerfil.objects
+            .select_related("usuario", "curso")
+            .annotate(
+                total_certs=Count("certificados"),
+                horas_aprovadas=Sum(
+                    "certificados__horas_computadas_final",
+                    filter=Q(certificados__status="aprovado"),
+                    default=0,
+                ),
+            )
+            .order_by("matricula")
+        )
+
+        data = [
+            {
+                "id":             p.pk,
+                "aluno_nome":     p.usuario.get_full_name() or p.usuario.username,
+                "email":          p.usuario.email,
+                "matricula":      p.matricula,
+                "curso":          p.curso.nome if p.curso_id else "—",
+                "total_certs":    p.total_certs,
+                "horas_aprovadas": p.horas_aprovadas or 0,
+            }
+            for p in perfis
+        ]
+
+        return Response(data)
