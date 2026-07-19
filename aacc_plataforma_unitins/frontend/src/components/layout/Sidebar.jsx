@@ -2,16 +2,16 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, FileText, BookOpen, Users,
   Settings, PanelLeft, GraduationCap, LogOut,
-  ShieldCheck, SendHorizonal
+  ShieldCheck, SendHorizonal, History
 } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import { Avatar } from '@/components/atoms/Avatar'
 import { useAuth } from '@/contexts/AuthContext'
 
 const NAV_ALUNO = [
-  { label: 'Dashboard',       icon: LayoutDashboard, to: '/aluno/dashboard' },
-  { label: 'Enviar Novo',     icon: SendHorizonal,   to: '/aluno/enviar' },
-  { label: 'Meus Certificados', icon: FileText,       to: '/aluno/certificados' },
+  { label: 'Dashboard',     icon: LayoutDashboard, to: '/aluno/dashboard' },
+  { label: 'Enviar Novo',   icon: SendHorizonal,   to: '/aluno/enviar' },
+  { label: 'Meu Histórico', icon: History,          to: '/aluno/historico' },
 ]
 
 const NAV_COORDENADOR = [

@@ -7,6 +7,7 @@ import LoginPage from '@/pages/auth/LoginPage'
 // Aluno
 import DashboardAluno from '@/pages/aluno/DashboardAluno'
 import EnviarCertificado from '@/pages/aluno/EnviarCertificado'
+import HistoricoAluno from '@/pages/aluno/HistoricoAluno'
 
 // Coordenador
 import DashboardCoordenador from '@/pages/coordenador/DashboardCoordenador'
@@ -62,6 +63,14 @@ export function AppRouter() {
           element={
             <RoleRoute allowedRole="aluno">
               <EnviarCertificado />
+            </RoleRoute>
+          } 
+        />
+        <Route 
+          path="/aluno/historico" 
+          element={
+            <RoleRoute allowedRole="aluno">
+              <HistoricoAluno />
             </RoleRoute>
           } 
         />
