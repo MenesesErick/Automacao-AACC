@@ -11,6 +11,11 @@ export const certificadosService = {
   avaliar:   (id, data) => api.patch(`/academico/certificados/${id}/avaliar/`, data),
 }
 
+export const alunoService = {
+  obterMeuExtrato: () => api.get('/academico/alunos/meu-extrato/'),
+  obterExtrato:    (perfilId) => api.get(`/academico/alunos/${perfilId}/extrato/`),
+}
+
 export const categoriasService = {
   listar: (params) => api.get('/academico/categorias/', { params }),
   obter:  (id)     => api.get(`/academico/categorias/${id}/`),
