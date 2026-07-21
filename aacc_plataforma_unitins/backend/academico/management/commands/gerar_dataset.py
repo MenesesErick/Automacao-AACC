@@ -121,7 +121,7 @@ def _rodape_codigo(c, page_w: float, codigo: str) -> None:
     """Imprime o código de validação no rodapé em fonte Courier pequena."""
     c.setFont("Courier", 7)
     texto = f"Autenticidade: site.aacc.unitins.br/valida | Codigo: {codigo}"
-    c.drawCentredString(page_w / 2, 1.0 * cm, texto)
+    c.drawCentredString(page_w / 2, 2.0 * cm, texto)
 
 
 def _tentar_imagem_fundo(c, tipo_doc: str, page_w: float, page_h: float) -> None:
@@ -169,36 +169,39 @@ def _desenhar_certificado(c, nome_aluno: str, horas: int, nome_evento: str,
         c.rect(margem + offset, margem + offset,
                PW - 2 * (margem + offset), PH - 2 * (margem + offset))
 
-        # Título
+        # Título — Safe Zone: nunca acima de PH - 4*cm
         c.setFillColorRGB(0.1, 0.1, 0.4)
         c.setFont("Times-Bold", 26)
-        c.drawCentredString(PW / 2, PH - 3.5 * cm, "CERTIFICADO DE PARTICIPACAO")
+        c.drawCentredString(PW / 2, PH - 4.5 * cm, "CERTIFICADO DE PARTICIPACAO")
 
         # Entidade emissora
         c.setFillColorRGB(0.3, 0.3, 0.3)
         c.setFont("Helvetica-Oblique", 10)
-        c.drawCentredString(PW / 2, PH - 4.5 * cm, entidade)
+        c.drawCentredString(PW / 2, PH - 5.5 * cm, entidade)
 
         # Linha decorativa
         c.setStrokeColorRGB(0.6, 0.6, 0.8)
         c.setLineWidth(0.8)
-        c.line(3.5 * cm, PH - 5.0 * cm, PW - 3.5 * cm, PH - 5.0 * cm)
+        c.line(3.5 * cm, PH - 6.0 * cm, PW - 3.5 * cm, PH - 6.0 * cm)
 
-        # Corpo principal — texto com quebra automática
+        # Corpo principal — centralizado no miolo da folha (Safe Zone)
         corpo = (
             f"Certificamos que o(a) discente "
             f"{nome_aluno.upper()}, "
             f"devidamente inscrito(a) em nossos registros academicos, "
             f"participou e concluiu com exito o(a) {nome_evento}, "
             f"realizado sob a coordenacao desta instituicao, "
-            f"totalizando uma carga horaria de {horas} ({"por extenso " + str(horas)}) horas, "
+            f"totalizando uma carga horaria de {horas} ({horas}) horas, "
             f"em conformidade com a Resolucao CONSUNI no 057/2025 "
             f"que regulamenta as Atividades Academico-Cientifico-Culturais (AACC)."
         )
-        _draw_wrapped(c, corpo, "Times-Roman", 12, PW / 2, PH - 6.5 * cm,
-                      PW - 7 * cm, line_gap=0.6, align='center')
+        # Y_start: centro matemático da folha (garante equilíbrio visual)
+        y_corpo = PH / 2 + 1.5 * cm
+        _draw_wrapped(c, corpo, "Times-Roman", 12, PW / 2, y_corpo,
+                      PW - 8 * cm, line_gap=0.65, align='center')
 
-        # Rodapé: cidade, data, código
+        # Rodapé: cidade, data — Safe Zone: nunca abaixo de 3.5*cm
+
         cidade = random.choice(CIDADES)
         data   = _fake.date_this_decade().strftime('%d de %B de %Y')
         c.setFont("Helvetica", 9)
@@ -213,38 +216,39 @@ def _desenhar_certificado(c, nome_aluno: str, horas: int, nome_evento: str,
 
     else:
         # ── Sub-layout B: Helvetica, dois blocos ─────────────────────────────
+        # Safe Zone: faixa horizontal decorativa abaixo de PH - 4*cm
         c.setStrokeColorRGB(0.8, 0.1, 0.1)
         c.setLineWidth(3)
-        c.line(0, PH - 1.5 * cm, PW, PH - 1.5 * cm)
-        c.line(0, 1.5 * cm, PW, 1.5 * cm)
+        c.line(0, PH - 4.0 * cm, PW, PH - 4.0 * cm)
+        c.line(0, 3.0 * cm, PW, 3.0 * cm)
 
         c.setFillColorRGB(0, 0, 0)
         c.setFont("Helvetica-Bold", 22)
-        c.drawString(margem, PH - 3.0 * cm, "CERTIFICADO")
+        c.drawString(margem, PH - 5.0 * cm, "CERTIFICADO")
         c.setFont("Helvetica", 11)
-        c.drawString(margem, PH - 4.0 * cm, entidade)
+        c.drawString(margem, PH - 5.8 * cm, entidade)
 
-        # Coluna esquerda: evento e horas
+        # Coluna esquerda: evento e horas — Safe Zone Y_start = PH/2 + 2*cm
         c.setFont("Helvetica-Bold", 13)
-        c.drawString(margem, PH - 5.5 * cm, "EVENTO / ATIVIDADE:")
-        _draw_wrapped(c, nome_evento, "Helvetica", 11, margem, PH - 6.2 * cm,
+        c.drawString(margem, PH / 2 + 2.5 * cm, "EVENTO / ATIVIDADE:")
+        _draw_wrapped(c, nome_evento, "Helvetica", 11, margem, PH / 2 + 1.8 * cm,
                       PW / 2 - 3 * cm, line_gap=0.5)
 
         c.setFont("Helvetica-Bold", 11)
-        c.drawString(margem, PH - 8.5 * cm, f"Carga Horaria: {horas}h")
+        c.drawString(margem, PH / 2 - 0.5 * cm, f"Carga Horaria: {horas}h")
 
         # Coluna direita: participante
         cx = PW / 2 + 0.5 * cm
         c.setFont("Helvetica-Bold", 13)
-        c.drawString(cx, PH - 5.5 * cm, "PARTICIPANTE:")
+        c.drawString(cx, PH / 2 + 2.5 * cm, "PARTICIPANTE:")
         c.setFont("Times-Bold", 16)
-        _draw_wrapped(c, nome_aluno, "Times-Bold", 16, cx, PH - 6.2 * cm,
+        _draw_wrapped(c, nome_aluno, "Times-Bold", 16, cx, PH / 2 + 1.8 * cm,
                       PW / 2 - 3 * cm, line_gap=0.65)
 
-        # Data e cidade
+        # Data e cidade — Safe Zone: nunca abaixo de 3*cm
         data = _fake.date_this_decade().strftime('%d/%m/%Y')
         c.setFont("Helvetica", 9)
-        c.drawRightString(PW - margem, 2.0 * cm, f"{random.choice(CIDADES)}, {data}")
+        c.drawRightString(PW - margem, 3.5 * cm, f"{random.choice(CIDADES)}, {data}")
 
     _rodape_codigo(c, PW, codigo)
 
@@ -356,17 +360,24 @@ def _desenhar_declaracao(c, nome_aluno: str, horas: int, nome_evento: str,
         Paragraph(rodape_info, estilo_corpo),
     ]
 
-    # Frame = área de texto com posição e dimensões explícitas
-    frame_x = margem
-    frame_y = 4.5 * cm   # espaço para assinaturas no rodapé
-    frame_w = PW - 2 * margem
-    frame_h = PH - 5.5 * cm - 4.5 * cm
+    # Frame = área de texto com Safe Zones drásticas
+    # Margem superior: 5*cm (foge do timbrado/cabeçalho da PNG)
+    # Margem inferior: 4*cm (foge do rodapé com assinaturas e código)
+    margem_esq  = 3.0 * cm
+    margem_dir  = 3.0 * cm
+    margem_topo = 5.0 * cm    # zona segura do cabeçalho timbrado
+    margem_rod  = 4.0 * cm    # zona segura do rodapé com assinatura e código
+
+    frame_x = margem_esq
+    frame_y = margem_rod
+    frame_w = PW - margem_esq - margem_dir
+    frame_h = PH - margem_topo - margem_rod
 
     frame = Frame(frame_x, frame_y, frame_w, frame_h, showBoundary=0)
     frame.addFromList(paragrafos, c)
 
-    # ── Bloco de assinatura ───────────────────────────────────────────────────
-    sig_y = 3.8 * cm
+    # ── Bloco de assinatura ── Safe Zone: nunca abaixo de 3.5*cm ─────────────
+    sig_y = 3.5 * cm
     c.setLineWidth(0.5)
     c.line(margem, sig_y, PW / 2 - 0.5 * cm, sig_y)
     c.line(PW / 2 + 0.5 * cm, sig_y, PW - margem, sig_y)
