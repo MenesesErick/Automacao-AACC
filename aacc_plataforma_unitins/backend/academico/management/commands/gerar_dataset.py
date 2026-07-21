@@ -19,6 +19,7 @@ Uso:
     python manage.py gerar_dataset --qtd 10                    # 10 docs por aluno
 """
 
+import glob
 import io
 import os
 import random
@@ -126,17 +127,21 @@ def _rodape_codigo(c, page_w: float, codigo: str) -> None:
 
 def _tentar_imagem_fundo(c, tipo_doc: str, page_w: float, page_h: float) -> None:
     """
-    Tenta desenhar uma imagem de fundo (watermark) se o asset existir.
-    Silencioso em caso de ausência — nunca quebra o script.
+    Escolhe aleatoriamente um template de fundo (glob: certificado_bg*.png /
+    declaracao_bg*.png) e desenha-o cobrindo toda a pagina.
+    Silencioso se nenhum asset existir ou se ocorrer qualquer erro.
     """
-    nome_asset = 'certificado_bg.png' if tipo_doc == 'certificado' else 'declaracao_bg.png'
-    caminho    = os.path.join(settings.MEDIA_ROOT, 'templates_base', nome_asset)
+    prefixo   = 'certificado_bg' if tipo_doc == 'certificado' else 'declaracao_bg'
+    templates_dir = os.path.join(settings.MEDIA_ROOT, 'templates_base')
+    candidatos = glob.glob(os.path.join(templates_dir, f"{prefixo}*.png"))
+    if not candidatos:
+        return
+    caminho = random.choice(candidatos)
     try:
-        if os.path.isfile(caminho):
-            c.drawImage(caminho, 0, 0, width=page_w, height=page_h,
-                        preserveAspectRatio=True, mask='auto')
+        c.drawImage(caminho, 0, 0, width=page_w, height=page_h,
+                    preserveAspectRatio=False, mask='auto')
     except Exception:
-        pass  # asset ausente ou corrompido — continua sem fundo
+        pass  # asset corrompido ou formato invalido — continua sem fundo
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -271,35 +276,12 @@ def _desenhar_declaracao(c, nome_aluno: str, horas: int, nome_evento: str,
     PW, PH = A4
     margem = 2.5 * cm
 
+    # Fundo: confiamos 100% na imagem PNG — nenhum cabeçalho desenhado por cima
     _tentar_imagem_fundo(c, 'declaracao', PW, PH)
 
+    # CNPJ apenas para uso interno nos textos do corpo (não desenhado no topo)
     cnpj = _cnpj_falso()
-
-    # ── Cabeçalho timbrado ────────────────────────────────────────────────────
-    c.setFillColorRGB(0.1, 0.1, 0.4)
-    c.setFont("Helvetica-Bold", 12)
-    c.drawCentredString(PW / 2, PH - 2.0 * cm, entidade)
-
-    c.setFillColorRGB(0.4, 0.4, 0.4)
-    c.setFont("Helvetica", 8)
-    c.drawCentredString(PW / 2, PH - 2.7 * cm, f"CNPJ: {cnpj}")
-
-    # Linha separadora do timbre
-    c.setStrokeColorRGB(0.1, 0.1, 0.4)
-    c.setLineWidth(1.5)
-    c.line(margem, PH - 3.1 * cm, PW - margem, PH - 3.1 * cm)
-    c.setLineWidth(0.5)
-    c.line(margem, PH - 3.3 * cm, PW - margem, PH - 3.3 * cm)
-
-    # ── Título ────────────────────────────────────────────────────────────────
-    c.setFillColorRGB(0, 0, 0)
-    c.setFont("Times-Bold", 16)
-    c.drawCentredString(PW / 2, PH - 4.5 * cm, "D E C L A R A C A O")
-
-    # Número do documento fictício
     num_doc = f"{random.randint(100, 999)}/{_fake.date_this_decade().year}"
-    c.setFont("Helvetica-Oblique", 8)
-    c.drawCentredString(PW / 2, PH - 5.1 * cm, f"Ref.: Doc. no {num_doc}")
 
     # ── Corpo burocrático com Paragraph (ReportLab) ───────────────────────────
     # Usamos Paragraph + Frame para justificação real de texto longo
@@ -360,13 +342,12 @@ def _desenhar_declaracao(c, nome_aluno: str, horas: int, nome_evento: str,
         Paragraph(rodape_info, estilo_corpo),
     ]
 
-    # Frame = área de texto com Safe Zones drásticas
-    # Margem superior: 5*cm (foge do timbrado/cabeçalho da PNG)
-    # Margem inferior: 4*cm (foge do rodapé com assinaturas e código)
+    # Frame com Safe Zones drasticas — margem superior de 9cm
+    # para garantir que o texto nunca sobrepoe o cabecalho da PNG.
     margem_esq  = 3.0 * cm
     margem_dir  = 3.0 * cm
-    margem_topo = 5.0 * cm    # zona segura do cabeçalho timbrado
-    margem_rod  = 4.0 * cm    # zona segura do rodapé com assinatura e código
+    margem_topo = 9.0 * cm    # zona segura: cabecalho real da imagem PNG
+    margem_rod  = 4.0 * cm    # zona segura: rodape com assinatura e codigo
 
     frame_x = margem_esq
     frame_y = margem_rod
@@ -466,14 +447,30 @@ class Command(BaseCommand):
             "\n=== Fabrica de Documentos Sinteticos Ultra-Realistas ==="
         ))
 
-        # ── 1. Limpeza segura e idempotente ───────────────────────────────────
-        qs_sinteticos = Certificado.objects.filter(
-            status='pendente_ocr',
-            arquivo_pdf__icontains='sintetico',
+        # ── 1. Faxina fisica em disco + sincronizacao do banco ────────────────
+        uploads_dir = os.path.join(settings.MEDIA_ROOT, 'uploads_alunos')
+        padroes_disco = ['sintetico_*', 'dummy_*']
+        total_disco = 0
+        for padrao in padroes_disco:
+            for fpath in glob.glob(os.path.join(uploads_dir, padrao)):
+                try:
+                    os.remove(fpath)
+                    total_disco += 1
+                except OSError:
+                    pass
+        self.stdout.write(f"  [DISK] {total_disco} arquivo(s) fisico(s) removidos de uploads_alunos/.")
+
+        # Sincroniza o banco apagando registros orfaos
+        n_sintetico, _ = Certificado.objects.filter(
+            arquivo_pdf__icontains='sintetico'
+        ).delete()
+        n_dummy, _ = Certificado.objects.filter(
+            arquivo_pdf__icontains='dummy'
+        ).delete()
+        self.stdout.write(
+            f"  [DB]   {n_sintetico} registro(s) 'sintetico' + "
+            f"{n_dummy} registro(s) 'dummy' removidos do banco."
         )
-        total_apagados = qs_sinteticos.count()
-        qs_sinteticos.delete()
-        self.stdout.write(f"  [DEL] {total_apagados} documento(s) sintetico(s) anteriores removidos.")
 
         # ── 2. Garantir categorias no banco ───────────────────────────────────
         if not CategoriaAACC.objects.exists():
