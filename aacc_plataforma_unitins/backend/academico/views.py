@@ -101,8 +101,14 @@ class CertificadoViewSet(viewsets.ModelViewSet):
     # ── Criação blindada ────────────────────────────────────────────────────
     def perform_create(self, serializer: CertificadoSerializer) -> None:
         """
-        Hook de criação: associa o certificado ao AlunoPerfil do utilizador
-        logado e invoca o motor de regras antes de persistir.
+        Hook de criação — Paradigma Human-in-the-Loop.
+
+        Fluxo:
+            1. Salva o PDF associado ao AlunoPerfil do utilizador logado.
+            2. Invoca o OCR Service (PyMuPDF + Regex) de forma síncrona.
+            3. Guarda o texto extraído e as horas encontradas como "sugestão da IA"
+               no campo horas_declaradas (reaproveitado como hint para o coordenador).
+            4. Define sempre status=revisao_manual — o coordenador tem a palavra final.
 
         Garante que o frontend nunca pode submeter em nome de outro aluno.
         """
@@ -122,71 +128,68 @@ class CertificadoViewSet(viewsets.ModelViewSet):
                 "O utilizador autenticado não possui um Perfil de Aluno associado."
             )
 
-        # 1. Salva com o aluno correto (sobrepõe qualquer dado do frontend)
-        certificado: Certificado = serializer.save(aluno=aluno)
+        # 1. Persiste o certificado com status inicial pendente_ocr
+        #    horas_declaradas pode ser None — o OCR vai preenchê-las a seguir
+        certificado: Certificado = serializer.save(
+            aluno=aluno,
+            status="pendente_ocr",
+            horas_declaradas=0,   # placeholder — será substituído pelo OCR
+        )
 
-        try:
-            categoria = certificado.categoria
-            horas_declaradas  = float(certificado.horas_declaradas)
-            limite_categoria  = float(categoria.limite_maximo_horas)
+        # 2. Invoca o OCR Service de forma síncrona
+        from academico.services.ocr_service import processar_pdf
+        from django.conf import settings
+        import os
 
-            # 2. Saldo atual do aluno nesta categoria
-            saldo_atual = self._calcular_saldo_atual(aluno, categoria)
+        caminho_pdf = os.path.join(settings.MEDIA_ROOT, certificado.arquivo_pdf.name)
+        ocr = processar_pdf(caminho_pdf)
 
-            # 3. Motor de regras (Python puro — zero acesso ao DB)
-            validador = ValidadorCertificado()
-            resultado = validador.processar_certificado(
-                horas_informadas=horas_declaradas,
-                limite_cat=limite_categoria,
-                saldo_cat=saldo_atual,
-            )
+        # 3. Atualiza o certificado com os dados do OCR
+        #    horas_declaradas = "sugestão da IA" para o coordenador ver no drawer
+        certificado.horas_declaradas    = ocr.horas_encontradas or 0
+        certificado.horas_validadas_ocr = ocr.horas_encontradas or 0
+        certificado.texto_extraido_ocr  = ocr.texto_extraido or ""
+        certificado.indice_confianca_ocr = ocr.indice_confianca
 
-            # 4. Persiste resultado e gera log de auditoria
-            certificado.status               = resultado["status_sugerido"]
-            certificado.horas_validadas_ocr  = int(horas_declaradas)
-            certificado.horas_computadas_final = int(resultado["horas_finais"])
-            certificado.horas_descartadas    = int(resultado["horas_descartadas"])
-            certificado.indice_confianca_ocr = resultado["confianca_ocr"]
-            certificado.texto_extraido_ocr   = resultado["texto_extraido"]
-            certificado.motivo_status        = resultado["motivo"]
+        # 4. Sempre revisao_manual — Coordenador tem a palavra final (RN05)
+        certificado.status = "revisao_manual"
+        certificado.motivo_status = (
+            f"OCR: {ocr.horas_encontradas}h encontradas via {ocr.padrao_usado} "
+            f"(confiança: {ocr.indice_confianca:.0f}%)."
+            if ocr.sucesso
+            else f"OCR não localizou horas. Erro: {ocr.erro or 'texto insuficiente'}. "
+                 "Aguarda revisão manual."
+        )
 
-            certificado.save(
-                update_fields=[
-                    "status",
-                    "horas_validadas_ocr",
-                    "horas_computadas_final",
-                    "horas_descartadas",
-                    "indice_confianca_ocr",
-                    "texto_extraido_ocr",
-                    "motivo_status",
-                ]
-            )
+        certificado.save(update_fields=[
+            "horas_declaradas",
+            "horas_validadas_ocr",
+            "texto_extraido_ocr",
+            "indice_confianca_ocr",
+            "status",
+            "motivo_status",
+        ])
 
-            from academico.models import RuleValidationLog
-            RuleValidationLog.objects.create(
-                certificado=certificado,
-                usuario_responsavel=None,
-                regra_aplicada=f"Teto: {limite_categoria}h ({categoria.nome})",
-                justificativa=resultado["motivo"],
-                horas_enviadas=int(horas_declaradas),
-                horas_computadas=int(resultado["horas_finais"]),
-                horas_descartadas=int(resultado["horas_descartadas"]),
-            )
+        # 5. Log de auditoria — registra a sugestão automática do OCR
+        from academico.models import RuleValidationLog
+        RuleValidationLog.objects.create(
+            certificado=certificado,
+            usuario_responsavel=None,
+            regra_aplicada="RN01 — Extração OCR (PyMuPDF + Regex)",
+            artigo_resolucao="Resolução CONSUNI nº 057/2025 — Art. OCR",
+            justificativa=certificado.motivo_status,
+            horas_enviadas=ocr.horas_encontradas or 0,
+            horas_computadas=ocr.horas_encontradas or 0,
+            horas_descartadas=0,
+        )
 
-            logger.info(
-                "Certificado %s processado: status=%s, horas_finais=%s, aluno=%s",
-                certificado.id,
-                resultado["status_sugerido"],
-                resultado["horas_finais"],
-                aluno.matricula,
-            )
-
-        except Exception as exc:  # noqa: BLE001
-            # Falha no motor mantém o certificado como pendente_ocr
-            # para revisão manual pelo coordenador.
-            logger.exception(
-                "Erro ao processar certificado %s: %s", certificado.id, exc
-            )
+        logger.info(
+            "Certificado %s → revisao_manual | OCR=%dh | conf=%.0f%% | aluno=%s",
+            certificado.id,
+            ocr.horas_encontradas or 0,
+            ocr.indice_confianca,
+            aluno.matricula,
+        )
 
     # ── Auditoria / Human-in-the-Loop ───────────────────────────────────────
     @action(detail=True, methods=["patch"])

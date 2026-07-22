@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { Button } from '@/components/atoms/Button'
-import { UploadCloud, File, X, Info, CheckCircle, AlertCircle } from 'lucide-react'
+import { UploadCloud, File, X, Info, CheckCircle, AlertCircle, Cpu } from 'lucide-react'
 import { categoriasService, certificadosService } from '@/services/api/endpoints'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -11,11 +11,10 @@ export default function EnviarCertificado() {
   const [file, setFile]               = useState(null)
   const [dragging, setDragging]       = useState(false)
   const [categoria, setCategoria]     = useState('')
-  const [horas, setHoras]             = useState('')
   const [categorias, setCategorias]   = useState([])
   const [loadingCats, setLoadingCats] = useState(true)
   const [submitting, setSubmitting]   = useState(false)
-  const [resultado, setResultado]     = useState(null) // { type: 'success'|'error', message }
+  const [resultado, setResultado]     = useState(null) // { type: 'success'|'error', message, ocr? }
 
   // ── Carrega categorias do banco na montagem ──────────────────────────────
   useEffect(() => {
@@ -49,7 +48,7 @@ export default function EnviarCertificado() {
   // ── Submit → POST multipart/form-data ────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!file || !categoria || !horas) return
+    if (!file || !categoria) return
 
     setSubmitting(true)
     setResultado(null)
@@ -57,27 +56,28 @@ export default function EnviarCertificado() {
     const formData = new FormData()
     formData.append('arquivo_pdf', file)
     formData.append('categoria', categoria)
-    formData.append('horas_declaradas', horas)
-    // Usa o ID mockado do contexto — substituir por aluno real quando JWT estiver integrado
-    formData.append('aluno', user?.id ?? 1)
+    // horas_declaradas NÃO é enviado — o OCR extrai automaticamente
 
     try {
       const { data } = await certificadosService.criar(formData)
 
-      const horasComputadas = data.horas_computadas_final
-      const descartadas     = data.horas_descartadas ?? 0
-      const motivo          = data.motivo_status ?? ''
+      // O OCR já rodou no backend — mostra o resultado da "sugestão da IA"
+      const horasOCR    = data.horas_declaradas ?? 0
+      const confianca   = data.indice_confianca_ocr ?? 0
+      const motivo      = data.motivo_status ?? ''
 
-      let msg = `Certificado enviado com sucesso! ${horasComputadas}h aprovadas pelo motor de regras.`
-      if (descartadas > 0) {
-        msg += ` (${descartadas}h descartadas — ${motivo})`
-      }
+      setResultado({
+        type: 'success',
+        message: horasOCR > 0
+          ? `Documento enviado e processado pelo OCR! Detectadas ${horasOCR}h (confiança: ${Number(confianca).toFixed(0)}%). Aguarda revisão do coordenador.`
+          : `Documento enviado! O OCR não localizou as horas automaticamente — será revisto manualmente pelo coordenador. (${motivo})`,
+        horasOCR,
+        confianca,
+      })
 
-      setResultado({ type: 'success', message: msg })
       // Limpa o formulário
       setFile(null)
       setCategoria('')
-      setHoras('')
     } catch (err) {
       const msg = err.friendlyMessage ?? 'Erro ao enviar. Verifique os dados e tente novamente.'
       setResultado({ type: 'error', message: msg })
@@ -86,7 +86,7 @@ export default function EnviarCertificado() {
     }
   }
 
-  const isFormValido = file && categoria && horas && Number(horas) > 0
+  const isFormValido = file && categoria
 
   return (
     <AppLayout
@@ -110,7 +110,14 @@ export default function EnviarCertificado() {
               ? <CheckCircle className="h-5 w-5 shrink-0 mt-0.5" />
               : <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
             }
-            <p className="text-label">{resultado.message}</p>
+            <div>
+              <p className="text-label">{resultado.message}</p>
+              {resultado.type === 'success' && (
+                <p className="text-helper mt-1 opacity-80">
+                  O documento encontra-se em <strong>Revisão Manual</strong> — o coordenador terá a palavra final sobre as horas aprovadas.
+                </p>
+              )}
+            </div>
           </div>
         )}
 
@@ -143,22 +150,13 @@ export default function EnviarCertificado() {
               </select>
             </div>
 
-            {/* Horas declaradas */}
-            <div>
-              <label htmlFor="horas" className="text-label font-medium text-text-primary mb-1.5 block">
-                Carga Horária Declarada (horas) <span className="text-danger">*</span>
-              </label>
-              <input
-                id="horas"
-                type="number"
-                min="1"
-                step="0.5"
-                placeholder="Ex: 40"
-                value={horas}
-                onChange={(e) => setHoras(e.target.value)}
-                className="w-full rounded-xs border border-border bg-bg-surface text-text-primary h-10 px-3 focus:outline-none focus:ring-2 focus:ring-primary shadow-xs"
-                required
-              />
+            {/* Banner informativo — sem campo de horas */}
+            <div className="bg-primary-light border border-primary-muted rounded-xs p-3 flex gap-2 text-primary">
+              <Cpu className="h-4 w-4 shrink-0 mt-0.5" />
+              <p className="text-helper">
+                <strong>Motor de OCR activo:</strong> As horas serão extraídas automaticamente do seu documento.
+                Não é necessário informá-las manualmente.
+              </p>
             </div>
           </div>
         </div>
@@ -186,12 +184,12 @@ export default function EnviarCertificado() {
               <p className="text-label text-text-primary font-medium mb-1">
                 Clique para fazer upload ou arraste o ficheiro PDF
               </p>
-              <p className="text-helper text-text-secondary">PDF, PNG ou JPG — máximo 5 MB</p>
+              <p className="text-helper text-text-secondary">PDF — máximo 5 MB</p>
               <input
                 id="file-upload"
                 type="file"
                 className="hidden"
-                accept="application/pdf,image/png,image/jpeg"
+                accept="application/pdf"
                 onChange={handleFileChange}
               />
             </div>
@@ -217,12 +215,13 @@ export default function EnviarCertificado() {
           )}
         </div>
 
-        {/* Aviso */}
+        {/* Aviso de fluxo */}
         <div className="bg-primary-light border border-primary-muted rounded-sm p-4 flex gap-3 text-primary">
           <Info className="h-5 w-5 shrink-0 mt-0.5" />
           <div className="text-helper">
-            <strong>Atenção:</strong> O documento será processado pelo Motor de Regras (Resolução CONSUNI nº 057).
-            O resultado da validação e as horas aprovadas serão exibidos imediatamente após o envio.
+            <strong>Como funciona:</strong> Após o envio, o OCR extrai as horas do PDF automaticamente
+            e o documento vai para fila de <strong>Revisão Manual</strong>. O coordenador valida
+            a sugestão e tem a palavra final sobre as horas aprovadas.
           </div>
         </div>
 
@@ -232,7 +231,7 @@ export default function EnviarCertificado() {
             type="button"
             variant="secondary"
             size="lg"
-            onClick={() => { setFile(null); setCategoria(''); setHoras(''); setResultado(null) }}
+            onClick={() => { setFile(null); setCategoria(''); setResultado(null) }}
             disabled={submitting}
           >
             Limpar
@@ -244,7 +243,7 @@ export default function EnviarCertificado() {
             loading={submitting}
             disabled={!isFormValido || submitting}
           >
-            Enviar para Validação
+            {submitting ? 'A processar OCR...' : 'Enviar para Análise'}
           </Button>
         </div>
       </form>

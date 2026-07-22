@@ -35,7 +35,8 @@ class CertificadoSerializer(serializers.ModelSerializer):
         - status: determinado pelo ValidadorCertificado.
 
     O cliente deve enviar apenas:
-        - aluno, categoria, arquivo_pdf e horas_declaradas.
+        - categoria e arquivo_pdf.
+        - horas_declaradas é OPCIONAL — preenchido automaticamente pelo OCR.
     """
 
     # Representa o nome legível da categoria na leitura
@@ -44,6 +45,12 @@ class CertificadoSerializer(serializers.ModelSerializer):
     )
     status_display = serializers.CharField(
         source="get_status_display", read_only=True
+    )
+
+    # horas_declaradas é opcional: o OCR preenche automaticamente
+    horas_declaradas = serializers.DecimalField(
+        max_digits=6, decimal_places=2,
+        required=False, allow_null=True, default=0
     )
 
     class Meta:
