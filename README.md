@@ -1,4 +1,4 @@
-﻿# AACC Platform — Plataforma de Gestão de Atividades Acadêmico-Científico-Culturais
+# AACC Platform — Plataforma de Gestão de Atividades Acadêmico-Científico-Culturais
 
 > **Universidade Estadual do Tocantins — UNITINS**  
 > Curso de Sistemas de Informação  
@@ -43,7 +43,7 @@ As **Atividades Acadêmico-Científico-Culturais (AACC)** são requisito obrigat
 Uma plataforma web full-stack que digitaliza e automatiza todo o ciclo de vida dos certificados AACC:
 
 ```
-Submissão do Aluno → OCR Automático → Motor de Regras → Decisão Automática/Manual → Dashboard
+Submissão (Aluno) → OCR Engine (Regex) → IA Sugere Horas → Motor de Regras → Revisão Manual (Human-in-the-Loop) → Dashboard
 ```
 
 A plataforma implementa um **pipeline de auditoria rastreável**: cada decisão sobre um certificado é gravada com justificativa, artigo da resolução aplicado, horas computadas e horas descartadas.
@@ -56,7 +56,7 @@ As regras derivam diretamente da Resolução CONSUNI nº 057/2025 e são impleme
 
 | ID | Nome | Descrição | Status |
 |----|------|-----------|--------|
-| **RN01** | Extração OCR | Extrair texto e horas declaradas de PDFs submetidos | Em andamento |
+| **RN01** | Extração OCR | Extrair texto e horas via Regex + PyMuPDF em paradigma Human-in-the-Loop | Implementado |
 | **RN02** | Diversidade de Eixos | O aluno deve ter horas em pelo menos 2 dos 3 eixos (Ensino, Pesquisa, Extensão) para ser apto | Implementado |
 | **RN03** | Teto por Categoria | Horas aprovadas em cada categoria são limitadas ao `limite_maximo_horas` | Implementado |
 | **RN04** | Detecção de Duplicatas | Documentos com hash idêntico devem ser rejeitados automaticamente | Planejado |
@@ -96,9 +96,10 @@ apto_formatura = (total_horas_aprovadas >= meta_horas) AND (eixos_com_horas >= 2
 
 ```
 Aluno → [POST /certificados/] → Salva PDF em media/
+    → ocr_service (PyMuPDF + Regex) extrai texto e sugere horas
     → ValidadorCertificado.processar_certificado()
         → Aplica RN03 (teto por categoria)
-        → Grava RuleValidationLog
+        → Grava RuleValidationLog (Auditoria)
         → Define status: pendente_ocr | revisao_manual | aprovado | rejeitado
     → Coordenador revisa via [PATCH /certificados/{id}/avaliar/]
     → Status final refletido no dashboard do aluno
@@ -120,9 +121,10 @@ Aluno → [POST /certificados/] → Salva PDF em media/
 | psycopg2-binary | 2.9.12 | Driver PostgreSQL |
 | python-decouple | 3.8 | Gestão de variáveis de ambiente (.env) |
 | ReportLab | 5.0.0 | Geração de PDFs (sintéticos e Anexo I) |
+| PyMuPDF (fitz) | 1.28.0 | Extração de texto para o Pipeline de OCR |
 | Pillow | 12.3.0 | Processamento de imagens (fundos de PDF) |
 | Faker | 40.31.0 | Dados fictícios para a fábrica sintética |
-| Celery | 5.6.3 | Filas de tarefas assíncronas (OCR pipeline) |
+| Celery | 5.6.3 | Filas de tarefas assíncronas |
 | Redis | 8.0.1 | Broker para Celery |
 
 ### Frontend
@@ -234,12 +236,12 @@ Extende `AbstractUser` do Django.
 | `aluno` | FK → AlunoPerfil | Proprietário |
 | `categoria` | FK → CategoriaAACC | Tipo de atividade |
 | `arquivo_pdf` | FileField | PDF submetido |
-| `horas_declaradas` | DecimalField | Horas informadas pelo aluno |
+| `horas_declaradas` | DecimalField | (Deprecado/Anulável) Horas preenchidas pelo aluno |
 | `texto_extraido_ocr` | TextField | Texto bruto extraído pelo OCR |
-| `horas_validadas_ocr` | IntegerField | Horas encontradas pelo OCR |
-| `horas_computadas_final` | IntegerField | Horas efetivamente aprovadas |
-| `horas_descartadas` | IntegerField | Horas cortadas pelo RN03 |
-| `indice_confianca_ocr` | DecimalField | Confiança do OCR em % |
+| `horas_sugeridas_ia` | IntegerField | Horas encontradas pelo OCR/Regex |
+| `confianca_ia` | IntegerField | Confiança do OCR em % |
+| `horas_computadas_final` | IntegerField | Horas efetivamente aprovadas pelo coordenador |
+| `horas_descartadas` | IntegerField | Horas cortadas pelo RN03 ou pela revisão |
 | `status` | CharField (choices) | Ver ciclo de vida abaixo |
 | `motivo_status` | CharField | Justificativa da decisão |
 | `data_envio` | DateTimeField | Auto-preenchido |
@@ -385,12 +387,12 @@ Todos os endpoints requerem `Authorization: Bearer <token>`.
 
 ```
 1. Acede a /aluno/enviar
-2. Preenche: Categoria, Horas Declaradas, PDF
+2. Seleciona a Categoria e anexa o PDF (Aluno **não digita** horas)
 3. POST /api/academico/certificados/ (multipart/form-data)
 4. Backend:
    a. Associa ao AlunoPerfil do utilizador logado
-   b. Chama ValidadorCertificado.processar_certificado()
-   c. Aplica RN03 → calcula horas_computadas_final
+   b. Executa `ocr_service.processar_pdf()` para extrair `horas_sugeridas_ia`
+   c. Certificado entra em `revisao_manual` (Paradigma Human-in-the-Loop)
    d. Grava RuleValidationLog (auditoria imutável)
 5. Aluno vê atualização no Dashboard e Histórico
 ```
@@ -413,7 +415,7 @@ Todos os endpoints requerem `Authorization: Bearer <token>`.
 
 > **Princípio:** "O Rule Engine decide. O OCR apenas extrai. O Regex apenas higieniza. Todo cálculo deve ser reproduzível e auditável."
 
-**Ficheiro:** `backend/rule_engine/validator.py`
+**Ficheiros-chave:** `rule_engine/validator.py` e `services/ocr_service.py`
 
 ```python
 # Fluxo simplificado de processar_certificado()
@@ -560,7 +562,6 @@ REDIS_URL=redis://localhost:6379/0
 
 | Feature | Descrição |
 |---|---|
-| **OCR Pipeline (RN01)** | Integrar extração real de texto com `pdfplumber`/`pytesseract`. Calcular `indice_confianca_ocr`. |
 | **Detecção de Duplicatas (RN04)** | Hash SHA-256 do PDF no upload para bloquear documentos idênticos. |
 | **Requerimento Final (RN06)** | Gerar PDF do "Anexo I" para alunos com `apto_formatura=True`. |
 
