@@ -62,8 +62,8 @@ export default function EnviarCertificado() {
       const { data } = await certificadosService.criar(formData)
 
       // O OCR já rodou no backend — mostra o resultado da "sugestão da IA"
-      const horasOCR    = data.horas_declaradas ?? 0
-      const confianca   = data.indice_confianca_ocr ?? 0
+      const horasOCR    = data.horas_sugeridas_ia ?? 0
+      const confianca   = data.confianca_ia ?? 0
       const motivo      = data.motivo_status ?? ''
 
       setResultado({

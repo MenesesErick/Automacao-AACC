@@ -72,7 +72,7 @@ class Certificado(models.Model):
     categoria = models.ForeignKey(CategoriaAACC, on_delete=models.PROTECT, related_name='certificados', verbose_name="Categoria")
     
     arquivo_pdf = models.FileField(upload_to='uploads_alunos/', verbose_name="Arquivo PDF")
-    horas_declaradas = models.DecimalField(max_digits=6, decimal_places=2, verbose_name="Horas Declaradas")
+    horas_declaradas = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name="Horas Declaradas")
     
     texto_extraido_ocr = models.TextField(blank=True, null=True, verbose_name="Texto Bruto Extraído (OCR)")
     horas_validadas_ocr = models.IntegerField(null=True, blank=True, verbose_name="Horas Validadas OCR")
@@ -80,6 +80,10 @@ class Certificado(models.Model):
     horas_descartadas = models.IntegerField(default=0, verbose_name="Horas Descartadas")
     
     indice_confianca_ocr = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name="Índice de Confiança OCR (%)")
+    
+    # Novos campos analíticos da IA
+    horas_sugeridas_ia = models.IntegerField(null=True, blank=True, verbose_name="Horas Sugeridas IA")
+    confianca_ia = models.IntegerField(null=True, blank=True, verbose_name="Confiança IA (%)")
     
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='pendente_ocr', verbose_name="Status")
     motivo_status = models.CharField(max_length=255, blank=True, null=True, verbose_name="Motivo/Justificativa do Status")

@@ -37,7 +37,7 @@ const CERT_COLUMNS = [
     key: 'horas',
     label: 'Horas',
     render: (r) => (
-      <span className="text-label font-semibold tabular-nums">{r.horas_declaradas}h</span>
+      <span className="text-label font-semibold tabular-nums">{r.horas_sugeridas_ia ?? r.horas_declaradas ?? 0}h</span>
     ),
   },
   {

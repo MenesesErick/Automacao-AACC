@@ -45,10 +45,10 @@ const COLUMNS = [
   },
   {
     key: 'horas',
-    label: 'Horas Encaradas',
+    label: 'Sugestão IA',
     render: (row) => (
       <span className="text-label font-semibold text-text-primary font-mono">
-        {row.horas_declaradas}h
+        {row.horas_sugeridas_ia ?? row.horas_declaradas ?? 0}h
       </span>
     ),
   },

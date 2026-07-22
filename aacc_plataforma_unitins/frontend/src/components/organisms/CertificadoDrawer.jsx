@@ -67,10 +67,10 @@ export function CertificadoDrawer({ certificado, onClose, onAvaliado }) {
   const [submitting, setSubmitting] = useState(false)
   const [erro, setErro] = useState('')
 
-  // Ao abrir um novo certificado, resetar o form e pré-preencher as horas
+  // Ao abrir um novo certificado, resetar o form e pré-preencher as horas com a sugestão da IA
   useEffect(() => {
     if (certificado) {
-      setHorasValidadas(certificado.horas_declaradas || '')
+      setHorasValidadas(certificado.horas_sugeridas_ia || '')
       setMotivo('')
       setErro('')
     }
@@ -195,8 +195,8 @@ export function CertificadoDrawer({ certificado, onClose, onAvaliado }) {
             <MetaRow icon={Calendar}  label="Data de Envio"      value={dataEnvio} />
             <MetaRow
               icon={Hourglass}
-              label="Horas Declaradas"
-              value={`${certificado.horas_declaradas}h`}
+              label="Sugestão da IA"
+              value={certificado.horas_sugeridas_ia != null ? `${certificado.horas_sugeridas_ia}h` : '—'}
             />
             <MetaRow
               icon={CheckCircle2}

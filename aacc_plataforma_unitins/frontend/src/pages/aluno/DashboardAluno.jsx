@@ -48,7 +48,7 @@ const COLUMNS = [
     label: 'Horas',
     render: (row) => (
       <div className="text-right font-mono">
-        <span className="text-label font-semibold text-text-primary">{row.horas_declaradas}h</span>
+        <span className="text-label font-semibold text-text-primary">{row.horas_sugeridas_ia ?? row.horas_declaradas ?? 0}h</span>
         {row.horas_computadas_final != null && (
           <p className="text-helper text-success">+{row.horas_computadas_final}h</p>
         )}

@@ -129,11 +129,11 @@ class CertificadoViewSet(viewsets.ModelViewSet):
             )
 
         # 1. Persiste o certificado com status inicial pendente_ocr
-        #    horas_declaradas pode ser None — o OCR vai preenchê-las a seguir
+        #    horas_declaradas pode ser None — o OCR vai preenchê-las a seguir (mantido null pois aluno não declara)
         certificado: Certificado = serializer.save(
             aluno=aluno,
             status="pendente_ocr",
-            horas_declaradas=0,   # placeholder — será substituído pelo OCR
+            horas_declaradas=None,
         )
 
         # 2. Invoca o OCR Service de forma síncrona
@@ -144,9 +144,11 @@ class CertificadoViewSet(viewsets.ModelViewSet):
         caminho_pdf = os.path.join(settings.MEDIA_ROOT, certificado.arquivo_pdf.name)
         ocr = processar_pdf(caminho_pdf)
 
-        # 3. Atualiza o certificado com os dados do OCR
-        #    horas_declaradas = "sugestão da IA" para o coordenador ver no drawer
-        certificado.horas_declaradas    = ocr.horas_encontradas or 0
+        # 3. Atualiza o certificado com os dados do OCR nos campos analíticos dedicados
+        certificado.horas_sugeridas_ia = ocr.horas_encontradas or 0
+        certificado.confianca_ia       = int(ocr.indice_confianca) if ocr.indice_confianca else 0
+        
+        # Mantendo para compatibilidade/redundância se necessário
         certificado.horas_validadas_ocr = ocr.horas_encontradas or 0
         certificado.texto_extraido_ocr  = ocr.texto_extraido or ""
         certificado.indice_confianca_ocr = ocr.indice_confianca
@@ -166,6 +168,8 @@ class CertificadoViewSet(viewsets.ModelViewSet):
             "horas_validadas_ocr",
             "texto_extraido_ocr",
             "indice_confianca_ocr",
+            "horas_sugeridas_ia",
+            "confianca_ia",
             "status",
             "motivo_status",
         ])
@@ -227,10 +231,11 @@ class CertificadoViewSet(viewsets.ModelViewSet):
             motivo = "Deferido pelo coordenador após revisão manual."
 
         # Atualiza o certificado
-        horas_declaradas = int(certificado.horas_declaradas)
+        horas_base = certificado.horas_sugeridas_ia or 0
         certificado.status = status
         certificado.horas_computadas_final = horas_computadas if status == "aprovado" else 0
-        certificado.horas_descartadas = horas_declaradas - certificado.horas_computadas_final
+        # Evita horas descartadas negativas caso o coordenador aprove mais do que a IA sugeriu
+        certificado.horas_descartadas = max(0, horas_base - certificado.horas_computadas_final)
         certificado.motivo_status = motivo
         
         certificado.save(
@@ -250,7 +255,7 @@ class CertificadoViewSet(viewsets.ModelViewSet):
             usuario_responsavel=user,
             regra_aplicada="Revisão Manual (Coordenador)",
             justificativa=motivo,
-            horas_enviadas=horas_declaradas,
+            horas_enviadas=horas_base,
             horas_computadas=certificado.horas_computadas_final,
             horas_descartadas=certificado.horas_descartadas,
         )

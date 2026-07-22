@@ -140,7 +140,7 @@ function TimelineItem({ cert, isLast, onClick }) {
         {/* Linha de horas */}
         <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
           <span className="text-helper text-text-secondary">
-            Declaradas: <strong className="text-text-primary">{cert.horas_declaradas}h</strong>
+            Sugeridas / Declaradas: <strong className="text-text-primary">{cert.horas_sugeridas_ia ?? cert.horas_declaradas ?? 0}h</strong>
           </span>
           {cert.horas_computadas_final != null && (
             <span className="text-helper text-text-secondary">
