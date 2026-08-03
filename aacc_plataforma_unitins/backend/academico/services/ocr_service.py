@@ -1,23 +1,28 @@
 """
 academico/services/ocr_service.py
 
-Serviço de OCR e Extração de Horas com PyMuPDF + Regex.
+Serviço de OCR e Extração de Horas — Extrator Híbrido.
 
-Responsabilidades:
-    1. Extrair o texto completo de um PDF usando PyMuPDF (fitz).
-    2. Aplicar uma cadeia de expressões regulares (em ordem de especificidade)
-       para localizar a carga horária informada no documento.
-    3. Calcular um índice de confiança baseado no padrão que encontrou a match.
-    4. Retornar um OcrResultado com todos os dados para o motor de regras.
+Fase 1 — Nativa (PyMuPDF):
+    Tenta extrair o texto digital embutido diretamente no PDF.
+    Se o resultado tiver >= 30 caracteres válidos, retorna imediatamente
+    (ganho de performance, sem dependência do Tesseract/Poppler).
+
+Fase 2 — Fallback OCR (PyMuPDF → Pillow → pytesseract):
+    Ativada quando o PDF é um documento escaneado (texto nativo insuficiente).
+    Cada página é rasterizada a 300 DPI pelo próprio PyMuPDF (sem Poppler),
+    convertida para imagem PNG em memória via io.BytesIO + Pillow,
+    e processada pelo pytesseract (lang='por').
 
 Princípio arquitectural:
     "O OCR apenas extrai. O Regex apenas higieniza. O Rule Engine decide."
     Este serviço NUNCA persiste nada — apenas lê e retorna dados.
 """
 
+import io
 import re
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -126,48 +131,102 @@ class OcrResultado:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  Motor de Extração de Texto (PyMuPDF)
+#  Motor de Extração de Texto Híbrido (PyMuPDF native → Tesseract fallback)
 # ─────────────────────────────────────────────────────────────────────────────
+
+_LIMIAR_TEXTO_NATIVO = 30  # chars mínimos para confiar na extração nativa
+
+
+def _normalizar(texto: str) -> str:
+    """Normaliza espaços e linhas em branco excessivos."""
+    texto = re.sub(r"[ \t]+", " ", texto)
+    texto = re.sub(r"\n{3,}", "\n\n", texto)
+    return texto.strip()
+
 
 def _extrair_texto_pdf(caminho_pdf: str) -> str:
     """
-    Extrai o texto completo de todas as páginas do PDF usando PyMuPDF (fitz).
+    Extrator híbrido em duas fases.
 
-    Estratégia:
-        - Usa get_text("text") por página, concatenando com separador de linha.
-        - Normaliza espaços múltiplos e remove caracteres de controlo problemáticos.
+    Fase 1 — Nativa (PyMuPDF `get_text`):
+        Tenta extrair o texto digital embutido. Se o texto resultante tiver
+        pelo menos `_LIMIAR_TEXTO_NATIVO` caracteres, retorna imediatamente.
+
+    Fase 2 — Fallback OCR (Tesseract via rasterização):
+        Ativada apenas quando o texto nativo é insuficiente (PDF escaneado).
+        Cada página é convertida em imagem PNG a 300 DPI pelo próprio PyMuPDF,
+        passada para Pillow e depois ao pytesseract (lang='por').
+        Se o Tesseract não estiver instalado no SO, o fallback é capturado
+        silenciosamente e o texto nativo (curto) é retornado.
 
     Returns:
-        str: Texto bruto concatenado de todas as páginas.
+        str: Texto bruto extraído (uma ou ambas as fases).
 
     Raises:
-        RuntimeError: Se o ficheiro não puder ser aberto ou processado.
+        RuntimeError: Se o ficheiro não puder ser aberto pelo PyMuPDF.
     """
-    import fitz  # PyMuPDF — importado localmente para não quebrar se não estiver instalado
+    import fitz  # PyMuPDF
 
     try:
-        doc  = fitz.open(caminho_pdf)
-        paginas: list[str] = []
-
-        for num_pag, page in enumerate(doc):
-            try:
-                texto_pag = page.get_text("text")
-                paginas.append(texto_pag)
-            except Exception as exc:
-                logger.warning("Página %d do PDF '%s' falhou: %s", num_pag, caminho_pdf, exc)
-                paginas.append("")  # página problemática → texto vazio, não aborta
-
-        doc.close()
-        texto_completo = "\n".join(paginas)
-
-        # Normalização básica — reduz ruído para o Regex
-        texto_completo = re.sub(r"[ \t]+", " ", texto_completo)   # spaces múltiplos
-        texto_completo = re.sub(r"\n{3,}", "\n\n", texto_completo) # linhas em branco extras
-
-        return texto_completo.strip()
-
+        doc = fitz.open(caminho_pdf)
     except Exception as exc:
         raise RuntimeError(f"PyMuPDF não conseguiu abrir '{caminho_pdf}': {exc}") from exc
+
+    # ── Fase 1: Extração nativa ─────────────────────────────────────────────
+    paginas_nativas: list[str] = []
+    for num_pag, page in enumerate(doc):
+        try:
+            paginas_nativas.append(page.get_text("text"))
+        except Exception as exc:
+            logger.warning("[Nativo] Página %d de '%s' falhou: %s", num_pag, caminho_pdf, exc)
+            paginas_nativas.append("")
+
+    texto_nativo = _normalizar("\n".join(paginas_nativas))
+
+    if len(texto_nativo) >= _LIMIAR_TEXTO_NATIVO:
+        logger.debug("[Nativo] Texto suficiente (%d chars) — OCR Tesseract desnecessário.",
+                     len(texto_nativo))
+        doc.close()
+        return texto_nativo
+
+    logger.info(
+        "[Nativo] Texto insuficiente (%d chars) em '%s' — activando Tesseract OCR.",
+        len(texto_nativo), caminho_pdf,
+    )
+
+    # ── Fase 2: Fallback via Tesseract ────────────────────────────────────────
+    try:
+        import pytesseract
+        from PIL import Image
+
+        paginas_ocr: list[str] = []
+        for num_pag, page in enumerate(doc):
+            try:
+                # Rasteriza a página a 300 DPI sem depender do Poppler
+                pix = page.get_pixmap(dpi=300)
+                buffer = io.BytesIO(pix.tobytes("png"))
+                img = Image.open(buffer)
+                texto_pag = pytesseract.image_to_string(img, lang="por")
+                paginas_ocr.append(texto_pag)
+                logger.debug("[Tesseract] Página %d: %d chars extraídos.",
+                             num_pag, len(texto_pag))
+            except Exception as exc_pag:
+                logger.warning("[Tesseract] Página %d de '%s' falhou: %s",
+                               num_pag, caminho_pdf, exc_pag)
+                paginas_ocr.append("")
+
+        texto_ocr = _normalizar("\n".join(paginas_ocr))
+        doc.close()
+        return texto_ocr
+
+    except Exception as exc_tess:
+        # Tesseract não instalado ou falha inesperada — não crasha a API
+        logger.error(
+            "[Tesseract] Fallback falhou para '%s': %s — retornando texto nativo.",
+            caminho_pdf, exc_tess,
+        )
+        doc.close()
+        return texto_nativo  # retorna o texto curto; Regex pode ainda encontrar algo
 
 
 # ─────────────────────────────────────────────────────────────────────────────
