@@ -78,6 +78,7 @@ class CertificadoSerializer(serializers.ModelSerializer):
             "data_atualizacao",
         ]
         read_only_fields = [
+            "aluno",
             "texto_extraido_ocr",
             "horas_validadas_ocr",
             "horas_computadas_final",

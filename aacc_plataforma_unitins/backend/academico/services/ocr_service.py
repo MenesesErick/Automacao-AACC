@@ -52,7 +52,7 @@ class OcrResultado:
         erro:              Mensagem de erro ou alerta de ambiguidade.
     """
     texto_extraido:    str   = ""
-    horas_encontradas: int   = 0
+    horas_encontradas: float = 0.0
     indice_confianca:  float = 0.0
     padrao_usado:      str   = "sem_resultado"
     sucesso:           bool  = False
@@ -162,10 +162,17 @@ def _extrair_texto_pdf(caminho_pdf: str) -> str:
 #  Motor de Consenso de Horas — colecta TODOS os valores e vota
 # ─────────────────────────────────────────────────────────────────────────────
 
-# Padrão abrangente que captura TODAS as menções de carga horária no texto.
-# Grupo 1: número inteiro (vírgula/ponto decimal são ignorados).
+# Padrão 1 — Decimal/inteiro simples seguido de unidade de hora.
+# Captura: "40h", "2.5 horas", "2,5 hrs", "120 h".
 _PADRAO_CARGA_HORARIA = re.compile(
-    r"(\d{1,3})(?:[,.]\d+)?\s*(?:horas?|hrs?|h)\b",
+    r"(\d+(?:[,.]\d+)?)\s*(?:horas?|hrs?|h)\b",
+    re.IGNORECASE | re.UNICODE,
+)
+
+# Padrão 2 — Composto "X horas e Y minutos" / "X h e Y min".
+# Captura: "2 horas e 30 minutos", "1h e 45 mins".
+_PADRAO_COMPOSTO = re.compile(
+    r"(\d+)\s*(?:horas?|hrs?|h)\s+e\s+(\d+)\s*(?:minutos?|mins?|m(?:in)?)\b",
     re.IGNORECASE | re.UNICODE,
 )
 
@@ -177,80 +184,95 @@ _PADRAO_CONTEXTUAL = re.compile(
 )
 
 
-def analisar_carga_horaria(texto: str) -> tuple[int, int, str]:
+def analisar_carga_horaria(texto: str) -> tuple[float, int, str]:
     """
-    Motor de Consenso de Horas.
+    Motor de Consenso de Horas — com suporte a decimais e padrão composto.
 
-    Colecta TODAS as menções de carga horária no documento usando `re.finditer`,
-    filtra valores improváveis (fora de [1, 999]) e aplica votação por frequência
-    (Counter) para determinar o valor mais provável e o índice de confiança.
+    Colecta TODAS as menções de carga horária no documento usando `re.finditer`.
+    Suporta:
+        - Inteiros simples:  "40h", "40 horas"
+        - Decimais:          "2.5h", "2,5 horas"
+        - Padrão composto:   "2 horas e 30 minutos" (30 min → 0.5h → total 2.5h)
+
+    Filtra valores improváveis (fora de [0.25, 999]) e aplica votação por
+    frequência (Counter) para determinar o valor mais provável.
 
     Lógica de Confiança:
-        - Nenhum valor encontrado         → (0,  0,  "sem_resultado")
-        - Um único valor                  → (v,  90, "unico")
-        - Múltiplos valores, todos iguais → (v,  95, "consenso")
-        - Múltiplos, um domina (>= 60%)   → (v,  75, "maioria")
-        - Múltiplos, distribuição dispersa→ (v,  30, "ambiguo")
+        - Nenhum valor            → (0.0, 0,  "sem_resultado")
+        - Um único valor          → (v,  90,  "unico")
+        - Múltiplos, todos iguais → (v,  95,  "consenso")
+        - Múltiplos, domina ≥60%  → (v,  75,  "maioria")
+        - Múltiplos, ambiguidade  → (v,  30,  "ambiguo")
 
-    Bónus +5: se o valor escolhido é confirmado pelo padrão contextual de alta
-    precisão ("Carga Horária: Xh"), a confiança sobe até ao máximo de 100%.
+    Bónus +5: valor confirmado pelo padrão contextual "Carga Horária: Xh".
 
     Returns:
-        tuple(horas: int, confianca: int, descricao: str)
+        tuple(horas: float, confianca: int, descricao: str)
     """
-    # 1. Colecta todos os candidatos numéricos válidos
-    candidatos: list[int] = []
-    for m in _PADRAO_CARGA_HORARIA.finditer(texto):
+    candidatos: list[float] = []
+
+    # 1a. Padrão composto: "X horas e Y minutos" — processa ANTES do simples
+    posicoes_compostas: set[int] = set()
+    for m in _PADRAO_COMPOSTO.finditer(texto):
         try:
-            valor = int(m.group(1))
-            if 1 <= valor <= 999:  # descarta 0 e valores absurdos (ex: anos "2024")
+            horas_parte   = float(m.group(1))
+            minutos_parte = float(m.group(2))
+            valor = round(horas_parte + minutos_parte / 60.0, 2)
+            if 0.25 <= valor <= 999:
+                candidatos.append(valor)
+                posicoes_compostas.update(range(m.start(), m.end()))
+                logger.debug("[Composto] '%s' → %.2fh", m.group(0), valor)
+        except (ValueError, IndexError):
+            continue
+
+    # 1b. Padrão simples (decimal / inteiro) — ignora spans já capturados
+    for m in _PADRAO_CARGA_HORARIA.finditer(texto):
+        if m.start() in posicoes_compostas:
+            continue
+        try:
+            token = m.group(1).replace(",", ".")
+            valor = round(float(token), 2)
+            if 0.25 <= valor <= 999:
                 candidatos.append(valor)
         except (ValueError, IndexError):
             continue
 
-    logger.debug("[Consenso] Candidatos encontrados: %s", candidatos)
+    logger.debug("[Consenso] Candidatos: %s", candidatos)
 
-    # 2. Lista vazia → sem resultado
     if not candidatos:
-        return 0, 0, "sem_resultado"
+        return 0.0, 0, "sem_resultado"
 
     contagem = Counter(candidatos)
     valor_dominante, freq_dominante = contagem.most_common(1)[0]
     total_candidatos = len(candidatos)
     valores_unicos   = len(contagem)
 
-    # 3. Determina confiança pelo padrão de distribuição
     if total_candidatos == 1:
         horas, confianca, descricao = valor_dominante, 90, "unico"
-
     elif valores_unicos == 1:
-        # Todos os matches retornaram o mesmo número — consenso total
         horas, confianca, descricao = valor_dominante, 95, "consenso"
-
     elif freq_dominante / total_candidatos >= 0.6:
-        # Um valor domina com >= 60% das ocorrências
         horas, confianca, descricao = valor_dominante, 75, "maioria"
-
     else:
-        # Ambiguidade: valores diferentes com distribuição dispersa.
-        # Escolhe o mais frequente, mas sinaliza para revisão humana.
         horas, confianca, descricao = valor_dominante, 30, "ambiguo"
 
-    # 4. Bónus contextual: valor confirmado por padrão de alta precisão
+    # Bónus contextual
     match_ctx = _PADRAO_CONTEXTUAL.search(texto)
     if match_ctx:
         try:
-            if int(match_ctx.group(1)) == horas:
+            ctx_val = round(float(match_ctx.group(1).replace(",", ".")), 2)
+            if abs(ctx_val - horas) < 0.01:
                 confianca = min(100, confianca + 5)
                 descricao += "+contextual"
         except (ValueError, IndexError):
             pass
 
     logger.info(
-        "[Consenso] %dh | confiança=%d%% | tipo=%s | votos=%s",
+        "[Consenso] %.2fh | confiança=%d%% | tipo=%s | votos=%s",
         horas, confianca, descricao, dict(contagem),
     )
     return horas, confianca, descricao
+
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -294,7 +316,7 @@ def processar_pdf(caminho_pdf: str) -> OcrResultado:
 
     if resultado.sucesso:
         logger.info(
-            "[%s] OCR: %dh | conf=%d%% | '%s'",
+            "[%s] OCR: %.2fh | conf=%d%% | '%s'",
             descricao.upper(), horas, confianca, caminho_pdf,
         )
         # Flag de ambiguidade — coordenador DEVE rever manualmente

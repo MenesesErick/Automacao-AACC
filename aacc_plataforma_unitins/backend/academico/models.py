@@ -75,14 +75,14 @@ class Certificado(models.Model):
     horas_declaradas = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name="Horas Declaradas")
     
     texto_extraido_ocr = models.TextField(blank=True, null=True, verbose_name="Texto Bruto Extraído (OCR)")
-    horas_validadas_ocr = models.IntegerField(null=True, blank=True, verbose_name="Horas Validadas OCR")
+    horas_validadas_ocr = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name="Horas Validadas OCR")
     horas_computadas_final = models.IntegerField(null=True, blank=True, verbose_name="Horas Computadas Final")
     horas_descartadas = models.IntegerField(default=0, verbose_name="Horas Descartadas")
     
     indice_confianca_ocr = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name="Índice de Confiança OCR (%)")
     
     # Novos campos analíticos da IA
-    horas_sugeridas_ia = models.IntegerField(null=True, blank=True, verbose_name="Horas Sugeridas IA")
+    horas_sugeridas_ia = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name="Horas Sugeridas IA")
     confianca_ia = models.IntegerField(null=True, blank=True, verbose_name="Confiança IA (%)")
     
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='pendente_ocr', verbose_name="Status")
