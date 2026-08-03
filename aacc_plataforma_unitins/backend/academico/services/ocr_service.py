@@ -1,7 +1,7 @@
 """
 academico/services/ocr_service.py
 
-Serviço de OCR e Extração de Horas — Extrator Híbrido.
+Serviço de OCR e Extração de Horas — Extrator Híbrido com Motor de Consenso.
 
 Fase 1 — Nativa (PyMuPDF):
     Tenta extrair o texto digital embutido diretamente no PDF.
@@ -14,6 +14,11 @@ Fase 2 — Fallback OCR (PyMuPDF → Pillow → pytesseract):
     convertida para imagem PNG em memória via io.BytesIO + Pillow,
     e processada pelo pytesseract (lang='por').
 
+Motor de Consenso (analisar_carga_horaria):
+    Colecta TODAS as menções de horas no documento com re.finditer,
+    aplica votação por frequência (Counter) e calcula um Índice de
+    Confiança diferenciado: 95% consenso, 90% único, 75% maioria, 30% ambíguo.
+
 Princípio arquitectural:
     "O OCR apenas extrai. O Regex apenas higieniza. O Rule Engine decide."
     Este serviço NUNCA persiste nada — apenas lê e retorna dados.
@@ -22,110 +27,34 @@ Princípio arquitectural:
 import io
 import re
 import logging
+from collections import Counter
 from dataclasses import dataclass
 from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  Mapa de números por extenso → inteiros (PT-BR)
-# ─────────────────────────────────────────────────────────────────────────────
-
-_EXTENSO: dict[str, int] = {
-    "zero": 0, "um": 1, "uma": 1, "dois": 2, "duas": 2, "tres": 3, "quatro": 4,
-    "cinco": 5, "seis": 6, "sete": 7, "oito": 8, "nove": 9, "dez": 10,
-    "onze": 11, "doze": 12, "treze": 13, "quatorze": 14, "catorze": 14,
-    "quinze": 15, "dezesseis": 16, "dezessete": 17, "dezoito": 18, "dezenove": 19,
-    "vinte": 20, "trinta": 30, "quarenta": 40, "cinquenta": 50, "sessenta": 60,
-    "setenta": 70, "oitenta": 80, "noventa": 90, "cem": 100, "cento": 100,
-    "duzentos": 200, "duzentas": 200, "trezentos": 300, "trezentas": 300,
-    "quatrocentos": 400, "quinhentos": 500, "seiscentos": 600,
-    "setecentos": 700, "oitocentos": 800, "novecentos": 900, "mil": 1000,
-}
-
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  Cadeia de Regex — ordem: mais específica → mais genérica
-#  Cada padrão recebe uma confiança (0-100) proporcional à sua precisão.
-# ─────────────────────────────────────────────────────────────────────────────
-
-_PATTERNS: list[tuple[str, int]] = [
-    # Padrão 0 — "Carga Horaria: 5h" / "Carga Horária: 40 horas" (dois-pontos — comum nos templates)
-    (
-        r"carga\s+hor[aá]ri[ao]\s*[:\-]\s*(\d{1,4})\s*(?:h(?:oras?|rs?)?)?",
-        98,
-    ),
-    # Padrão 1 — "carga horária de 40h" / "carga horaria de 40 horas"
-    (
-        r"carga\s+hor[aá]ri[ao]\s+(?:de\s+|total\s+de\s+)?(\d{1,4})\s*(?:h(?:oras?|rs?)?)",
-        95,
-    ),
-    # Padrão 2 — "total de 40 horas" / "total de 40h"
-    (
-        r"total\s+de\s+(\d{1,4})\s*(?:h(?:oras?|rs?)?)",
-        90,
-    ),
-    # Padrão 3 — "40 (quarenta) horas" — dígito + extenso entre parênteses
-    (
-        r"(\d{1,4})\s*\(\w+\)\s*h(?:oras?|rs?)?",
-        88,
-    ),
-    # Padrão 4 — "quarenta horas" / "quarenta hrs" — só extenso
-    (
-        r"\b(" + "|".join(_EXTENSO.keys()) + r")\s+h(?:oras?|rs?)",
-        80,
-    ),
-    # Padrão 5 — "40h" / "40 hrs" / "40 horas" (sem contexto de carga)
-    (
-        r"\b(\d{1,4})\s*h(?:oras?|rs?)\b",
-        70,
-    ),
-    # Padrão 6 — "horas: 40" ou "horas = 40" (tabelas ou rodapés)
-    (
-        r"h(?:oras?|rs?)[\s:=]+(\d{1,4})\b",
-        65,
-    ),
-    # Padrão 7 — Fallback: qualquer número próximo a "hora"
-    (
-        r"(\d{1,4})\s*(?:a\s+)?(?:h(?:oras?|rs?))",
-        50,
-    ),
-]
-
-# Normaliza os padrões compilando-os para performance
-_COMPILED: list[tuple[re.Pattern, int]] = [
-    (re.compile(pat, re.IGNORECASE | re.UNICODE), conf)
-    for pat, conf in _PATTERNS
-]
-
-# Padrão para o extenso — separado para evitar compilação a cada chamada
-_EXTENSO_KEYS_RE = re.compile(
-    r"\b(" + "|".join(re.escape(k) for k in _EXTENSO.keys()) + r")\b",
-    re.IGNORECASE,
-)
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-#  Data Classes de Resultado
+#  Data Class de Resultado
 # ─────────────────────────────────────────────────────────────────────────────
 
 @dataclass
 class OcrResultado:
     """
-    Resultado completo do processo de extração OCR + Regex.
+    Resultado completo do processo de extração OCR + Consenso.
 
     Attributes:
-        texto_extraido:   Texto bruto concatenado de todas as páginas do PDF.
-        horas_encontradas: Valor inteiro de horas extraído pelo Regex (0 se falhou).
-        indice_confianca:  Confiança em % (0-100) do padrão que fez match.
-        padrao_usado:      Nome descritivo do padrão Regex vencedor.
-        sucesso:           True se pelo menos um padrão encontrou horas > 0.
-        erro:              Mensagem de erro, se o OCR falhou completamente.
+        texto_extraido:    Texto bruto concatenado de todas as páginas do PDF.
+        horas_encontradas: Valor inteiro de horas escolhido pelo motor de consenso.
+        indice_confianca:  Confiança em % (0-100) baseada no grau de consenso.
+        padrao_usado:      Descrição do tipo de resultado (unico/consenso/maioria/ambiguo).
+        sucesso:           True se pelo menos um valor de horas foi encontrado.
+        erro:              Mensagem de erro ou alerta de ambiguidade.
     """
     texto_extraido:    str   = ""
     horas_encontradas: int   = 0
     indice_confianca:  float = 0.0
-    padrao_usado:      str   = "nenhum"
+    padrao_usado:      str   = "sem_resultado"
     sucesso:           bool  = False
     erro:              Optional[str] = None
 
@@ -226,50 +155,102 @@ def _extrair_texto_pdf(caminho_pdf: str) -> str:
             caminho_pdf, exc_tess,
         )
         doc.close()
-        return texto_nativo  # retorna o texto curto; Regex pode ainda encontrar algo
+        return texto_nativo  # retorna o texto curto; motor de consenso pode ainda encontrar algo
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  Motor de Regex — extrai horas do texto
+#  Motor de Consenso de Horas — colecta TODOS os valores e vota
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _resolver_extenso(token: str) -> Optional[int]:
-    """Converte uma string por extenso para inteiro. Retorna None se não reconhecer."""
-    token_lower = token.lower().strip()
-    return _EXTENSO.get(token_lower)
+# Padrão abrangente que captura TODAS as menções de carga horária no texto.
+# Grupo 1: número inteiro (vírgula/ponto decimal são ignorados).
+_PADRAO_CARGA_HORARIA = re.compile(
+    r"(\d{1,3})(?:[,.]\d+)?\s*(?:horas?|hrs?|h)\b",
+    re.IGNORECASE | re.UNICODE,
+)
+
+# Padrão contextual de alta precisão — "Carga Horária: Xh" ou "Carga Horaria: 40".
+# Usado para bónus de confiança quando o valor coincide com o eleito pelo consenso.
+_PADRAO_CONTEXTUAL = re.compile(
+    r"carga\s+hor[aá]ri[ao]\s*[:\-]\s*(\d{1,4})",
+    re.IGNORECASE | re.UNICODE,
+)
 
 
-def _extrair_horas_regex(texto: str) -> tuple[int, float, str]:
+def analisar_carga_horaria(texto: str) -> tuple[int, int, str]:
     """
-    Aplica a cadeia de padrões Regex ao texto extraído pelo OCR.
+    Motor de Consenso de Horas.
 
-    Itera os padrões em ordem decrescente de confiança. Retorna ao primeiro match
-    que produzir um valor > 0 e <= 1000 (limites razoáveis para uma atividade AACC).
+    Colecta TODAS as menções de carga horária no documento usando `re.finditer`,
+    filtra valores improváveis (fora de [1, 999]) e aplica votação por frequência
+    (Counter) para determinar o valor mais provável e o índice de confiança.
+
+    Lógica de Confiança:
+        - Nenhum valor encontrado         → (0,  0,  "sem_resultado")
+        - Um único valor                  → (v,  90, "unico")
+        - Múltiplos valores, todos iguais → (v,  95, "consenso")
+        - Múltiplos, um domina (>= 60%)   → (v,  75, "maioria")
+        - Múltiplos, distribuição dispersa→ (v,  30, "ambiguo")
+
+    Bónus +5: se o valor escolhido é confirmado pelo padrão contextual de alta
+    precisão ("Carga Horária: Xh"), a confiança sobe até ao máximo de 100%.
 
     Returns:
-        tuple(horas, confianca, padrao_nome)
+        tuple(horas: int, confianca: int, descricao: str)
     """
-    for i, (padrao, confianca) in enumerate(_COMPILED, start=1):
-        match = padrao.search(texto)
-        if not match:
+    # 1. Colecta todos os candidatos numéricos válidos
+    candidatos: list[int] = []
+    for m in _PADRAO_CARGA_HORARIA.finditer(texto):
+        try:
+            valor = int(m.group(1))
+            if 1 <= valor <= 999:  # descarta 0 e valores absurdos (ex: anos "2024")
+                candidatos.append(valor)
+        except (ValueError, IndexError):
             continue
 
-        grupo = match.group(1).strip()
+    logger.debug("[Consenso] Candidatos encontrados: %s", candidatos)
 
-        # Tenta converter: pode ser dígito ou extenso
-        horas: Optional[int] = None
-        if grupo.isdigit():
-            horas = int(grupo)
-        else:
-            horas = _resolver_extenso(grupo)
+    # 2. Lista vazia → sem resultado
+    if not candidatos:
+        return 0, 0, "sem_resultado"
 
-        if horas is not None and 1 <= horas <= 1000:
-            logger.debug("Regex Padrão %d matched: '%s' → %dh (confiança: %d%%)",
-                         i, match.group(0), horas, confianca)
-            return horas, float(confianca), f"Padrão {i}"
+    contagem = Counter(candidatos)
+    valor_dominante, freq_dominante = contagem.most_common(1)[0]
+    total_candidatos = len(candidatos)
+    valores_unicos   = len(contagem)
 
-    # Nenhum padrão produziu resultado útil
-    return 0, 0.0, "nenhum"
+    # 3. Determina confiança pelo padrão de distribuição
+    if total_candidatos == 1:
+        horas, confianca, descricao = valor_dominante, 90, "unico"
+
+    elif valores_unicos == 1:
+        # Todos os matches retornaram o mesmo número — consenso total
+        horas, confianca, descricao = valor_dominante, 95, "consenso"
+
+    elif freq_dominante / total_candidatos >= 0.6:
+        # Um valor domina com >= 60% das ocorrências
+        horas, confianca, descricao = valor_dominante, 75, "maioria"
+
+    else:
+        # Ambiguidade: valores diferentes com distribuição dispersa.
+        # Escolhe o mais frequente, mas sinaliza para revisão humana.
+        horas, confianca, descricao = valor_dominante, 30, "ambiguo"
+
+    # 4. Bónus contextual: valor confirmado por padrão de alta precisão
+    match_ctx = _PADRAO_CONTEXTUAL.search(texto)
+    if match_ctx:
+        try:
+            if int(match_ctx.group(1)) == horas:
+                confianca = min(100, confianca + 5)
+                descricao += "+contextual"
+        except (ValueError, IndexError):
+            pass
+
+    logger.info(
+        "[Consenso] %dh | confiança=%d%% | tipo=%s | votos=%s",
+        horas, confianca, descricao, dict(contagem),
+    )
+    return horas, confianca, descricao
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -280,18 +261,12 @@ def processar_pdf(caminho_pdf: str) -> OcrResultado:
     """
     Ponto de entrada principal do OCR Service.
 
-    Executa a pipeline completa:
-        1. Extrai texto de todas as páginas com PyMuPDF.
-        2. Aplica cadeia de Regex para localizar horas.
-        3. Retorna OcrResultado completo para o motor de regras.
+    Pipeline:
+        1. Extrai texto via extrator híbrido (nativo PyMuPDF + fallback Tesseract).
+        2. Analisa TODAS as menções de horas via `analisar_carga_horaria` (Consenso).
+        3. Retorna OcrResultado com índice de confiança diferenciado por ambiguidade.
 
-    Nunca lança exceções — falhas são encapsuladas em OcrResultado.erro.
-
-    Args:
-        caminho_pdf: Caminho absoluto no sistema de ficheiros para o PDF.
-
-    Returns:
-        OcrResultado com todos os dados de extração.
+    Nunca lança excepções — falhas são encapsuladas em OcrResultado.erro.
     """
     resultado = OcrResultado()
 
@@ -302,27 +277,35 @@ def processar_pdf(caminho_pdf: str) -> OcrResultado:
     except RuntimeError as exc:
         resultado.erro = str(exc)
         logger.error("OCR falhou para '%s': %s", caminho_pdf, exc)
-        return resultado  # sem texto, não há o que pesquisar
+        return resultado
 
     if not texto.strip():
         resultado.erro = "PDF sem texto extraível (possivelmente imagem escaneada sem OCR)."
         logger.warning("Texto vazio para '%s'", caminho_pdf)
         return resultado
 
-    # ── Passo 2: Extracção de horas por Regex ────────────────────────────────
-    horas, confianca, padrao = _extrair_horas_regex(texto)
+    # ── Passo 2: Motor de Consenso de Horas ──────────────────────────────────
+    horas, confianca, descricao = analisar_carga_horaria(texto)
 
     resultado.horas_encontradas = horas
-    resultado.indice_confianca  = confianca
-    resultado.padrao_usado      = padrao
+    resultado.indice_confianca  = float(confianca)
+    resultado.padrao_usado      = descricao
     resultado.sucesso           = horas > 0
 
     if resultado.sucesso:
-        logger.info("OCR extraiu %dh (conf: %.0f%%) de '%s' via %s",
-                    horas, confianca, caminho_pdf, padrao)
+        logger.info(
+            "[%s] OCR: %dh | conf=%d%% | '%s'",
+            descricao.upper(), horas, confianca, caminho_pdf,
+        )
+        # Flag de ambiguidade — coordenador DEVE rever manualmente
+        if confianca <= 30:
+            resultado.erro = (
+                f"Ambiguidade detectada (confiança: {confianca}%): múltiplos valores de horas "
+                "foram encontrados no documento. Revisão manual obrigatória."
+            )
     else:
-        resultado.erro = "Nenhum padrão de horas encontrado no texto extraído."
-        logger.warning("OCR não encontrou horas em '%s'. Texto parcial: %s",
+        resultado.erro = "Nenhuma menção de carga horária encontrada no texto extraído."
+        logger.warning("[SEM_RESULTADO] '%s' | texto parcial: %s",
                        caminho_pdf, texto[:300])
 
     return resultado
