@@ -9,6 +9,7 @@ import { Badge } from '@/components/atoms/Badge'
 import { cn } from '@/utils/cn'
 import { useAuth } from '@/contexts/AuthContext'
 import { certificadosService } from '@/services/api/endpoints'
+import { toast } from 'sonner'
 
 // ── Mapa de status → Badge + ícone + texto ──────────────────────────────────
 const STATUS_CONFIG = {
@@ -76,23 +77,68 @@ export function CertificadoDrawer({ certificado, onClose, onAvaliado }) {
     }
   }, [certificado])
 
-  const handleAvaliar = async (statusDecisao) => {
-    if (!horasValidadas) {
-      setErro('Informe as horas validadas.')
+  const handleAvaliar = async (acao) => {
+    setErro('')
+    
+    // Validação RN03 (apenas ao rejeitar)
+    if (acao === 'rejeitar' && !motivo.trim()) {
+      setErro('A justificativa é obrigatória para indeferimentos.')
+      toast.error('Justificativa obrigatória', {
+        description: 'Por favor, explique o motivo da rejeição para o aluno.'
+      })
       return
     }
+
+    // Validação de horas (apenas ao aprovar)
+    if (acao === 'aprovar' && (!horasValidadas || Number(horasValidadas) <= 0)) {
+      setErro('Informe as horas validadas.')
+      toast.error('Horas inválidas', {
+        description: 'Por favor, informe a quantidade de horas encontradas.'
+      })
+      return
+    }
+
     try {
       setSubmitting(true)
-      setErro('')
-      await certificadosService.avaliar(certificado.id, {
-        status: statusDecisao,
-        horas_computadas_final: horasValidadas,
-        motivo_status: motivo
+      const response = await certificadosService.avaliar(certificado.id, {
+        acao: acao,
+        horas_confirmadas: acao === 'aprovar' ? parseFloat(horasValidadas) : null,
+        justificativa: motivo
       })
+      
+      const resData = response.data
+      
+      if (acao === 'aprovar') {
+        const confirmadas = parseFloat(horasValidadas)
+        const deferidas = parseFloat(resData.horas_deferidas)
+        
+        if (deferidas < confirmadas) {
+          // Ocorreram cortes matemáticos normativos pelo SEBR
+          const cortesTot = parseFloat(resData.horas_cortadas_total)
+          const cortesEv = parseFloat(resData.horas_cortadas_evento)
+          const descricaoCortes = []
+          if (cortesEv > 0) descricaoCortes.push(`-${cortesEv}h (limite por evento)`)
+          if (cortesTot > 0) descricaoCortes.push(`-${cortesTot}h (teto da categoria)`)
+          
+          toast.warning('Aprovado com cortes matemáticos!', {
+            description: `Você enviou ${confirmadas}h, mas o sistema deferiu apenas ${deferidas}h devido às regras normativas. Cortes: ${descricaoCortes.join(' e ')}.`,
+            duration: 6000
+          })
+        } else {
+          toast.success('Certificado aprovado com sucesso!', {
+            description: `Foram computadas ${deferidas}h para o aluno.`
+          })
+        }
+      } else {
+        toast.success('Certificado indeferido com sucesso.')
+      }
+
       onAvaliado?.()
       onClose()
     } catch (err) {
-      setErro(err.friendlyMessage ?? 'Erro ao avaliar certificado.')
+      const msg = err.response?.data?.detail || err.friendlyMessage || 'Erro ao avaliar certificado.'
+      setErro(msg)
+      toast.error('Erro na avaliação', { description: msg })
     } finally {
       setSubmitting(false)
     }
@@ -254,6 +300,7 @@ export function CertificadoDrawer({ certificado, onClose, onAvaliado }) {
                     </label>
                     <input
                       type="number"
+                      step="0.5"
                       value={horasValidadas}
                       onChange={(e) => setHorasValidadas(e.target.value)}
                       className="w-full h-9 rounded-xs border border-border px-3 text-label focus:ring-2 focus:ring-primary outline-none"
@@ -262,14 +309,14 @@ export function CertificadoDrawer({ certificado, onClose, onAvaliado }) {
 
                   <div>
                     <label className="text-helper font-medium text-text-primary mb-1 block">
-                      Motivo / Justificativa (Opcional)
+                      Motivo / Justificativa <span className="text-danger" title="Obrigatório em caso de indeferimento">*</span>
                     </label>
                     <textarea
                       value={motivo}
                       onChange={(e) => setMotivo(e.target.value)}
                       rows={3}
                       className="w-full rounded-xs border border-border p-3 text-label focus:ring-2 focus:ring-primary outline-none resize-none"
-                      placeholder="Ex: Deferido."
+                      placeholder="Justificativa obrigatória em caso de rejeição."
                     />
                   </div>
 
@@ -277,14 +324,14 @@ export function CertificadoDrawer({ certificado, onClose, onAvaliado }) {
 
                   <div className="flex gap-2 pt-2">
                     <button
-                      onClick={() => handleAvaliar('rejeitado')}
+                      onClick={() => handleAvaliar('rejeitar')}
                       disabled={submitting}
                       className="flex-1 h-9 rounded-xs border border-danger text-danger font-medium hover:bg-danger hover:text-white transition-colors flex items-center justify-center gap-2"
                     >
                       {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Indeferir'}
                     </button>
                     <button
-                      onClick={() => handleAvaliar('aprovado')}
+                      onClick={() => handleAvaliar('aprovar')}
                       disabled={submitting}
                       className="flex-1 h-9 rounded-xs bg-success text-white font-medium hover:bg-success/90 transition-colors flex items-center justify-center gap-2"
                     >
