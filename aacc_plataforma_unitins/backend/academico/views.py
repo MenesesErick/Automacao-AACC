@@ -195,80 +195,132 @@ class CertificadoViewSet(viewsets.ModelViewSet):
             aluno.matricula,
         )
 
-    # ── Auditoria / Human-in-the-Loop ───────────────────────────────────────
-    @action(detail=True, methods=["patch"])
+    # ── Avaliação Human-in-the-Loop com SEBR ────────────────────────────────
+    @action(detail=True, methods=["patch"], url_path="avaliar")
     def avaliar(self, request, pk=None):
         """
-        Permite ao Coordenador deferir/indeferir certificados que caíram
-        em revisao_manual ou pendente_ocr.
+        PATCH /api/academico/certificados/{id}/avaliar/
+
+        Endpoint exclusivo do Coordenador para deferir ou indeferir um certificado.
+        Integra o SEBR (Resolução CONSUNI 057/2025) via avaliacao_service.
+
+        Payload esperado:
+            {
+                "acao":             "aprovar" | "rejeitar",
+                "horas_confirmadas": float,   // obrigatório se acao=="aprovar"
+                "justificativa":    string    // obrigatório se acao=="rejeitar" (RN03)
+            }
+
+        Resposta (aprovação):
+            {
+                "detail":               "Certificado aprovado com sucesso.",
+                "horas_deferidas":      float,
+                "horas_cortadas_evento": float,
+                "horas_cortadas_total": float,
+                "saldo_apos":           float,
+                "atingiu_teto_evento":  bool,
+                "atingiu_teto_total":   bool,
+                "regra_aplicada":       string
+            }
         """
+        from decimal import Decimal, InvalidOperation
+        from academico.services.avaliacao_service import (
+            aprovar_certificado,
+            rejeitar_certificado,
+        )
+
         user = request.user
         if not user.is_coordenador:
             raise PermissionDenied("Apenas coordenadores podem avaliar certificados.")
 
         certificado = self.get_object()
-        data = request.data
 
-        status = data.get("status")
-        if status not in ["aprovado", "rejeitado"]:
+        # ── Validação do payload ──────────────────────────────────────────────
+        acao = (request.data.get("acao") or "").strip().lower()
+        if acao not in ("aprovar", "rejeitar"):
             return Response(
-                {"detail": "Status inválido. Deve ser 'aprovado' ou 'rejeitado'."},
-                status=400,
+                {"detail": "Campo 'acao' é obrigatório e deve ser 'aprovar' ou 'rejeitar'."},
+                status=http_status.HTTP_400_BAD_REQUEST,
             )
 
+        # ── Fluxo de APROVAÇÃO ────────────────────────────────────────────────
+        if acao == "aprovar":
+            raw_horas = request.data.get("horas_confirmadas")
+            if raw_horas is None:
+                return Response(
+                    {"detail": "Campo 'horas_confirmadas' é obrigatório para aprovação."},
+                    status=http_status.HTTP_400_BAD_REQUEST,
+                )
+            try:
+                horas_confirmadas = Decimal(str(raw_horas))
+                if horas_confirmadas <= 0:
+                    raise ValueError
+            except (InvalidOperation, ValueError):
+                return Response(
+                    {"detail": "'horas_confirmadas' deve ser um número decimal positivo."},
+                    status=http_status.HTTP_400_BAD_REQUEST,
+                )
+
+            try:
+                resultado = aprovar_certificado(
+                    certificado          = certificado,
+                    horas_confirmadas    = horas_confirmadas,
+                    usuario_responsavel  = user,
+                )
+            except ValueError as exc:
+                # Categoria sem slug ou slug inválido no SEBR
+                return Response(
+                    {"detail": str(exc)},
+                    status=http_status.HTTP_422_UNPROCESSABLE_ENTITY,
+                )
+
+            logger.info(
+                "Cert %s APROVADO por %s | deferidas=%.2fh | teto_ev=%s | teto_tot=%s",
+                certificado.pk, user.username,
+                resultado["horas_deferidas"],
+                resultado["atingiu_teto_evento"],
+                resultado["atingiu_teto_total"],
+            )
+
+            return Response(
+                {
+                    "detail":                "Certificado aprovado com sucesso.",
+                    "horas_deferidas":       float(resultado["horas_deferidas"]),
+                    "horas_cortadas_evento": float(resultado["horas_cortadas_evento"]),
+                    "horas_cortadas_total":  float(resultado["horas_cortadas_total"]),
+                    "saldo_apos":            float(resultado["saldo_apos"]),
+                    "atingiu_teto_evento":   resultado["atingiu_teto_evento"],
+                    "atingiu_teto_total":    resultado["atingiu_teto_total"],
+                    "regra_aplicada":        resultado["regra_aplicada"],
+                },
+                status=http_status.HTTP_200_OK,
+            )
+
+        # ── Fluxo de REJEIÇÃO ─────────────────────────────────────────────────
+        justificativa = (request.data.get("justificativa") or "").strip()
         try:
-            horas_computadas = int(float(data.get("horas_computadas_final", 0)))
-        except (ValueError, TypeError):
-            return Response(
-                {"detail": "horas_computadas_final deve ser um número válido."},
-                status=400,
+            rejeitar_certificado(
+                certificado         = certificado,
+                justificativa       = justificativa,
+                usuario_responsavel = user,
             )
-
-        motivo = data.get("motivo_status", "")
-        if status == "rejeitado" and not motivo:
-            motivo = "Indeferido pelo coordenador após revisão manual."
-        elif status == "aprovado" and not motivo:
-            motivo = "Deferido pelo coordenador após revisão manual."
-
-        # Atualiza o certificado
-        horas_base = certificado.horas_sugeridas_ia or 0
-        certificado.status = status
-        certificado.horas_computadas_final = horas_computadas if status == "aprovado" else 0
-        # Evita horas descartadas negativas caso o coordenador aprove mais do que a IA sugeriu
-        certificado.horas_descartadas = max(0, horas_base - certificado.horas_computadas_final)
-        certificado.motivo_status = motivo
-        
-        certificado.save(
-            update_fields=[
-                "status",
-                "horas_computadas_final",
-                "horas_descartadas",
-                "motivo_status",
-                "data_atualizacao",
-            ]
-        )
-
-        # Gera log de auditoria da ação manual
-        from academico.models import RuleValidationLog
-        RuleValidationLog.objects.create(
-            certificado=certificado,
-            usuario_responsavel=user,
-            regra_aplicada="Revisão Manual (Coordenador)",
-            justificativa=motivo,
-            horas_enviadas=horas_base,
-            horas_computadas=certificado.horas_computadas_final,
-            horas_descartadas=certificado.horas_descartadas,
-        )
+        except ValueError as exc:
+            # RN03: justificativa vazia
+            return Response(
+                {"detail": str(exc)},
+                status=http_status.HTTP_400_BAD_REQUEST,
+            )
 
         logger.info(
-            "Certificado %s %s por %s. Horas: %s",
-            certificado.id,
-            status,
-            user.username,
-            certificado.horas_computadas_final,
+            "Cert %s REJEITADO por %s. Motivo: %.60s",
+            certificado.pk, user.username, justificativa,
         )
 
-        return Response({"detail": f"Certificado {status} com sucesso."})
+        return Response(
+            {"detail": "Certificado rejeitado com sucesso.", "justificativa": justificativa},
+            status=http_status.HTTP_200_OK,
+        )
+
 
 
 # ─────────────────────────────────────────────────────────────────────────────

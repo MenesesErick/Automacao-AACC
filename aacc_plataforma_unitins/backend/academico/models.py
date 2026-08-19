@@ -49,6 +49,14 @@ class CategoriaAACC(models.Model):
 
     nome = models.CharField(max_length=255, verbose_name="Nome da Categoria")
     eixo = models.CharField(max_length=20, choices=EIXO_CHOICES, verbose_name="Eixo")
+    codigo_slug = models.CharField(
+        max_length=60,
+        unique=True,
+        null=True,
+        blank=True,
+        verbose_name="Código Slug (SEBR)",
+        help_text="Chave imutável que referencia a categoria em LIMITES_CATEGORIAS (resolucao_057.py).",
+    )
     limite_maximo_horas = models.IntegerField(verbose_name="Limite Máximo de Horas")
 
     class Meta:
@@ -76,8 +84,20 @@ class Certificado(models.Model):
     
     texto_extraido_ocr = models.TextField(blank=True, null=True, verbose_name="Texto Bruto Extraído (OCR)")
     horas_validadas_ocr = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name="Horas Validadas OCR")
-    horas_computadas_final = models.IntegerField(null=True, blank=True, verbose_name="Horas Computadas Final")
-    horas_descartadas = models.IntegerField(default=0, verbose_name="Horas Descartadas")
+    horas_computadas_final = models.DecimalField(
+        max_digits=6, decimal_places=2, null=True, blank=True,
+        verbose_name="Horas Computadas Final",
+        help_text="Valor final aprovado pelo SEBR após todos os cortes normativos.",
+    )
+    horas_descartadas = models.DecimalField(
+        max_digits=6, decimal_places=2, default=0,
+        verbose_name="Horas Descartadas",
+    )
+    justificativa_indeferimento = models.TextField(
+        blank=True, null=True,
+        verbose_name="Justificativa de Indeferimento",
+        help_text="Obrigatório quando status=rejeitado (RN03).",
+    )
     
     indice_confianca_ocr = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name="Índice de Confiança OCR (%)")
     
