@@ -79,8 +79,8 @@ export function CertificadoDrawer({ certificado, onClose, onAvaliado }) {
 
   const handleAvaliar = async (acao) => {
     setErro('')
-    
-    // Validação RN03 (apenas ao rejeitar)
+
+    // ── RN03: justificativa obrigatória ao rejeitar ───────────────────────
     if (acao === 'rejeitar' && !motivo.trim()) {
       setErro('A justificativa é obrigatória para indeferimentos.')
       toast.error('Justificativa obrigatória', {
@@ -89,7 +89,7 @@ export function CertificadoDrawer({ certificado, onClose, onAvaliado }) {
       return
     }
 
-    // Validação de horas (apenas ao aprovar)
+    // ── Validação de horas ao aprovar ─────────────────────────────────────
     if (acao === 'aprovar' && (!horasValidadas || Number(horasValidadas) <= 0)) {
       setErro('Informe as horas validadas.')
       toast.error('Horas inválidas', {
@@ -98,35 +98,37 @@ export function CertificadoDrawer({ certificado, onClose, onAvaliado }) {
       return
     }
 
+    // ── Monta payload estrito — sem enviar null desnecessário ─────────────
+    const payload =
+      acao === 'aprovar'
+        ? { acao, horas_confirmadas: parseFloat(horasValidadas) }
+        : { acao, justificativa: motivo.trim() }
+
     try {
       setSubmitting(true)
-      const response = await certificadosService.avaliar(certificado.id, {
-        acao: acao,
-        horas_confirmadas: acao === 'aprovar' ? parseFloat(horasValidadas) : null,
-        justificativa: motivo
-      })
-      
+      const response = await certificadosService.avaliar(certificado.id, payload)
       const resData = response.data
-      
+
       if (acao === 'aprovar') {
         const confirmadas = parseFloat(horasValidadas)
-        const deferidas = parseFloat(resData.horas_deferidas)
-        
+        const deferidas   = parseFloat(resData.horas_deferidas)
+
         if (deferidas < confirmadas) {
-          // Ocorreram cortes matemáticos normativos pelo SEBR
-          const cortesTot = parseFloat(resData.horas_cortadas_total)
-          const cortesEv = parseFloat(resData.horas_cortadas_evento)
-          const descricaoCortes = []
-          if (cortesEv > 0) descricaoCortes.push(`-${cortesEv}h (limite por evento)`)
-          if (cortesTot > 0) descricaoCortes.push(`-${cortesTot}h (teto da categoria)`)
-          
-          toast.warning('Aprovado com cortes matemáticos!', {
-            description: `Você enviou ${confirmadas}h, mas o sistema deferiu apenas ${deferidas}h devido às regras normativas. Cortes: ${descricaoCortes.join(' e ')}.`,
-            duration: 6000
+          const cortesTot = parseFloat(resData.horas_cortadas_total) || 0
+          const cortesEv  = parseFloat(resData.horas_cortadas_evento) || 0
+          const partes = []
+          if (cortesEv  > 0) partes.push(`-${cortesEv}h (limite por evento)`)
+          if (cortesTot > 0) partes.push(`-${cortesTot}h (teto da categoria)`)
+
+          toast.warning('Aprovado com cortes normativos!', {
+            description:
+              `Você confirmou ${confirmadas}h, mas o SEBR deferiu apenas ${deferidas}h. ` +
+              (partes.length ? `Cortes: ${partes.join(' e ')}.` : ''),
+            duration: 7000,
           })
         } else {
-          toast.success('Certificado aprovado com sucesso!', {
-            description: `Foram computadas ${deferidas}h para o aluno.`
+          toast.success('Certificado aprovado!', {
+            description: `${deferidas}h computadas para o aluno.`,
           })
         }
       } else {
@@ -136,9 +138,14 @@ export function CertificadoDrawer({ certificado, onClose, onAvaliado }) {
       onAvaliado?.()
       onClose()
     } catch (err) {
-      const msg = err.response?.data?.detail || err.friendlyMessage || 'Erro ao avaliar certificado.'
-      setErro(msg)
-      toast.error('Erro na avaliação', { description: msg })
+      // Lê da resposta Axios diretamente (pre-spread do interceptor)
+      const detail =
+        err.response?.data?.detail ||
+        err?.data?.detail ||
+        err.friendlyMessage ||
+        'Erro ao avaliar certificado.'
+      setErro(detail)
+      toast.error('Erro na avaliação', { description: detail })
     } finally {
       setSubmitting(false)
     }
