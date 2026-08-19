@@ -151,21 +151,35 @@ def _tentar_imagem_fundo(c, tipo_doc: str, page_w: float, page_h: float) -> None
 def _desenhar_certificado(c, nome_aluno: str, horas: int, nome_evento: str,
                           entidade: str, codigo: str) -> None:
     """
-    Certificado horizontal (A4 landscape). Estilo formal e solene.
+    Certificado horizontal (A4 landscape). Estilo formal e solene — 2 PAGINAS.
 
-    Variação aleatória entre 2 sub-layouts:
-        Sub-layout A — Times, centralizado, bordas duplas decorativas.
-        Sub-layout B — Helvetica, blocos mistos (evento à esquerda, dados à direita).
+    Pagina 1 (Frente):
+        Background certificado_bg*.png, texto formal com
+        "carga horaria total de X hora(s)" ou "X hora(s) e Y minuto(s)".
+    Pagina 2 (Verso):
+        Fundo branco, tabela de Conteudo Programatico com cargas em HH:MM.
     """
     PW, PH = landscape(A4)
     margem = 2.5 * cm
 
+    # ── Decide formato da carga horaria (frente) ──────────────────────────────
+    # 70% inteiro, 30% composto com minutos para estressar o OCR
+    if horas >= 2 and random.random() < 0.3:
+        mins_extra = random.choice([15, 30, 45])
+        horas_str  = f"{horas} hora(s) e {mins_extra} minuto(s)"
+        horas_real = horas + mins_extra / 60
+    else:
+        horas_str  = f"{horas} hora(s)"
+        horas_real = float(horas)
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # PAGINA 1 — FRENTE
+    # ══════════════════════════════════════════════════════════════════════════
     _tentar_imagem_fundo(c, 'certificado', PW, PH)
 
     sublayout = random.choice(['A', 'B'])
 
     if sublayout == 'A':
-        # ── Borda decorativa dupla ────────────────────────────────────────────
         c.setStrokeColorRGB(0.2, 0.2, 0.5)
         c.setLineWidth(2)
         c.rect(margem, margem, PW - 2 * margem, PH - 2 * margem)
@@ -174,45 +188,36 @@ def _desenhar_certificado(c, nome_aluno: str, horas: int, nome_evento: str,
         c.rect(margem + offset, margem + offset,
                PW - 2 * (margem + offset), PH - 2 * (margem + offset))
 
-        # Título — Safe Zone: nunca acima de PH - 4*cm
         c.setFillColorRGB(0.1, 0.1, 0.4)
         c.setFont("Times-Bold", 26)
         c.drawCentredString(PW / 2, PH - 4.5 * cm, "CERTIFICADO DE PARTICIPACAO")
 
-        # Entidade emissora
         c.setFillColorRGB(0.3, 0.3, 0.3)
         c.setFont("Helvetica-Oblique", 10)
         c.drawCentredString(PW / 2, PH - 5.5 * cm, entidade)
 
-        # Linha decorativa
         c.setStrokeColorRGB(0.6, 0.6, 0.8)
         c.setLineWidth(0.8)
         c.line(3.5 * cm, PH - 6.0 * cm, PW - 3.5 * cm, PH - 6.0 * cm)
 
-        # Corpo principal — centralizado no miolo da folha (Safe Zone)
         corpo = (
             f"Certificamos que o(a) discente "
             f"{nome_aluno.upper()}, "
             f"devidamente inscrito(a) em nossos registros academicos, "
             f"participou e concluiu com exito o(a) {nome_evento}, "
-            f"realizado sob a coordenacao desta instituicao, "
-            f"totalizando uma carga horaria de {horas} ({horas}) horas, "
+            f"realizado sob a coordenacao desta instituicao, com "
+            f"carga horaria total de {horas_str}, "
             f"em conformidade com a Resolucao CONSUNI no 057/2025 "
             f"que regulamenta as Atividades Academico-Cientifico-Culturais (AACC)."
         )
-        # Y_start: centro matemático da folha (garante equilíbrio visual)
         y_corpo = PH / 2 + 1.5 * cm
         _draw_wrapped(c, corpo, "Times-Roman", 12, PW / 2, y_corpo,
                       PW - 8 * cm, line_gap=0.65, align='center')
-
-        # Rodapé: cidade, data — Safe Zone: nunca abaixo de 3.5*cm
 
         cidade = random.choice(CIDADES)
         data   = _fake.date_this_decade().strftime('%d de %B de %Y')
         c.setFont("Helvetica", 9)
         c.drawCentredString(PW / 2, 3.5 * cm, f"{cidade}, {data}")
-
-        # Linha de assinatura
         c.setLineWidth(0.5)
         c.setStrokeColorRGB(0, 0, 0)
         c.line(PW / 2 - 4 * cm, 3.0 * cm, PW / 2 + 4 * cm, 3.0 * cm)
@@ -220,8 +225,6 @@ def _desenhar_certificado(c, nome_aluno: str, horas: int, nome_evento: str,
         c.drawCentredString(PW / 2, 2.5 * cm, "Coordenador(a) de AACC")
 
     else:
-        # ── Sub-layout B: Helvetica, dois blocos ─────────────────────────────
-        # Safe Zone: faixa horizontal decorativa abaixo de PH - 4*cm
         c.setStrokeColorRGB(0.8, 0.1, 0.1)
         c.setLineWidth(3)
         c.line(0, PH - 4.0 * cm, PW, PH - 4.0 * cm)
@@ -233,16 +236,16 @@ def _desenhar_certificado(c, nome_aluno: str, horas: int, nome_evento: str,
         c.setFont("Helvetica", 11)
         c.drawString(margem, PH - 5.8 * cm, entidade)
 
-        # Coluna esquerda: evento e horas — Safe Zone Y_start = PH/2 + 2*cm
         c.setFont("Helvetica-Bold", 13)
         c.drawString(margem, PH / 2 + 2.5 * cm, "EVENTO / ATIVIDADE:")
         _draw_wrapped(c, nome_evento, "Helvetica", 11, margem, PH / 2 + 1.8 * cm,
                       PW / 2 - 3 * cm, line_gap=0.5)
 
         c.setFont("Helvetica-Bold", 11)
-        c.drawString(margem, PH / 2 - 0.5 * cm, f"Carga Horaria: {horas}h")
+        # Frente usa a forma "total de X hora(s)" para o padrao de alta prioridade
+        c.drawString(margem, PH / 2 - 0.5 * cm,
+                     f"Carga Horaria Total de {horas_str}")
 
-        # Coluna direita: participante
         cx = PW / 2 + 0.5 * cm
         c.setFont("Helvetica-Bold", 13)
         c.drawString(cx, PH / 2 + 2.5 * cm, "PARTICIPANTE:")
@@ -250,12 +253,90 @@ def _desenhar_certificado(c, nome_aluno: str, horas: int, nome_evento: str,
         _draw_wrapped(c, nome_aluno, "Times-Bold", 16, cx, PH / 2 + 1.8 * cm,
                       PW / 2 - 3 * cm, line_gap=0.65)
 
-        # Data e cidade — Safe Zone: nunca abaixo de 3*cm
         data = _fake.date_this_decade().strftime('%d/%m/%Y')
         c.setFont("Helvetica", 9)
         c.drawRightString(PW - margem, 3.5 * cm, f"{random.choice(CIDADES)}, {data}")
 
     _rodape_codigo(c, PW, codigo)
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # PAGINA 2 — VERSO (Conteudo Programatico)
+    # ══════════════════════════════════════════════════════════════════════════
+    c.showPage()
+
+    # Verso: fundo branco, sem imagem de background
+    c.setFillColorRGB(1, 1, 1)
+    c.rect(0, 0, PW, PH, fill=1, stroke=0)
+
+    c.setFillColorRGB(0, 0, 0)
+    c.setFont("Helvetica-Bold", 16)
+    c.drawCentredString(PW / 2, PH - 2.5 * cm, "Conteudo Programatico")
+
+    c.setFont("Helvetica", 9)
+    c.drawCentredString(PW / 2, PH - 3.2 * cm, entidade)
+
+    c.setStrokeColorRGB(0.3, 0.3, 0.3)
+    c.setLineWidth(0.5)
+    c.line(margem, PH - 3.6 * cm, PW - margem, PH - 3.6 * cm)
+
+    # Divide a carga total em modulos HH:MM
+    horas_int   = int(horas_real)
+    modulos_raw = max(2, random.randint(2, min(6, horas_int)))
+    base_h      = horas_int // modulos_raw
+    resto_h     = horas_int % modulos_raw
+
+    modulos = []
+    for i in range(modulos_raw):
+        h_mod = base_h + (1 if i < resto_h else 0)
+        m_mod = 0
+        # Ocasionalmente quebra em HH:30
+        if random.random() < 0.3 and h_mod > 0:
+            h_mod -= 1
+            m_mod  = 30
+        modulos.append((h_mod, m_mod))
+
+    # Cabecalho da tabela
+    y_tab = PH - 4.5 * cm
+    col_desc  = margem
+    col_carga = PW - margem - 3 * cm
+
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(col_desc,  y_tab, "Modulo / Atividade")
+    c.drawString(col_carga, y_tab, "Carga")
+    y_tab -= 0.5 * cm
+    c.line(margem, y_tab, PW - margem, y_tab)
+    y_tab -= 0.6 * cm
+
+    c.setFont("Helvetica", 10)
+    temas = [
+        "Fundamentos Teoricos e Conceitos Gerais",
+        "Metodologia e Boas Praticas",
+        "Estudos de Caso e Aplicacoes Praticas",
+        "Trabalho em Equipe e Dinamicas de Grupo",
+        "Analise Critica e Resultados",
+        "Encerramento e Avaliacao Final",
+    ]
+    random.shuffle(temas)
+
+    for i, (h_mod, m_mod) in enumerate(modulos):
+        tema = temas[i % len(temas)]
+        carga_fmt = f"{h_mod:02d}:{m_mod:02d}"
+        c.drawString(col_desc,  y_tab, f"{i + 1}. {tema}")
+        c.drawString(col_carga, y_tab, carga_fmt)
+        y_tab -= 0.7 * cm
+        if y_tab < 3 * cm:
+            break
+
+    # Linha de total
+    c.line(margem, y_tab, PW - margem, y_tab)
+    y_tab -= 0.6 * cm
+    c.setFont("Helvetica-Bold", 10)
+    total_hh = int(horas_real)
+    total_mm = round((horas_real - total_hh) * 60)
+    c.drawString(col_desc,  y_tab, "TOTAL")
+    c.drawString(col_carga, y_tab, f"{total_hh:02d}:{total_mm:02d}")
+
+
 
 
 # ─────────────────────────────────────────────────────────────────────────────

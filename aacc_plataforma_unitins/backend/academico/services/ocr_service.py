@@ -163,16 +163,32 @@ def _extrair_texto_pdf(caminho_pdf: str) -> str:
 # ─────────────────────────────────────────────────────────────────────────────
 
 # Padrão 1 — Decimal/inteiro simples seguido de unidade de hora.
-# Captura: "40h", "2.5 horas", "2,5 hrs", "120 h".
+# Captura: "40h", "2.5 horas", "2,5 hrs", "3 hora(s)"
 _PADRAO_CARGA_HORARIA = re.compile(
-    r"(\d+(?:[,.]\d+)?)\s*(?:horas?|hrs?|h)\b",
+    r"(\d+(?:[,.]\d+)?)\s*(?:horas?\s*(?:\(s\))?|hrs?|h)\b",
     re.IGNORECASE | re.UNICODE,
 )
 
-# Padrão 2 — Composto "X horas e Y minutos" / "X h e Y min".
-# Captura: "2 horas e 30 minutos", "1h e 45 mins".
+# Padrão 2 — Composto "X horas e Y minutos" / "X hora(s) e Y minuto(s)".
+# Captura: "2 horas e 30 minutos", "1 hora(s) e 45 minuto(s)"
 _PADRAO_COMPOSTO = re.compile(
-    r"(\d+)\s*(?:horas?|hrs?|h)\s+e\s+(\d+)\s*(?:minutos?|mins?|m(?:in)?)\b",
+    r"(\d+)\s*(?:horas?\s*(?:\(s\))?|hrs?|h)\s+e\s+(\d+)\s*(?:minutos?\s*(?:\(s\))?|mins?|m(?:in)?)\b",
+    re.IGNORECASE | re.UNICODE,
+)
+
+# Padrão 3 — Relógio HH:MM (típico em tabelas do verso/conteúdo programático).
+# Captura: "2:30" -> 2.5h, "20:00" -> 20.0h
+# Limita a 0-99h e 0-59min para evitar datas (2026-08 etc.)
+_PADRAO_RELOGIO = re.compile(
+    r"\b(\d{1,2}):([0-5]\d)\b",
+    re.UNICODE,
+)
+
+# Padrão 4 — TOTAL de alta prioridade: "carga horaria total de X" ou
+#   "carga horaria de X hora(s)".  Garante precedência máxima (98%).
+# Adicionado suporte para "e Y minuto(s)" opcionais.
+_PADRAO_TOTAL = re.compile(
+    r"carga\s+hor[aá]ri[ao](?:\s+total)?\s+de\s+(\d+(?:[,.]\d+)?)\s*(?:horas?\s*(?:\(s\))?|hrs?|h)?(?:\s+e\s+(\d+)\s*(?:minutos?\s*(?:\(s\))?|mins?|m(?:in)?))?",
     re.IGNORECASE | re.UNICODE,
 )
 
@@ -186,33 +202,49 @@ _PADRAO_CONTEXTUAL = re.compile(
 
 def analisar_carga_horaria(texto: str) -> tuple[float, int, str]:
     """
-    Motor de Consenso de Horas — com suporte a decimais e padrão composto.
+    Motor de Consenso de Horas — suporte a decimais, hora(s), HH:MM e total prioritário.
 
-    Colecta TODAS as menções de carga horária no documento usando `re.finditer`.
-    Suporta:
-        - Inteiros simples:  "40h", "40 horas"
-        - Decimais:          "2.5h", "2,5 horas"
-        - Padrão composto:   "2 horas e 30 minutos" (30 min → 0.5h → total 2.5h)
+    Ordem de avaliação:
+        0. Padrão TOTAL ("carga horaria total de Xh") — se encontrado, retorna
+           imediatamente com 98% de confiança, ignorando frações soltas do verso.
+        1. Padrão COMPOSTO ("X hora(s) e Y minuto(s)") — processa antes do simples.
+        2. Padrão SIMPLES decimal/inteiro ("40h", "2,5 horas", "3 hora(s)").
+        3. Padrão RELÓGIO HH:MM ("20:00" -> 20.0h, "2:30" -> 2.5h).
 
-    Filtra valores improváveis (fora de [0.25, 999]) e aplica votação por
-    frequência (Counter) para determinar o valor mais provável.
-
-    Lógica de Confiança:
-        - Nenhum valor            → (0.0, 0,  "sem_resultado")
-        - Um único valor          → (v,  90,  "unico")
-        - Múltiplos, todos iguais → (v,  95,  "consenso")
-        - Múltiplos, domina ≥60%  → (v,  75,  "maioria")
-        - Múltiplos, ambiguidade  → (v,  30,  "ambiguo")
+    Lógica de Confiança (quando não há padrão total):
+        - Nenhum valor            -> (0.0, 0,  "sem_resultado")
+        - Um único valor          -> (v,  90,  "unico")
+        - Múltiplos, todos iguais -> (v,  95,  "consenso")
+        - Múltiplos, domina >=60% -> (v,  75,  "maioria")
+        - Múltiplos, ambiguidade  -> (v,  30,  "ambiguo")
 
     Bónus +5: valor confirmado pelo padrão contextual "Carga Horária: Xh".
 
     Returns:
         tuple(horas: float, confianca: int, descricao: str)
     """
-    candidatos: list[float] = []
+    # ── Fase 0: Padrão TOTAL — precedência máxima ─────────────────────────────
+    # "carga horaria total de 40 horas" ou "carga horaria de 3 hora(s)"
+    # Evita que as frações do verso gerem falsa ambiguidade.
+    match_total = _PADRAO_TOTAL.search(texto)
+    if match_total:
+        try:
+            horas_parte = float(match_total.group(1).replace(",", "."))
+            minutos_parte = float(match_total.group(2)) if match_total.group(2) else 0.0
+            valor_total = round(horas_parte + minutos_parte / 60.0, 2)
+            if 0.25 <= valor_total <= 999:
+                logger.info(
+                    "[TOTAL] Padrao de total encontrado: %.2fh (conf=98%%) via '%s'",
+                    valor_total, match_total.group(0),
+                )
+                return valor_total, 98, "total"
+        except (ValueError, IndexError):
+            pass
 
-    # 1a. Padrão composto: "X horas e Y minutos" — processa ANTES do simples
-    posicoes_compostas: set[int] = set()
+    candidatos: list[float] = []
+    posicoes_usadas: set[int] = set()
+
+    # ── Fase 1: Padrão COMPOSTO ("X hora(s) e Y minuto(s)") ──────────────────
     for m in _PADRAO_COMPOSTO.finditer(texto):
         try:
             horas_parte   = float(m.group(1))
@@ -220,20 +252,36 @@ def analisar_carga_horaria(texto: str) -> tuple[float, int, str]:
             valor = round(horas_parte + minutos_parte / 60.0, 2)
             if 0.25 <= valor <= 999:
                 candidatos.append(valor)
-                posicoes_compostas.update(range(m.start(), m.end()))
-                logger.debug("[Composto] '%s' → %.2fh", m.group(0), valor)
+                posicoes_usadas.update(range(m.start(), m.end()))
+                logger.debug("[Composto] '%s' -> %.2fh", m.group(0), valor)
         except (ValueError, IndexError):
             continue
 
-    # 1b. Padrão simples (decimal / inteiro) — ignora spans já capturados
+    # ── Fase 2: Padrão SIMPLES decimal / inteiro ──────────────────────────────
     for m in _PADRAO_CARGA_HORARIA.finditer(texto):
-        if m.start() in posicoes_compostas:
+        if m.start() in posicoes_usadas:
             continue
         try:
             token = m.group(1).replace(",", ".")
             valor = round(float(token), 2)
             if 0.25 <= valor <= 999:
                 candidatos.append(valor)
+                posicoes_usadas.update(range(m.start(), m.end()))
+        except (ValueError, IndexError):
+            continue
+
+    # ── Fase 3: Padrão RELÓGIO HH:MM ─────────────────────────────────────────
+    for m in _PADRAO_RELOGIO.finditer(texto):
+        if m.start() in posicoes_usadas:
+            continue
+        try:
+            h_part = float(m.group(1))
+            m_part = float(m.group(2))
+            valor  = round(h_part + m_part / 60.0, 2)
+            if 0.25 <= valor <= 99:   # relógio não chega a 100h; ano "2024" descartado
+                candidatos.append(valor)
+                posicoes_usadas.update(range(m.start(), m.end()))
+                logger.debug("[Relogio] '%s' -> %.2fh", m.group(0), valor)
         except (ValueError, IndexError):
             continue
 
@@ -268,10 +316,11 @@ def analisar_carga_horaria(texto: str) -> tuple[float, int, str]:
             pass
 
     logger.info(
-        "[Consenso] %.2fh | confiança=%d%% | tipo=%s | votos=%s",
+        "[Consenso] %.2fh | confianca=%d%% | tipo=%s | votos=%s",
         horas, confianca, descricao, dict(contagem),
     )
     return horas, confianca, descricao
+
 
 
 
