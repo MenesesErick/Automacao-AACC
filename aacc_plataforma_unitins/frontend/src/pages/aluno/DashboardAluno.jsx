@@ -1,15 +1,14 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   FileText, CheckCircle, Clock, Award, AlertCircle,
-  Plus, ChevronRight
+  Plus, Eye
 } from 'lucide-react'
 
 import { AppLayout } from '@/components/layout/AppLayout'
 import { StatsCard } from '@/components/organisms/StatsCard'
 import { DataTable } from '@/components/organisms/DataTable'
 import { Badge } from '@/components/atoms/Badge'
-import { CertificadoDrawer } from '@/components/organisms/CertificadoDrawer'
 import { certificadosService, alunoService } from '@/services/api/endpoints'
 import { BannerFormatura, GraficoProgresso, GraficoEixos } from '@/components/organisms/ExtratoCharts'
 import { cn } from '@/utils/cn'
@@ -72,7 +71,11 @@ const COLUMNS = [
   {
     key: 'action',
     label: '',
-    render: () => <ChevronRight className="h-4 w-4 text-text-disabled" />,
+    render: () => (
+      <span className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-helper text-text-secondary">
+        <Eye className="h-4 w-4" /> Visualizar
+      </span>
+    ),
   },
 ]
 
@@ -80,12 +83,13 @@ const COLUMNS = [
 
 // ── Componente Principal ─────────────────────────────────────────────────────
 export default function DashboardAluno() {
+  const navigate = useNavigate()
+
   const [certificados, setCertificados]          = useState([])
   const [extrato, setExtrato]                    = useState(null)
   const [loadingCerts, setLoadingCerts]          = useState(true)
   const [loadingExtrato, setLoadingExtrato]      = useState(true)
   const [erro, setErro]                          = useState(null)
-  const [certificadoSelecionado, setCertificado] = useState(null)
 
   const fetchCertificados = useCallback(async () => {
     try {
@@ -214,15 +218,9 @@ export default function DashboardAluno() {
           data={certificados}
           loading={loadingCerts}
           emptyLabel="Nenhum certificado enviado. Clique em 'Enviar Certificado' para começar."
-          onRowClick={(row) => setCertificado(row)}
+          onRowClick={(row) => navigate(`/aluno/certificados/${row.id}`)}
         />
       )}
-
-      {/* ── Drawer ──────────────────────────────────────────────────────── */}
-      <CertificadoDrawer
-        certificado={certificadoSelecionado}
-        onClose={() => setCertificado(null)}
-      />
     </AppLayout>
   )
 }

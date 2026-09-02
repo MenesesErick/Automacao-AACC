@@ -63,7 +63,7 @@ export function DataTable({
                   onClick={() => onRowClick?.(row)}
                   className={cn(
                     'transition-colors duration-fast',
-                    onRowClick && 'cursor-pointer hover:bg-bg',
+                    onRowClick && 'cursor-pointer hover:bg-bg group',
                   )}
                 >
                   {columns.map((col) => (
