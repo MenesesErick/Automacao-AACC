@@ -65,7 +65,7 @@ export function AppRouter() {
           path="/aluno/enviar" 
           element={
             <RoleRoute allowedRole="aluno">
-              <EnviarCertificado />
+              <SubmeterCertificado />
             </RoleRoute>
           } 
         />
