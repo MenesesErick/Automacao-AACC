@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Search, Users, AlertCircle, ChevronRight, BookOpen } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Search, Users, AlertCircle, BookOpen, ArrowRight } from 'lucide-react'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { DataTable } from '@/components/organisms/DataTable'
-import { AlunoRaioXDrawer } from '@/components/organisms/AlunoRaioXDrawer'
 import { alunoService } from '@/services/api/endpoints'
+import { cn } from '@/utils/cn'
 
 const COLUMNS = [
   {
@@ -41,7 +42,10 @@ const COLUMNS = [
     key: 'horas_aprovadas',
     label: 'Horas Aprovadas',
     render: (r) => (
-      <span className={`text-label font-bold tabular-nums ${r.horas_aprovadas > 0 ? 'text-success' : 'text-text-disabled'}`}>
+      <span className={cn(
+        'text-label font-bold tabular-nums',
+        r.horas_aprovadas > 0 ? 'text-success' : 'text-text-disabled',
+      )}>
         {r.horas_aprovadas}h
       </span>
     ),
@@ -56,16 +60,21 @@ const COLUMNS = [
   {
     key: 'action',
     label: '',
-    render: () => <ChevronRight className="h-4 w-4 text-text-disabled" />,
+    render: () => (
+      <div className="flex items-center gap-1 text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+        <span className="text-helper font-medium">Ver Dossiê</span>
+        <ArrowRight className="h-3.5 w-3.5" />
+      </div>
+    ),
   },
 ]
 
 export default function GestaoAlunos() {
-  const [alunos,         setAlunos]         = useState([])
-  const [busca,          setBusca]          = useState('')
-  const [loading,        setLoading]        = useState(true)
-  const [erro,           setErro]           = useState(null)
-  const [alunoSelecionado, setAlunoSel]     = useState(null)
+  const navigate = useNavigate()
+  const [alunos,  setAlunos]  = useState([])
+  const [busca,   setBusca]   = useState('')
+  const [loading, setLoading] = useState(true)
+  const [erro,    setErro]    = useState(null)
 
   const fetchAlunos = useCallback(async () => {
     try {
@@ -82,7 +91,6 @@ export default function GestaoAlunos() {
 
   useEffect(() => { fetchAlunos() }, [fetchAlunos])
 
-  // Filtro local por nome ou matrícula
   const alunosFiltrados = alunos.filter((a) => {
     const q = busca.toLowerCase().trim()
     if (!q) return true
@@ -107,11 +115,11 @@ export default function GestaoAlunos() {
         <div>
           <h1 className="text-h3 font-bold text-text-primary">Gestão de Alunos</h1>
           <p className="text-label text-text-secondary mt-1">
-            {loading ? '...' : `${alunos.length} aluno(s) cadastrado(s).`} Clique para ver o Raio-X AACC.
+            {loading ? '...' : `${alunos.length} aluno(s) cadastrado(s).`}
+            {' '}Clique num aluno para abrir o Dossiê completo.
           </p>
         </div>
 
-        {/* Busca */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary pointer-events-none" />
           <input
@@ -138,16 +146,12 @@ export default function GestaoAlunos() {
           columns={COLUMNS}
           data={alunosFiltrados}
           loading={loading}
-          emptyLabel={busca ? `Nenhum aluno encontrado para "${busca}".` : 'Nenhum aluno cadastrado no sistema.'}
-          onRowClick={(row) => setAlunoSel(row)}
+          emptyLabel={busca
+            ? `Nenhum aluno encontrado para "${busca}".`
+            : 'Nenhum aluno cadastrado no sistema.'}
+          onRowClick={(row) => navigate(`/coordenador/alunos/${row.id}`)}
         />
       )}
-
-      {/* Drawer Raio-X */}
-      <AlunoRaioXDrawer
-        aluno={alunoSelecionado}
-        onClose={() => setAlunoSel(null)}
-      />
     </AppLayout>
   )
 }
