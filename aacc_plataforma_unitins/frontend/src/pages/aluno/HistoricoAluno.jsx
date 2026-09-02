@@ -159,16 +159,25 @@ function TimelineItem({ cert, isLast, onClick }) {
           </div>
         )}
 
-        {/* ── Bloco de Indeferimento (RN03) ─────────────────────────────── */}
+        {/* ── Bloco de Indeferimento Oficial (RN03) ──────────────────────── */}
         {cert.status === 'rejeitado' && (
-          <div className="mt-3 rounded-xs border border-danger-muted bg-danger-light/60 p-3 flex items-start gap-2.5">
-            <XCircle className="h-4 w-4 text-danger shrink-0 mt-0.5" />
-            <div className="min-w-0">
-              <p className="text-helper font-bold text-danger">Motivo do Indeferimento</p>
-              <p className="text-helper text-danger/80 mt-0.5 break-words">
+          <div className="mt-3 rounded-xs border border-danger-muted bg-danger-light/50 overflow-hidden">
+            {/* Cabeçalho */}
+            <div className="flex items-center gap-2 px-3 py-2 bg-danger/10 border-b border-danger-muted">
+              <XCircle className="h-3.5 w-3.5 text-danger shrink-0" />
+              <p className="text-helper font-bold text-danger uppercase tracking-wide">
+                Documento Indeferido pela Coordenação
+              </p>
+            </div>
+            {/* Corpo */}
+            <div className="px-3 py-2.5">
+              <p className="text-helper font-bold text-danger/80 mb-1">
+                Justificativa da Coordenação:
+              </p>
+              <p className="text-helper text-text-primary leading-relaxed">
                 {cert.justificativa_indeferimento
                   || cert.motivo_status
-                  || 'Sem justificativa registrada.'}
+                  || 'Sem justificativa registrada. Entre em contacto com a coordenação.'}
               </p>
             </div>
           </div>

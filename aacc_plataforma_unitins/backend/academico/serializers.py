@@ -47,6 +47,20 @@ class CertificadoSerializer(serializers.ModelSerializer):
         source="get_status_display", read_only=True
     )
 
+    # Identidade do aluno (read-only — nunca pode ser alterado pelo cliente)
+    aluno_nome = serializers.SerializerMethodField()
+    aluno_matricula = serializers.CharField(
+        source="aluno.matricula", read_only=True
+    )
+    aluno_curso = serializers.CharField(
+        source="aluno.curso.nome", read_only=True
+    )
+
+    def get_aluno_nome(self, obj):
+        """Retorna o nome completo ou username do aluno."""
+        usuario = obj.aluno.usuario
+        return usuario.get_full_name() or usuario.username
+
     # horas_declaradas é opcional: o OCR preenche automaticamente
     horas_declaradas = serializers.DecimalField(
         max_digits=6, decimal_places=2,
@@ -58,6 +72,9 @@ class CertificadoSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "aluno",
+            "aluno_nome",
+            "aluno_matricula",
+            "aluno_curso",
             "categoria",
             "categoria_nome",
             "arquivo_pdf",
@@ -80,6 +97,9 @@ class CertificadoSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             "aluno",
+            "aluno_nome",
+            "aluno_matricula",
+            "aluno_curso",
             "texto_extraido_ocr",
             "horas_validadas_ocr",
             "horas_computadas_final",
