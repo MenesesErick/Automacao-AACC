@@ -6,8 +6,9 @@ import LoginPage from '@/pages/auth/LoginPage'
 
 // Aluno
 import DashboardAluno from '@/pages/aluno/DashboardAluno'
-import EnviarCertificado from '@/pages/aluno/EnviarCertificado'
+import SubmeterCertificado from '@/pages/aluno/SubmeterCertificado'
 import HistoricoAluno from '@/pages/aluno/HistoricoAluno'
+import VisualizarCertificado from '@/pages/aluno/VisualizarCertificado'
 
 // Coordenador
 import DashboardCoordenador from '@/pages/coordenador/DashboardCoordenador'
@@ -75,6 +76,14 @@ export function AppRouter() {
               <HistoricoAluno />
             </RoleRoute>
           } 
+        />
+        <Route
+          path="/aluno/certificados/:id"
+          element={
+            <RoleRoute allowedRole="aluno">
+              <VisualizarCertificado />
+            </RoleRoute>
+          }
         />
         
         {/* COORDENADOR Routes */}

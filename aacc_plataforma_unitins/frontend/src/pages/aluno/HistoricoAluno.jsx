@@ -3,9 +3,8 @@ import {
   CheckCircle, XCircle, Clock, Eye, AlertCircle,
   FileText, Plus, ChevronLeft
 } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { AppLayout } from '@/components/layout/AppLayout'
-import { CertificadoDrawer } from '@/components/organisms/CertificadoDrawer'
 import { certificadosService } from '@/services/api/endpoints'
 import { cn } from '@/utils/cn'
 
@@ -127,14 +126,19 @@ function TimelineItem({ cert, isLast, onClick }) {
           cfg.card,
         )}
       >
-        {/* Linha superior: categoria + badge */}
+        {/* Linha superior: categoria + badge + acao */}
         <div className="flex items-start justify-between gap-3">
           <p className="text-label font-semibold text-text-primary leading-snug line-clamp-2">
             {cert.categoria_nome ?? 'Categoria não identificada'}
           </p>
-          <span className={cn('text-helper font-semibold px-2 py-0.5 rounded-full shrink-0', cfg.badge)}>
-            {cfg.label}
-          </span>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className={cn('text-helper font-semibold px-2 py-0.5 rounded-full', cfg.badge)}>
+              {cfg.label}
+            </span>
+            <span className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-helper text-text-secondary">
+              <Eye className="h-3.5 w-3.5" /> Visualizar
+            </span>
+          </div>
         </div>
 
         {/* Linha de horas */}
@@ -223,10 +227,10 @@ function TimelineSkeleton() {
 
 // ── Componente Principal ──────────────────────────────────────────────────────
 export default function HistoricoAluno() {
+  const navigate = useNavigate()
   const [certificados, setCertificados] = useState([])
   const [loading,      setLoading]      = useState(true)
   const [erro,         setErro]         = useState(null)
-  const [selecionado,  setSelecionado]  = useState(null)
 
   const fetchHistorico = useCallback(async () => {
     try {
@@ -342,7 +346,7 @@ export default function HistoricoAluno() {
                     key={cert.id}
                     cert={cert}
                     isLast={idx === items.length - 1}
-                    onClick={setSelecionado}
+                    onClick={() => navigate(`/aluno/certificados/${cert.id}`)}
                   />
                 ))}
               </ul>
@@ -350,12 +354,6 @@ export default function HistoricoAluno() {
           ))}
         </div>
       )}
-
-      {/* Drawer de detalhe */}
-      <CertificadoDrawer
-        certificado={selecionado}
-        onClose={() => setSelecionado(null)}
-      />
     </AppLayout>
   )
 }
