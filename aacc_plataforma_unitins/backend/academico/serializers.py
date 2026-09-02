@@ -73,6 +73,7 @@ class CertificadoSerializer(serializers.ModelSerializer):
             "status",
             "status_display",
             "motivo_status",
+            "justificativa_indeferimento",
             # --- timestamps ---
             "data_envio",
             "data_atualizacao",
@@ -89,6 +90,7 @@ class CertificadoSerializer(serializers.ModelSerializer):
             "status",
             "status_display",
             "motivo_status",
+            "justificativa_indeferimento",
             "data_envio",
             "data_atualizacao",
         ]

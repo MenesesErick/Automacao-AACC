@@ -150,12 +150,27 @@ function TimelineItem({ cert, isLast, onClick }) {
         </div>
 
         {/* Motivo do status (especialmente útil para rejeições/revisões) */}
-        {cert.motivo_status && (
+        {cert.motivo_status && cert.status !== 'rejeitado' && (
           <div className="mt-2 pt-2 border-t border-black/5">
             <p className="text-helper text-text-secondary italic line-clamp-2">
               <span className="font-semibold not-italic text-text-primary">Observação: </span>
               {cert.motivo_status}
             </p>
+          </div>
+        )}
+
+        {/* ── Bloco de Indeferimento (RN03) ─────────────────────────────── */}
+        {cert.status === 'rejeitado' && (
+          <div className="mt-3 rounded-xs border border-danger-muted bg-danger-light/60 p-3 flex items-start gap-2.5">
+            <XCircle className="h-4 w-4 text-danger shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <p className="text-helper font-bold text-danger">Motivo do Indeferimento</p>
+              <p className="text-helper text-danger/80 mt-0.5 break-words">
+                {cert.justificativa_indeferimento
+                  || cert.motivo_status
+                  || 'Sem justificativa registrada.'}
+              </p>
+            </div>
           </div>
         )}
 
