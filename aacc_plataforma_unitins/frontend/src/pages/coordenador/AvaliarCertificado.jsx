@@ -348,11 +348,11 @@ export default function AvaliarCertificado() {
       {/* ── Barra de topo ─────────────────────────────────────────────────── */}
       <header className="h-14 bg-bg-surface border-b border-border flex items-center gap-4 px-4 shrink-0">
         <button
-          onClick={() => navigate('/coordenador/revisao')}
+          onClick={() => navigate(-1)}
           className="flex items-center gap-2 text-label text-text-secondary hover:text-text-primary transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
-          Fila de Revisão
+          Voltar
         </button>
 
         <span className="text-border">|</span>

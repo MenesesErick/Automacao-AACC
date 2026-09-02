@@ -18,8 +18,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   ArrowLeft, UserCircle, GraduationCap, Hash,
   Mail, Loader2, AlertTriangle, FileText,
-  CheckCircle2, XCircle, Clock, Eye, ChevronRight,
-  ShieldCheck, Award,
+  CheckCircle2, XCircle, Clock, Eye,
+  ShieldCheck, Award, ShieldAlert,
 } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import { alunoService, certificadosService } from '@/services/api/endpoints'
@@ -151,6 +151,8 @@ function HeroAluno({ extrato, aluno }) {
 // ─── Tabela de Certificados ───────────────────────────────────────────────────
 
 function TabelaCertificados({ certs, loading }) {
+  const navigate = useNavigate()
+
   if (loading) {
     return (
       <div className="space-y-2">
@@ -193,9 +195,10 @@ function TabelaCertificados({ certs, loading }) {
               <>
                 <tr
                   key={cert.id}
+                  onClick={() => navigate(`/coordenador/certificados/${cert.id}`)}
                   className={cn(
-                    'group transition-colors',
-                    isRejeitado ? 'bg-danger-light/20 hover:bg-danger-light/40' : 'hover:bg-bg',
+                    'group transition-colors cursor-pointer',
+                    isRejeitado ? 'bg-danger-light/20 hover:bg-danger-light/50' : 'hover:bg-bg',
                   )}
                 >
                   <td className="px-4 py-3">
@@ -228,14 +231,13 @@ function TabelaCertificados({ certs, loading }) {
                   </td>
                   <td className="px-4 py-3 text-right">
                     {isPendente ? (
-                      <Link
-                        to={`/coordenador/certificados/${cert.id}`}
-                        className="inline-flex items-center gap-1 text-helper font-semibold text-primary hover:underline"
-                      >
-                        <ShieldCheck className="h-3.5 w-3.5" /> Avaliar
-                      </Link>
+                      <span className="inline-flex items-center gap-1 text-helper font-semibold text-primary">
+                        <ShieldAlert className="h-3.5 w-3.5" /> Auditar
+                      </span>
                     ) : (
-                      <ChevronRight className="h-4 w-4 text-text-disabled ml-auto" />
+                      <span className="inline-flex items-center gap-1 text-helper font-medium text-text-secondary">
+                        <Eye className="h-3.5 w-3.5" /> Visualizar
+                      </span>
                     )}
                   </td>
                 </tr>
