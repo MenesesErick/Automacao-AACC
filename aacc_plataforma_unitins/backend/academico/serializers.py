@@ -72,6 +72,56 @@ class CertificadoSerializer(serializers.ModelSerializer):
         usuario = obj.aluno.usuario
         return usuario.get_full_name() or usuario.username
 
+    # Objeto completo da categoria (com tooltip e tetos para o painel do coordenador)
+    categoria_obj = serializers.SerializerMethodField()
+
+    def get_categoria_obj(self, obj):
+        """Retorna os dados completos da categoria, incluindo tooltip do SEBR."""
+        cat = obj.categoria
+        if not cat:
+            return None
+        from academico.rules.resolucao_057 import calculadora
+        tooltip = ""
+        teto_total = None
+        teto_por_evento = None
+        try:
+            if cat.codigo_slug:
+                regra = calculadora.get_regra(cat.codigo_slug)
+                tooltip = regra.tooltip
+                teto_total = regra.teto_total
+                teto_por_evento = regra.teto_por_evento
+        except (ValueError, AttributeError):
+            pass
+        return {
+            "id": cat.id,
+            "nome": cat.nome,
+            "eixo": cat.eixo,
+            "codigo_slug": cat.codigo_slug,
+            "limite_maximo_horas": cat.limite_maximo_horas,
+            "teto_total": teto_total,
+            "teto_por_evento": teto_por_evento,
+            "tooltip": tooltip,
+        }
+
+    # Saldo atual do aluno nesta categoria (horas já aprovadas)
+    saldo_atual_categoria = serializers.SerializerMethodField()
+
+    def get_saldo_atual_categoria(self, obj):
+        """Soma das horas_computadas_final aprovadas pelo aluno nesta categoria."""
+        from academico.models import Certificado
+        saldo = (
+            Certificado.objects
+            .filter(
+                aluno=obj.aluno,
+                categoria=obj.categoria,
+                status__in=["aprovado", "requerimento_gerado"],
+            )
+            .exclude(id=obj.id)  # exclui o próprio certificado em avaliação
+            .exclude(horas_computadas_final__isnull=True)
+            .values_list("horas_computadas_final", flat=True)
+        )
+        return float(sum(saldo))
+
     # horas_declaradas é opcional: o OCR preenche automaticamente
     horas_declaradas = serializers.DecimalField(
         max_digits=6, decimal_places=2,
@@ -88,6 +138,7 @@ class CertificadoSerializer(serializers.ModelSerializer):
             "aluno_curso",
             "categoria",
             "categoria_nome",
+            "categoria_obj",
             "arquivo_pdf",
             "horas_declaradas",
             # --- campos controlados pelo motor de regras ---
@@ -102,6 +153,8 @@ class CertificadoSerializer(serializers.ModelSerializer):
             "status_display",
             "motivo_status",
             "justificativa_indeferimento",
+            # --- saldo do aluno na categoria ---
+            "saldo_atual_categoria",
             # --- timestamps ---
             "data_envio",
             "data_atualizacao",
@@ -111,6 +164,8 @@ class CertificadoSerializer(serializers.ModelSerializer):
             "aluno_nome",
             "aluno_matricula",
             "aluno_curso",
+            "categoria_obj",
+            "saldo_atual_categoria",
             "texto_extraido_ocr",
             "horas_validadas_ocr",
             "horas_computadas_final",

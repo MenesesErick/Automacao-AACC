@@ -4,6 +4,11 @@
  * Layout split-screen:
  *   ├─ Esquerda (flex-1) : iframe do PDF em altura máxima
  *   └─ Direita  (w-96)   : identidade do aluno + metadados OCR + decisão SEBR
+ *
+ * Novas features (Ideias A, B, C):
+ *   A) Rastro de Auditoria Textual  — mensagens humanas sobre cortes SEBR
+ *   B) Termômetro Visual de Saldo   — barra de progresso por categoria
+ *   C) Modal "Ver Regra"            — tooltip oficial da Resolução 057
  */
 
 import { useEffect, useState } from 'react'
@@ -13,6 +18,7 @@ import {
   AlertTriangle, Hourglass, Eye, Layers, Hash,
   Calendar, TrendingDown, ShieldCheck, Info, Scissors,
   UserCircle, GraduationCap, BadgeCheck, MessageSquareX,
+  BookOpen, X as XIcon, AlertCircle,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/utils/cn'
@@ -49,6 +55,173 @@ const STATUS_CFG = {
   pendente_ocr:   { label: 'Pendente OCR',   cls: 'bg-bg text-text-secondary border-border' },
   aprovado:       { label: 'Aprovado',        cls: 'bg-success-light text-success border-success-muted' },
   rejeitado:      { label: 'Rejeitado',       cls: 'bg-danger-light text-danger border-danger-muted' },
+}
+
+// ─── Ideia C: Modal "Ver Regra" ───────────────────────────────────────────────
+
+function ModalRegra({ regra, onClose }) {
+  if (!regra) return null
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      {/* Overlay */}
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+
+      {/* Card */}
+      <div
+        className="relative z-10 w-full max-w-lg bg-bg-surface rounded-sm border border-border shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3 p-4 border-b border-border">
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-xs bg-primary/10 flex items-center justify-center shrink-0">
+              <BookOpen className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <p className="text-label font-bold text-text-primary">{regra.nome}</p>
+              <p className="text-helper text-text-secondary">Eixo: {regra.eixo}</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="h-7 w-7 flex items-center justify-center rounded-xs text-text-secondary hover:bg-bg hover:text-text-primary transition-colors"
+          >
+            <XIcon className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-4 space-y-4">
+          {/* Texto oficial */}
+          <div className="bg-primary-light/60 border border-primary-muted rounded-xs p-3">
+            <p className="text-helper font-bold text-primary mb-1.5">Texto Oficial — Resolução CONSUNI Nº 057/2025</p>
+            <p className="text-label text-text-primary leading-relaxed">
+              {regra.tooltip || 'Descrição não disponível para esta categoria.'}
+            </p>
+          </div>
+
+          {/* Limites normativos */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-bg rounded-xs border border-border p-3 text-center">
+              <p className="text-helper text-text-secondary">Teto por Evento</p>
+              <p className="text-card font-bold text-text-primary mt-0.5">
+                {regra.teto_por_evento != null ? `${regra.teto_por_evento}h` : '∞'}
+              </p>
+            </div>
+            <div className="bg-bg rounded-xs border border-border p-3 text-center">
+              <p className="text-helper text-text-secondary">Teto Total no Curso</p>
+              <p className="text-card font-bold text-text-primary mt-0.5">
+                {regra.teto_total != null ? `${regra.teto_total}h` : '∞'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 border-t border-border flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 h-9 rounded-xs bg-primary text-white text-label font-medium hover:bg-primary-hover transition-colors"
+          >
+            Fechar
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Ideia B: Termômetro de Saldo da Categoria ───────────────────────────────
+
+function TermometroCategoriaCard({ cert, onVerRegra }) {
+  const cat    = cert.categoria_obj
+  const saldo  = parseFloat(cert.saldo_atual_categoria ?? 0)
+  const teto   = cat?.teto_total
+
+  const pct    = teto ? Math.min(Math.round((saldo / teto) * 100), 100) : null
+  const isCheio = pct != null && pct >= 100
+
+  return (
+    <div className="bg-bg rounded-sm border border-border p-3 space-y-2.5">
+      {/* Linha nome + botão Ver Regra */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <Layers className="h-3.5 w-3.5 text-text-secondary shrink-0" />
+          <p className="text-label font-semibold text-text-primary truncate">
+            {cat?.nome ?? cert.categoria_nome}
+          </p>
+        </div>
+        {cat?.tooltip && (
+          <button
+            onClick={onVerRegra}
+            className="flex items-center gap-1 text-helper text-primary hover:text-primary-hover transition-colors shrink-0"
+          >
+            <BookOpen className="h-3.5 w-3.5" />
+            Ver Regra
+          </button>
+        )}
+      </div>
+
+      {/* Barra de progresso */}
+      {teto != null ? (
+        <>
+          <div className="w-full h-2 bg-bg-surface rounded-full overflow-hidden border border-border">
+            <div
+              className={cn(
+                'h-full rounded-full transition-all',
+                pct >= 100 ? 'bg-danger' : pct >= 70 ? 'bg-warning' : 'bg-success',
+              )}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <p className="text-helper text-text-secondary">
+              Saldo atual:{' '}
+              <span className={cn('font-semibold', isCheio ? 'text-danger' : 'text-text-primary')}>
+                {saldo}h
+              </span>
+              {' '}de{' '}
+              <span className="font-semibold text-text-primary">{teto}h</span>
+              {' '}permitidas
+            </p>
+            <span className={cn(
+              'text-helper font-bold',
+              pct >= 100 ? 'text-danger' : pct >= 70 ? 'text-warning' : 'text-success',
+            )}>
+              {pct}%
+            </span>
+          </div>
+          {isCheio && (
+            <div className="flex items-center gap-1.5 text-danger">
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+              <p className="text-helper font-semibold">
+                Teto atingido — o SEBR zerará as horas nesta categoria.
+              </p>
+            </div>
+          )}
+        </>
+      ) : (
+        <p className="text-helper text-text-secondary">
+          Saldo atual:{' '}
+          <span className="font-semibold text-text-primary">{saldo}h</span>
+          {' '}— categoria sem teto total definido
+        </p>
+      )}
+
+      {/* Teto por evento */}
+      {cat?.teto_por_evento != null && (
+        <div className="flex items-center gap-1.5 border-t border-border pt-2">
+          <Scissors className="h-3 w-3 text-text-secondary" />
+          <p className="text-helper text-text-secondary">
+            Limite por certificado:{' '}
+            <span className="font-semibold text-text-primary">{cat.teto_por_evento}h</span>
+          </p>
+        </div>
+      )}
+    </div>
+  )
 }
 
 // ─── Card de Identidade do Aluno ─────────────────────────────────────────────
@@ -145,18 +318,37 @@ function BannerAvaliado({ cert }) {
   )
 }
 
-// ─── Resultado do SEBR (após aprovação em tempo real) ───────────────────────
+// ─── Ideia A: Resultado do SEBR com Rastro de Auditoria Textual ───────────────
 
-function ResultadoSEBR({ resultado, horasEnviadas }) {
+function ResultadoSEBR({ resultado, horasEnviadas, categoriaObj }) {
   if (!resultado) return null
   const { horas_deferidas, horas_cortadas_evento, horas_cortadas_total, regra_aplicada } = resultado
   const teveCortesEv  = parseFloat(horas_cortadas_evento)  > 0
   const teveCortesTot = parseFloat(horas_cortadas_total)   > 0
   const teveCortess   = teveCortesEv || teveCortesTot
 
+  // Mensagens de auditoria humanas
+  const auditoria = []
+  if (teveCortesEv) {
+    const teto_ev = categoriaObj?.teto_por_evento
+    auditoria.push(
+      teto_ev != null
+        ? `O SEBR cortou ${horas_cortadas_evento}h porque o limite por certificado desta categoria é de ${teto_ev}h.`
+        : `O SEBR cortou ${horas_cortadas_evento}h pelo limite por evento desta categoria.`
+    )
+  }
+  if (teveCortesTot) {
+    const teto_tot = categoriaObj?.teto_total
+    auditoria.push(
+      teto_tot != null
+        ? `Corte adicional de ${horas_cortadas_total}h por exceder o teto total de ${teto_tot}h permitidos nesta categoria.`
+        : `Corte de ${horas_cortadas_total}h por atingir o teto total desta categoria.`
+    )
+  }
+
   return (
     <div className={cn(
-      'rounded-sm border p-4 space-y-2',
+      'rounded-sm border p-4 space-y-3',
       teveCortess
         ? 'bg-warning-light/50 border-warning-muted'
         : 'bg-success-light/50 border-success-muted',
@@ -179,20 +371,21 @@ function ResultadoSEBR({ resultado, horasEnviadas }) {
             {horas_deferidas}h
           </p>
         </div>
-        {teveCortesEv && (
-          <div className="col-span-2 flex items-center gap-1.5 text-warning">
-            <Scissors className="h-3 w-3" />
-            <span>Corte por evento: -{horas_cortadas_evento}h</span>
-          </div>
-        )}
-        {teveCortesTot && (
-          <div className="col-span-2 flex items-center gap-1.5 text-warning">
-            <Scissors className="h-3 w-3" />
-            <span>Corte por total da categoria: -{horas_cortadas_total}h</span>
-          </div>
-        )}
       </div>
 
+      {/* Ideia A: Rastro de Auditoria Textual */}
+      {auditoria.length > 0 && (
+        <div className="border-t border-warning-muted/60 pt-2.5 space-y-1.5">
+          {auditoria.map((msg, i) => (
+            <div key={i} className="flex items-start gap-2 text-yellow-700">
+              <Scissors className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+              <p className="text-helper font-medium leading-relaxed">{msg}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Log técnico SEBR colapsado */}
       {regra_aplicada && (
         <p className="text-helper text-text-secondary italic border-t border-border/50 pt-2">
           {regra_aplicada}
@@ -208,15 +401,18 @@ export default function AvaliarCertificado() {
   const { id }     = useParams()
   const navigate   = useNavigate()
 
-  const [cert,          setCert]         = useState(null)
-  const [loading,       setLoading]      = useState(true)
-  const [erro,          setErro]         = useState(null)
+  const [cert,          setCert]          = useState(null)
+  const [loading,       setLoading]       = useState(true)
+  const [erro,          setErro]          = useState(null)
 
-  const [horas,         setHoras]        = useState('')
-  const [justificativa, setJustificativa]= useState('')
-  const [submitting,    setSubmitting]   = useState(false)
-  const [inputErro,     setInputErro]    = useState('')
-  const [resultado,     setResultado]    = useState(null)
+  const [horas,         setHoras]         = useState('')
+  const [justificativa, setJustificativa] = useState('')
+  const [submitting,    setSubmitting]    = useState(false)
+  const [inputErro,     setInputErro]     = useState('')
+  const [resultado,     setResultado]     = useState(null)
+
+  // Ideia C: modal de regra
+  const [modalRegra, setModalRegra] = useState(false)
 
   useEffect(() => {
     setLoading(true)
@@ -345,6 +541,11 @@ export default function AvaliarCertificado() {
   return (
     <div className="min-h-screen bg-bg flex flex-col">
 
+      {/* ── Ideia C: Modal de Regra ─────────────────────────────────────────── */}
+      {modalRegra && cert.categoria_obj && (
+        <ModalRegra regra={cert.categoria_obj} onClose={() => setModalRegra(false)} />
+      )}
+
       {/* ── Barra de topo ─────────────────────────────────────────────────── */}
       <header className="h-14 bg-bg-surface border-b border-border flex items-center gap-4 px-4 shrink-0">
         <button
@@ -415,11 +616,19 @@ export default function AvaliarCertificado() {
               <CardAluno cert={cert} />
             </div>
 
-            {/* 2. Análise da IA */}
+            {/* 2. Ideia B: Termômetro de Categoria (com botão Ver Regra – Ideia C) */}
+            <div>
+              <SectionTitle>Contexto da Categoria</SectionTitle>
+              <TermometroCategoriaCard
+                cert={cert}
+                onVerRegra={() => setModalRegra(true)}
+              />
+            </div>
+
+            {/* 3. Análise da IA */}
             <div>
               <SectionTitle>Análise da IA</SectionTitle>
               <div className="bg-bg rounded-sm border border-border">
-                <MetaRow icon={Layers}   label="Categoria"     value={cert.categoria_nome} />
                 <MetaRow icon={Calendar} label="Data de Envio" value={dataEnvio} />
                 <MetaRow
                   icon={Hourglass}
@@ -453,7 +662,7 @@ export default function AvaliarCertificado() {
               </div>
             </div>
 
-            {/* 3. Motivo do status (apenas pendentes) */}
+            {/* 4. Motivo do status (apenas pendentes) */}
             {cert.motivo_status && podeAvaliar && (
               <div className="flex items-start gap-2.5 bg-bg rounded-sm border border-border p-3">
                 <Info className="h-4 w-4 text-text-secondary shrink-0 mt-0.5" />
@@ -461,9 +670,13 @@ export default function AvaliarCertificado() {
               </div>
             )}
 
-            {/* 4. Resultado SEBR em tempo real (após aprovação) */}
+            {/* 5. Ideia A: Resultado SEBR com Rastro Textual (após aprovação) */}
             {resultado && (
-              <ResultadoSEBR resultado={resultado} horasEnviadas={parseFloat(horas)} />
+              <ResultadoSEBR
+                resultado={resultado}
+                horasEnviadas={parseFloat(horas)}
+                categoriaObj={cert.categoria_obj}
+              />
             )}
 
             {/* ════ ESTADO: pendente / revisão — Formulário de Decisão ════ */}
