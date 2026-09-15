@@ -12,7 +12,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Upload, FileText, CheckCircle2,
-  Loader2, AlertTriangle, FolderOpen, Layers, X,
+  Loader2, AlertTriangle, FolderOpen, Layers, X, Info
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/utils/cn'
@@ -282,6 +282,15 @@ export default function SubmeterCertificado() {
                       Limite aproveitável nesta categoria:{' '}
                       <span className="font-semibold text-primary">{catSelecionada.limite_maximo_horas}h</span>
                     </p>
+                  )}
+
+                  {catSelecionada?.tooltip && (
+                    <div className="mt-3 flex gap-2.5 rounded-sm border border-primary-muted bg-primary-light/80 p-3 text-primary-hover">
+                      <Info className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
+                      <p className="text-helper font-medium leading-relaxed">
+                        {catSelecionada.tooltip}
+                      </p>
+                    </div>
                   )}
                 </div>
 

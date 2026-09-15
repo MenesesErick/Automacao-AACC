@@ -16,12 +16,23 @@ class CategoriaAACCSerializer(serializers.ModelSerializer):
     Serializer de leitura para CategoriaAACC.
 
     Expõe todas as categorias de atividade definidas pela Resolução 057,
-    incluindo o eixo e o teto máximo de horas aproveitáveis por categoria.
+    incluindo o eixo, teto máximo e o tooltip oficial (SEBR).
     """
+    tooltip = serializers.SerializerMethodField()
 
     class Meta:
         model = CategoriaAACC
-        fields = ["id", "nome", "eixo", "limite_maximo_horas"]
+        fields = ["id", "nome", "eixo", "codigo_slug", "limite_maximo_horas", "tooltip"]
+
+    def get_tooltip(self, obj):
+        if not obj.codigo_slug:
+            return ""
+        from academico.rules.resolucao_057 import calculadora
+        try:
+            regra = calculadora.get_regra(obj.codigo_slug)
+            return regra.tooltip
+        except ValueError:
+            return ""
 
 
 class CertificadoSerializer(serializers.ModelSerializer):
