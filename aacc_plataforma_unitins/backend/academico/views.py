@@ -42,7 +42,7 @@ class CategoriaAACCViewSet(
         GET /api/academico/categorias/{id}/    → detalhe de uma categoria
     """
 
-    queryset = CategoriaAACC.objects.all().order_by("eixo", "nome")
+    queryset = CategoriaAACC.objects.exclude(codigo_slug__startswith="obsoleta_").order_by("eixo", "nome")
     serializer_class = CategoriaAACCSerializer
 
 
