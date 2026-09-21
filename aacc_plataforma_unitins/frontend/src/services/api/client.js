@@ -1,8 +1,13 @@
 import axios from 'axios'
 
+// ── URL base ────────────────────────────────────────────────────────────────
+// Em produção: defina VITE_API_URL no painel do Netlify/Vercel/Render.
+// Em desenvolvimento: usa o proxy local como fallback.
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+
 // ── Instância base ──────────────────────────────────────────────────────────
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? '/api',
+  baseURL: BASE_URL,
   timeout: 15_000,
   headers: {
     'Content-Type': 'application/json',
@@ -68,7 +73,7 @@ api.interceptors.response.use(
 
       try {
         const refresh = getRefreshToken()
-        const { data } = await axios.post('/api/accounts/token/refresh/', { refresh })
+        const { data } = await axios.post(`${BASE_URL}/accounts/token/refresh/`, { refresh })
         setTokens({ access: data.access, refresh: data.refresh ?? refresh })
         processQueue(null, data.access)
         originalRequest.headers.Authorization = `Bearer ${data.access}`

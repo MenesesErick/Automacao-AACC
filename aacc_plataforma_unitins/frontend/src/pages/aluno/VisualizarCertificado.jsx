@@ -159,7 +159,8 @@ export default function VisualizarCertificado() {
     if (!path) return null
     if (path.startsWith('http')) return path
     const clean = path.startsWith('/media') ? path : `/media/${path}`
-    return `http://127.0.0.1:8000${clean}`
+    const origin = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api').replace(/\/api\/?$/, '')
+    return `${origin}${clean}`
   }
 
   // ── Loading / erro ───────────────────────────────────────────────────────────
