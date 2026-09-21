@@ -25,6 +25,7 @@ Princípio arquitectural:
 """
 
 import io
+import os
 import re
 import logging
 from collections import Counter
@@ -32,6 +33,20 @@ from dataclasses import dataclass
 from typing import Optional
 
 logger = logging.getLogger(__name__)
+
+# ── Caminho do executável Tesseract ──────────────────────────────────────────
+# Em produção (Docker/Linux): o binário já está no PATH — nenhuma config extra.
+# Em desenvolvimento (Windows): defina TESSERACT_CMD no .env apontando para o
+#   executável local, ex: C:\Program Files\Tesseract-OCR\tesseract.exe
+_tesseract_cmd = os.environ.get("TESSERACT_CMD")
+if _tesseract_cmd:
+    try:
+        import pytesseract as _pyt
+        _pyt.pytesseract.tesseract_cmd = _tesseract_cmd
+        logger.info("[OCR] Tesseract configurado via TESSERACT_CMD: %s", _tesseract_cmd)
+    except ImportError:
+        pass
+
 
 
 # ─────────────────────────────────────────────────────────────────────────────
