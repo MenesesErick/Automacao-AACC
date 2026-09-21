@@ -29,9 +29,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # ─── Código-fonte ─────────────────────────────────────────────────────────────
 COPY . .
+RUN chmod +x start.sh
 
 # ─── Porta exposta ────────────────────────────────────────────────────────────
 EXPOSE 8000
 
 # ─── Comando de inicialização ─────────────────────────────────────────────────
-CMD ["gunicorn", "aacc_core.wsgi:application", "--bind", "0.0.0.0:8000"]
+CMD ["./start.sh"]
