@@ -425,61 +425,77 @@ class AnalisePreviaView(APIView):
             conteudo = arquivo.read()
             doc = fitz.open(stream=io.BytesIO(conteudo), filetype="pdf")
             
-            # --- TÍTULO: Análise por tamanho de fonte ---
-            melhor_score = 0.0
-            texto_maior_fonte = ""
+            # Extrai todo o texto para o gatilho posicional e datas
+            texto_completo = "\n".join(page.get_text() for page in doc)
+            texto_limpo_espacos = re.sub(r'\s+', ' ', texto_completo)
             
-            palavras_ignoradas = {"CERTIFICADO", "DECLARAÇÃO", "DECLARACAO", "ATESTADO", "ATON", "MODALIDADE", "A"}
-            
-            # Adiciona o nome do usuário (aluno) na blacklist
-            if request.user.is_authenticated:
-                nome_completo = request.user.get_full_name().strip().upper()
-                if nome_completo:
-                    partes = nome_completo.split()
-                    if partes:
-                        palavras_ignoradas.add(re.sub(r'[^A-ZÇÁÉÍÓÚÃÕ]', '', partes[0]))
-                        if len(partes) > 1:
-                            palavras_ignoradas.add(re.sub(r'[^A-ZÇÁÉÍÓÚÃÕ]', '', partes[-1]))
-                else:
-                    palavras_ignoradas.add(re.sub(r'[^A-ZÇÁÉÍÓÚÃÕ]', '', request.user.username.upper()))
-            
-            gatilhos = ['CURSO', 'EVENTO', 'PALESTRA', 'SEMINÁRIO', 'SEMINARIO', 'OFICINA', 'WORKSHOP', 'JORNADA', 'SIMPÓSIO', 'SIMPOSIO', 'MINICURSO']
-            
-            for page in doc:
-                blocks = page.get_text("dict").get("blocks", [])
-                for block in blocks:
-                    if block.get("type") == 0:  # type 0 é texto
-                        for line in block.get("lines", []):
-                            for span in line.get("spans", []):
-                                text = span.get("text", "").strip()
-                                size = span.get("size", 0.0)
-                                
-                                # 1. Ignora strings muito curtas
-                                if len(text) >= 8:
-                                    texto_upper = text.upper()
-                                    texto_limpo = re.sub(r'[^A-ZÇÁÉÍÓÚÃÕ]', '', texto_upper)
-                                    
-                                    # 2. Pula se for palavra genérica ou o nome do aluno
-                                    if texto_upper in palavras_ignoradas or (texto_limpo and texto_limpo in palavras_ignoradas):
-                                        continue
-                                    
-                                    # 3. Bônus por palavra-chave (peso extra)
-                                    score = size
-                                    if any(g in texto_upper for g in gatilhos):
-                                        score += 20.0  # Pontuação bônus
-                                        
-                                    if score > melhor_score:
-                                        melhor_score = score
-                                        texto_maior_fonte = text
+            # --- TÍTULO: Heurística de Gatilho Posicional ---
+            titulo_sugerido = ""
+            match_gatilho_aspas = re.search(r"(?:participou do\(a\)|concluiu o curso de|evento)\s*[\"“'](.*?)[\"”']", texto_limpo_espacos, re.IGNORECASE)
+            match_gatilho_virgula = re.search(r"(?:participou do\(a\)|concluiu o curso de)\s+([A-ZÀ-Úa-zà-ú\s]{10,100})[,(]", texto_limpo_espacos, re.IGNORECASE)
 
-            titulo_sugerido = texto_maior_fonte
+            if match_gatilho_aspas:
+                titulo_sugerido = match_gatilho_aspas.group(1).strip()
+            elif match_gatilho_virgula:
+                titulo_sugerido = match_gatilho_virgula.group(1).strip()
+            
+            if not titulo_sugerido:
+                # --- TÍTULO: Análise por tamanho de fonte ---
+                melhor_score = 0.0
+                texto_maior_fonte = ""
+            
+                palavras_ignoradas = {"CERTIFICADO", "DECLARAÇÃO", "DECLARACAO", "ATESTADO", "ATON", "MODALIDADE", "A"}
+                termos_bloqueio = ["AUTENTICIDADE", "VERIFICADA", "ENDEREÇO", "CHAVE", "IDENTIFICAÇÃO", "WWW", "VALIDAR", "HTTP"]
+                
+                # Adiciona o nome do usuário (aluno) na blacklist
+                if request.user.is_authenticated:
+                    nome_completo = request.user.get_full_name().strip().upper()
+                    if nome_completo:
+                        partes = nome_completo.split()
+                        if partes:
+                            palavras_ignoradas.add(re.sub(r'[^A-ZÇÁÉÍÓÚÃÕ]', '', partes[0]))
+                            if len(partes) > 1:
+                                palavras_ignoradas.add(re.sub(r'[^A-ZÇÁÉÍÓÚÃÕ]', '', partes[-1]))
+                    else:
+                        palavras_ignoradas.add(re.sub(r'[^A-ZÇÁÉÍÓÚÃÕ]', '', request.user.username.upper()))
+                
+                gatilhos = ['CURSO', 'EVENTO', 'PALESTRA', 'SEMINÁRIO', 'SEMINARIO', 'OFICINA', 'WORKSHOP', 'JORNADA', 'SIMPÓSIO', 'SIMPOSIO', 'MINICURSO']
+                
+                for page in doc:
+                    blocks = page.get_text("dict").get("blocks", [])
+                    for block in blocks:
+                        if block.get("type") == 0:  # type 0 é texto
+                            for line in block.get("lines", []):
+                                for span in line.get("spans", []):
+                                    text = span.get("text", "").strip()
+                                    size = span.get("size", 0.0)
+                                    
+                                    # 1. Ignora strings muito curtas
+                                    if len(text) >= 8:
+                                        texto_upper = text.upper()
+                                        texto_limpo = re.sub(r'[^A-ZÇÁÉÍÓÚÃÕ]', '', texto_upper)
+                                        
+                                        # 2. Pula se for palavra genérica, nome do aluno, ou bloco de rodapé/autenticidade
+                                        if texto_upper in palavras_ignoradas or (texto_limpo and texto_limpo in palavras_ignoradas):
+                                            continue
+                                        if any(tb in texto_upper for tb in termos_bloqueio):
+                                            continue
+                                        
+                                        # 3. Bônus por palavra-chave (peso extra)
+                                        score = size
+                                        if any(g in texto_upper for g in gatilhos):
+                                            score += 20.0  # Pontuação bônus
+                                            
+                                        if score > melhor_score:
+                                            melhor_score = score
+                                            texto_maior_fonte = text
+
+                titulo_sugerido = texto_maior_fonte
 
             # Fallback do Título: nome do arquivo sem extensão
             if not titulo_sugerido:
                 titulo_sugerido = os.path.splitext(arquivo.name)[0]
 
-            # --- DATA: Extração de texto bruto ---
-            texto_completo = "\n".join(page.get_text() for page in doc)
             doc.close()
             print("Texto Bruto Extraído:\n", texto_completo)
 
