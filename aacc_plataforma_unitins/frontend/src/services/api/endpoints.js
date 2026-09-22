@@ -9,6 +9,14 @@ export const certificadosService = {
   atualizar: (id, data) => api.patch(`/academico/certificados/${id}/`, data),
   remover:   (id)       => api.delete(`/academico/certificados/${id}/`),
   avaliar:   (id, data) => api.patch(`/academico/certificados/${id}/avaliar/`, data),
+  // Copiloto: extrai título e período do PDF sem salvar no banco
+  analisarPrevia: (arquivo) => {
+    const fd = new FormData()
+    fd.append('arquivo', arquivo)
+    return api.post('/academico/certificados/analise-previa/', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
 }
 
 export const alunoService = {

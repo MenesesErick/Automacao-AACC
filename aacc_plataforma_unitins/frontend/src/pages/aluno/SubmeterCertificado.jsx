@@ -1,9 +1,10 @@
 /**
  * SubmeterCertificado.jsx — Envio de Certificado AACC pelo Aluno
  *
- * Formulário de submissão com:
+ * Formulário de submissão com Copiloto Inteligente:
  *   - Seleção de categoria (categoriasService.listar())
- *   - Upload de ficheiro PDF/PNG/JPG com drag-and-drop
+ *   - Upload com drag-and-drop → dispara analise-previa/ automaticamente
+ *   - Campos de Título e Período pré-preenchidos pela IA (editáveis)
  *   - Submit via FormData → certificadosService.criar()
  *   - Feedback com sonner toast + redirecionamento
  */
@@ -12,7 +13,8 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Upload, FileText, CheckCircle2,
-  Loader2, AlertTriangle, FolderOpen, Layers, X, Info
+  Loader2, AlertTriangle, FolderOpen, Layers, X, Info,
+  Sparkles, Calendar, Type,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/utils/cn'
@@ -29,7 +31,7 @@ function agruparPorEixo(categorias) {
 }
 
 // ─── Drop Zone com preview ────────────────────────────────────────────────────
-function DropZone({ arquivo, onChange, erro }) {
+function DropZone({ arquivo, onChange, erro, analisando }) {
   const [drag, setDrag] = useState(false)
 
   const handleDrop = (e) => {
@@ -63,7 +65,17 @@ function DropZone({ arquivo, onChange, erro }) {
                 : 'border-border bg-bg hover:border-primary/60 hover:bg-primary/5',
         )}
       >
-        {arquivo ? (
+        {analisando ? (
+          <>
+            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+              <Loader2 className="h-6 w-6 text-primary animate-spin" />
+            </div>
+            <div className="text-center">
+              <p className="text-label font-semibold text-primary">Copiloto analisando...</p>
+              <p className="text-helper text-text-secondary mt-0.5">Extraindo metadados do documento</p>
+            </div>
+          </>
+        ) : arquivo ? (
           <>
             <div className="h-12 w-12 rounded-full bg-success/20 flex items-center justify-center">
               <FileText className="h-6 w-6 text-success" />
@@ -118,11 +130,17 @@ export default function SubmeterCertificado() {
   const [loadingCats, setLoadingCats] = useState(true)
   const [erroCats,    setErroCats]    = useState(null)
 
-  const [categoriaId,   setCategoriaId]  = useState('')
-  const [arquivo,       setArquivo]      = useState(null)
-  const [submitting,    setSubmitting]   = useState(false)
-  const [sucesso,       setSucesso]      = useState(false)
-  const [erros,         setErros]        = useState({ categoria: '', arquivo: '' })
+  const [categoriaId,      setCategoriaId]      = useState('')
+  const [arquivo,          setArquivo]          = useState(null)
+  const [titulo,           setTitulo]           = useState('')
+  const [periodo,          setPeriodo]          = useState('')
+  const [analisando,       setAnalisando]       = useState(false)
+  const [coPilotoUsado,    setCoPilotoUsado]    = useState(false)
+  const [submitting,       setSubmitting]       = useState(false)
+  const [sucesso,          setSucesso]          = useState(false)
+  const [erros,            setErros]            = useState({
+    categoria: '', arquivo: '', titulo: '', periodo: '',
+  })
 
   // Busca categorias ao montar
   useEffect(() => {
@@ -135,13 +153,36 @@ export default function SubmeterCertificado() {
       .finally(() => setLoadingCats(false))
   }, [])
 
+  // ── Copiloto: chama analise-previa/ ao selecionar arquivo ────────────────
+  const handleArquivo = async (file) => {
+    setArquivo(file)
+    setErros(prev => ({ ...prev, arquivo: '' }))
+    setAnalisando(true)
+    setCoPilotoUsado(false)
+
+    try {
+      const { data } = await certificadosService.analisarPrevia(file)
+      if (data.titulo_sugerido || data.periodo_sugerido) {
+        setTitulo(data.titulo_sugerido || '')
+        setPeriodo(data.periodo_sugerido || '')
+        setCoPilotoUsado(true)
+      }
+    } catch {
+      // Silencioso — o aluno preenche manualmente
+    } finally {
+      setAnalisando(false)
+    }
+  }
+
   // ── Validação ─────────────────────────────────────────────────────────────
   const validar = () => {
-    const e = { categoria: '', arquivo: '' }
-    if (!categoriaId) e.categoria = 'Selecione a categoria da atividade.'
-    if (!arquivo)     e.arquivo   = 'Selecione o ficheiro do certificado.'
+    const e = { categoria: '', arquivo: '', titulo: '', periodo: '' }
+    if (!categoriaId)    e.categoria = 'Selecione a categoria da atividade.'
+    if (!arquivo)        e.arquivo   = 'Selecione o ficheiro do certificado.'
+    if (!titulo.trim())  e.titulo    = 'Informe o título da atividade.'
+    if (!periodo.trim()) e.periodo   = 'Informe o período de realização.'
     setErros(e)
-    return !e.categoria && !e.arquivo
+    return !e.categoria && !e.arquivo && !e.titulo && !e.periodo
   }
 
   // ── Envio ─────────────────────────────────────────────────────────────────
@@ -152,6 +193,8 @@ export default function SubmeterCertificado() {
     const formData = new FormData()
     formData.append('categoria', categoriaId)
     formData.append('arquivo_pdf', arquivo)
+    formData.append('titulo_atividade', titulo.trim())
+    formData.append('periodo_realizacao', periodo.trim())
 
     try {
       setSubmitting(true)
@@ -175,7 +218,7 @@ export default function SubmeterCertificado() {
     }
   }
 
-  const grupos        = agruparPorEixo(categorias)
+  const grupos         = agruparPorEixo(categorias)
   const catSelecionada = categorias.find(c => String(c.id) === String(categoriaId))
 
   return (
@@ -303,21 +346,99 @@ export default function SubmeterCertificado() {
 
                   <DropZone
                     arquivo={arquivo}
-                    onChange={(f) => {
-                      setArquivo(f)
-                      setErros(prev => ({ ...prev, arquivo: '' }))
-                    }}
+                    onChange={handleArquivo}
                     erro={erros.arquivo}
+                    analisando={analisando}
                   />
 
-                  {arquivo && (
+                  {arquivo && !analisando && (
                     <button
                       type="button"
-                      onClick={() => setArquivo(null)}
+                      onClick={() => {
+                        setArquivo(null)
+                        setTitulo('')
+                        setPeriodo('')
+                        setCoPilotoUsado(false)
+                      }}
                       className="mt-1.5 flex items-center gap-1 text-helper text-text-secondary hover:text-danger transition-colors"
                     >
                       <X className="h-3.5 w-3.5" /> Remover ficheiro
                     </button>
+                  )}
+                </div>
+
+                {/* ── Callout do Copiloto ──────────────────────────────── */}
+                {coPilotoUsado && (
+                  <div className="flex gap-2.5 rounded-sm border border-amber-300 bg-amber-50 p-3 text-amber-800">
+                    <Sparkles className="h-4 w-4 shrink-0 mt-0.5 text-amber-500" />
+                    <p className="text-helper font-medium leading-relaxed">
+                      Extraímos esses dados automaticamente do seu certificado.{' '}
+                      <span className="font-bold">Por favor, revise-os antes de enviar.</span>
+                    </p>
+                  </div>
+                )}
+
+                {/* ── Título da Atividade ──────────────────────────────── */}
+                <div>
+                  <label
+                    htmlFor="titulo-input"
+                    className="text-label font-semibold text-text-primary mb-1.5 flex items-center gap-1.5"
+                  >
+                    <Type className="h-4 w-4 text-text-secondary" />
+                    Título da Atividade <span className="text-danger">*</span>
+                    {analisando && <Loader2 className="h-3.5 w-3.5 animate-spin text-primary ml-1" />}
+                  </label>
+                  <input
+                    id="titulo-input"
+                    type="text"
+                    value={titulo}
+                    onChange={(e) => {
+                      setTitulo(e.target.value)
+                      setErros(prev => ({ ...prev, titulo: '' }))
+                    }}
+                    placeholder="Ex: Curso de Metodologia Ativa em EAD"
+                    disabled={analisando}
+                    className={cn(
+                      'w-full h-10 rounded-xs border px-3 text-label bg-bg focus:ring-2 focus:ring-primary outline-none transition-shadow disabled:opacity-50',
+                      erros.titulo ? 'border-danger' : 'border-border',
+                    )}
+                  />
+                  {erros.titulo && (
+                    <p className="flex items-center gap-1.5 text-helper text-danger mt-1.5">
+                      <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> {erros.titulo}
+                    </p>
+                  )}
+                </div>
+
+                {/* ── Período de Realização ────────────────────────────── */}
+                <div>
+                  <label
+                    htmlFor="periodo-input"
+                    className="text-label font-semibold text-text-primary mb-1.5 flex items-center gap-1.5"
+                  >
+                    <Calendar className="h-4 w-4 text-text-secondary" />
+                    Período de Realização <span className="text-danger">*</span>
+                    {analisando && <Loader2 className="h-3.5 w-3.5 animate-spin text-primary ml-1" />}
+                  </label>
+                  <input
+                    id="periodo-input"
+                    type="text"
+                    value={periodo}
+                    onChange={(e) => {
+                      setPeriodo(e.target.value)
+                      setErros(prev => ({ ...prev, periodo: '' }))
+                    }}
+                    placeholder="Ex: Janeiro/2025 ou 10/01/2025 a 15/03/2025"
+                    disabled={analisando}
+                    className={cn(
+                      'w-full h-10 rounded-xs border px-3 text-label bg-bg focus:ring-2 focus:ring-primary outline-none transition-shadow disabled:opacity-50',
+                      erros.periodo ? 'border-danger' : 'border-border',
+                    )}
+                  />
+                  {erros.periodo && (
+                    <p className="flex items-center gap-1.5 text-helper text-danger mt-1.5">
+                      <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> {erros.periodo}
+                    </p>
                   )}
                 </div>
 
@@ -333,10 +454,12 @@ export default function SubmeterCertificado() {
                   <button
                     id="btn-enviar"
                     type="submit"
-                    disabled={submitting || loadingCats}
+                    disabled={submitting || loadingCats || analisando}
                     className={cn(
                       'flex-1 h-10 rounded-xs text-white font-semibold text-label transition-colors flex items-center justify-center gap-2',
-                      submitting || loadingCats ? 'bg-primary/60 cursor-not-allowed' : 'bg-primary hover:bg-primary-hover',
+                      submitting || loadingCats || analisando
+                        ? 'bg-primary/60 cursor-not-allowed'
+                        : 'bg-primary hover:bg-primary-hover',
                     )}
                   >
                     {submitting
@@ -357,8 +480,8 @@ export default function SubmeterCertificado() {
                 <p className="text-helper font-semibold text-text-primary mb-1">Como funciona?</p>
                 <ol className="text-helper text-text-secondary space-y-0.5 list-decimal list-inside">
                   <li>Selecione a categoria da atividade realizada.</li>
-                  <li>Anexe o comprovante (PDF tem melhor qualidade para o OCR).</li>
-                  <li>O sistema extrai as horas automaticamente.</li>
+                  <li>Anexe o comprovante — o Copiloto preenche título e período automaticamente.</li>
+                  <li>Revise os dados extraídos e corrija se necessário.</li>
                   <li>A coordenação revisa e defere ou indefere o documento.</li>
                 </ol>
               </div>
