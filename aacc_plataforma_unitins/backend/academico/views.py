@@ -384,6 +384,106 @@ def _calcular_extrato(perfil: AlunoPerfil) -> dict:
     }
 
 
+
+class AnalisePreviaView(APIView):
+    """
+    POST /api/academico/certificados/analise-previa/
+
+    Copiloto de Metadados: recebe um arquivo (PDF/Imagem), extrai o texto
+    via PyMuPDF e tenta identificar o título da atividade e o período
+    de realização usando heurísticas de regex.
+
+    NÃO salva nada no banco de dados. Retorna apenas sugestões para o aluno
+    revisar antes de submeter o formulário completo.
+
+    Retorno:
+        {
+            "titulo_sugerido": str,
+            "periodo_sugerido": str
+        }
+    """
+
+    def post(self, request):
+        import re
+        import io
+
+        arquivo = request.FILES.get("arquivo")
+        if not arquivo:
+            return Response(
+                {"detail": "Nenhum arquivo enviado."},
+                status=http_status.HTTP_400_BAD_REQUEST,
+            )
+
+        titulo_sugerido = ""
+        periodo_sugerido = ""
+
+        try:
+            import fitz  # PyMuPDF
+
+            conteudo = arquivo.read()
+            doc = fitz.open(stream=io.BytesIO(conteudo), filetype="pdf")
+            texto_completo = "\n".join(page.get_text() for page in doc)
+            doc.close()
+
+            linhas = [l.strip() for l in texto_completo.splitlines() if l.strip()]
+
+            # ── Heurística 1: Título ─────────────────────────────────────────
+            # Palavras-chave que frequentemente precedem o título em certificados
+            KEYWORDS_TITULO = [
+                r'certificamos?\s+(?:que\s+)?(?:o\s+aluno|a\s+aluna|o\s+discente).*?(?:participou|concluiu|realizou)\s+(?:do\s+|da\s+|de\s+)?(?:curso|evento|atividade|minicurso|palestra|workshop|seminário|congresso|monitoria|liga|projeto)?\s*["\']?([^.,\n]{10,100})',
+                r"(?:curso|evento|atividade|minicurso|palestra|workshop|seminário|congresso|monitoria|liga|projeto)[:\s]+([A-ZÀ-Ú][^.,\n]{8,100})",
+                r"Título[:\s]+([^\n]{5,100})",
+            ]
+            for pat in KEYWORDS_TITULO:
+                m = re.search(pat, texto_completo, re.IGNORECASE | re.DOTALL)
+                if m:
+                    titulo_sugerido = m.group(1).strip().rstrip(".,;")
+                    break
+
+            # Fallback: primeira linha substancial com ≥ 5 palavras
+            if not titulo_sugerido:
+                for linha in linhas[:20]:
+                    palavras = linha.split()
+                    if 5 <= len(palavras) <= 20 and not re.search(r"\d{2}/\d{2}/\d{4}", linha):
+                        titulo_sugerido = linha
+                        break
+
+            # ── Heurística 2: Período ────────────────────────────────────────
+            PADROES_PERIODO = [
+                # "realizado em 10 de Janeiro de 2025"
+                r"realizado\s+em\s+([\d]{1,2}\s+de\s+\w+\s+de\s+\d{4})",
+                # "de 10/01/2025 a 15/03/2025"
+                r"de\s+(\d{1,2}/\d{2}/\d{4})\s+a\s+(\d{1,2}/\d{2}/\d{4})",
+                # "Janeiro/2025", "Março de 2024"
+                r"\b(janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)[/\s]+(?:de\s+)?(\d{4})\b",
+                # Data ISO ou BR simples: 10/01/2025
+                r"\b(\d{1,2}[/\-]\d{2}[/\-]\d{4})\b",
+            ]
+            for pat in PADROES_PERIODO:
+                m = re.search(pat, texto_completo, re.IGNORECASE)
+                if m:
+                    # Reconstrói o período com todos os grupos capturados
+                    partes = [g for g in m.groups() if g]
+                    if len(partes) == 2 and re.search(r"\d{4}", partes[1]):
+                        # Mês + Ano
+                        periodo_sugerido = f"{partes[0].capitalize()}/{partes[1]}"
+                    elif len(partes) == 2:
+                        # Intervalo de datas
+                        periodo_sugerido = f"{partes[0]} a {partes[1]}"
+                    else:
+                        periodo_sugerido = partes[0]
+                    break
+
+        except Exception as exc:
+            logger.warning("[AnalisePrévia] Extração falhou para '%s': %s", arquivo.name, exc)
+            # Retorna vazio — o aluno preenche manualmente
+
+        return Response({
+            "titulo_sugerido": titulo_sugerido[:255] if titulo_sugerido else "",
+            "periodo_sugerido": periodo_sugerido[:100] if periodo_sugerido else "",
+        })
+
+
 class ExtratoAlunoMeView(APIView):
     """
     GET /api/academico/alunos/meu-extrato/

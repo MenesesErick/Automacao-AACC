@@ -25,6 +25,7 @@ from academico.views import (
     ExtratoAlunoMeView,
     ExtratoAlunoCoordenadorView,
     ListaAlunosView,
+    AnalisePreviaView,
 )
 
 router = DefaultRouter()
@@ -38,4 +39,7 @@ urlpatterns = [
     path("alunos/",                        ListaAlunosView.as_view(),              name="lista-alunos"),
     path("alunos/meu-extrato/",            ExtratoAlunoMeView.as_view(),           name="extrato-aluno-me"),
     path("alunos/<int:perfil_id>/extrato/", ExtratoAlunoCoordenadorView.as_view(), name="extrato-aluno-coordenador"),
+
+    # ── Copiloto de Metadados (Anexo I) ────────────────────────────────────
+    path("certificados/analise-previa/",   AnalisePreviaView.as_view(),            name="analise-previa"),
 ]
