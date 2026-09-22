@@ -419,62 +419,57 @@ class AnalisePreviaView(APIView):
 
         try:
             import fitz  # PyMuPDF
+            import os
+            import datetime
 
             conteudo = arquivo.read()
             doc = fitz.open(stream=io.BytesIO(conteudo), filetype="pdf")
+            
+            # --- TÍTULO: Análise por tamanho de fonte ---
+            maior_tamanho = 0.0
+            texto_maior_fonte = ""
+            
+            palavras_ignoradas = {"CERTIFICADO", "DECLARAÇÃO", "DECLARACAO", "ATON", "MODALIDADE", "A"}
+            
+            for page in doc:
+                blocks = page.get_text("dict").get("blocks", [])
+                for block in blocks:
+                    if block.get("type") == 0:  # type 0 é texto
+                        for line in block.get("lines", []):
+                            for span in line.get("spans", []):
+                                text = span.get("text", "").strip()
+                                size = span.get("size", 0.0)
+                                
+                                if len(text) > 5 and size > maior_tamanho:
+                                    # Limpa caracteres e compara em maiúsculo
+                                    texto_limpo = re.sub(r'[^A-ZÇÁÉÍÓÚÃÕ]', '', text.upper())
+                                    if text.upper() not in palavras_ignoradas and texto_limpo not in palavras_ignoradas:
+                                        maior_tamanho = size
+                                        texto_maior_fonte = text
+
+            titulo_sugerido = texto_maior_fonte
+
+            # Fallback do Título: nome do arquivo sem extensão
+            if not titulo_sugerido:
+                titulo_sugerido = os.path.splitext(arquivo.name)[0]
+
+            # --- DATA: Extração de texto bruto ---
             texto_completo = "\n".join(page.get_text() for page in doc)
             doc.close()
             print("Texto Bruto Extraído:\n", texto_completo)
 
-            linhas = [l.strip() for l in texto_completo.splitlines() if l.strip()]
-
-            # ── Heurística 1: Título ─────────────────────────────────────────
-            # Palavras-chave que frequentemente precedem o título em certificados
-            KEYWORDS_TITULO = [
-                r'certificamos?\s+(?:que\s+)?(?:o\s+aluno|a\s+aluna|o\s+discente).*?(?:participou|concluiu|realizou)\s+(?:do\s+|da\s+|de\s+)?(?:curso|evento|atividade|minicurso|palestra|workshop|seminário|congresso|monitoria|liga|projeto)?\s*["\']?([^.,\n]{10,100})',
-                r"(?:curso|evento|atividade|minicurso|palestra|workshop|seminário|congresso|monitoria|liga|projeto)[:\s]+([A-ZÀ-Ú][^.,\n]{8,100})",
-                r"Título[:\s]+([^\n]{5,100})",
-            ]
-            for pat in KEYWORDS_TITULO:
-                m = re.search(pat, texto_completo, re.IGNORECASE | re.DOTALL)
-                if m:
-                    titulo_sugerido = m.group(1).strip().rstrip(".,;")
-                    break
-
-            # Fallback: as duas primeiras linhas de texto legível
-            if not titulo_sugerido:
-                linhas_legiveis = [l for l in linhas if len(l) > 3]
-                titulo_sugerido = " ".join(linhas_legiveis[:2])
-
-            # ── Heurística 2: Período ────────────────────────────────────────
-            PADROES_PERIODO = [
-                # "realizado em 10 de Janeiro de 2025"
-                r"realizado\s+em\s+([\d]{1,2}\s+de\s+\w+\s+de\s+\d{4})",
-                # "de 10/01/2025 a 15/03/2025"
-                r"de\s+(\d{1,2}/\d{2}/\d{4})\s+a\s+(\d{1,2}/\d{2}/\d{4})",
-                # "Janeiro/2025", "Março de 2024"
-                r"\b(janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)[/\s]+(?:de\s+)?(\d{4})\b",
-                # Data ISO ou BR simples: 10/01/2025
-                r"\b(\d{1,2}[/\-]\d{2}[/\-]\d{4})\b",
-            ]
-            for pat in PADROES_PERIODO:
-                m = re.search(pat, texto_completo, re.IGNORECASE)
-                if m:
-                    # Reconstrói o período com todos os grupos capturados
-                    partes = [g for g in m.groups() if g]
-                    if len(partes) == 2 and re.search(r"\d{4}", partes[1]):
-                        # Mês + Ano
-                        periodo_sugerido = f"{partes[0].capitalize()}/{partes[1]}"
-                    elif len(partes) == 2:
-                        # Intervalo de datas
-                        periodo_sugerido = f"{partes[0]} a {partes[1]}"
-                    else:
-                        periodo_sugerido = partes[0]
-                    break
+            # Busca datas no formato dd/mm/aaaa ou dd-mm-aaaa
+            datas_encontradas = re.findall(r"\b\d{1,2}[/\-]\d{1,2}[/\-]\d{4}\b", texto_completo)
             
-            # Fallback: retorna o ano atual
-            if not periodo_sugerido:
-                import datetime
+            # Remove duplicatas mantendo a ordem original
+            datas_unicas = list(dict.fromkeys(datas_encontradas))
+            
+            if len(datas_unicas) == 2:
+                periodo_sugerido = f"{datas_unicas[0]} a {datas_unicas[1]}"
+            elif len(datas_unicas) == 1:
+                periodo_sugerido = datas_unicas[0]
+            else:
+                # Fallback: retorna o ano atual
                 periodo_sugerido = str(datetime.datetime.now().year)
 
         except Exception as exc:
