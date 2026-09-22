@@ -426,10 +426,24 @@ class AnalisePreviaView(APIView):
             doc = fitz.open(stream=io.BytesIO(conteudo), filetype="pdf")
             
             # --- TÍTULO: Análise por tamanho de fonte ---
-            maior_tamanho = 0.0
+            melhor_score = 0.0
             texto_maior_fonte = ""
             
-            palavras_ignoradas = {"CERTIFICADO", "DECLARAÇÃO", "DECLARACAO", "ATON", "MODALIDADE", "A"}
+            palavras_ignoradas = {"CERTIFICADO", "DECLARAÇÃO", "DECLARACAO", "ATESTADO", "ATON", "MODALIDADE", "A"}
+            
+            # Adiciona o nome do usuário (aluno) na blacklist
+            if request.user.is_authenticated:
+                nome_completo = request.user.get_full_name().strip().upper()
+                if nome_completo:
+                    partes = nome_completo.split()
+                    if partes:
+                        palavras_ignoradas.add(re.sub(r'[^A-ZÇÁÉÍÓÚÃÕ]', '', partes[0]))
+                        if len(partes) > 1:
+                            palavras_ignoradas.add(re.sub(r'[^A-ZÇÁÉÍÓÚÃÕ]', '', partes[-1]))
+                else:
+                    palavras_ignoradas.add(re.sub(r'[^A-ZÇÁÉÍÓÚÃÕ]', '', request.user.username.upper()))
+            
+            gatilhos = ['CURSO', 'EVENTO', 'PALESTRA', 'SEMINÁRIO', 'SEMINARIO', 'OFICINA', 'WORKSHOP', 'JORNADA', 'SIMPÓSIO', 'SIMPOSIO', 'MINICURSO']
             
             for page in doc:
                 blocks = page.get_text("dict").get("blocks", [])
@@ -440,11 +454,22 @@ class AnalisePreviaView(APIView):
                                 text = span.get("text", "").strip()
                                 size = span.get("size", 0.0)
                                 
-                                if len(text) > 5 and size > maior_tamanho:
-                                    # Limpa caracteres e compara em maiúsculo
-                                    texto_limpo = re.sub(r'[^A-ZÇÁÉÍÓÚÃÕ]', '', text.upper())
-                                    if text.upper() not in palavras_ignoradas and texto_limpo not in palavras_ignoradas:
-                                        maior_tamanho = size
+                                # 1. Ignora strings muito curtas
+                                if len(text) >= 8:
+                                    texto_upper = text.upper()
+                                    texto_limpo = re.sub(r'[^A-ZÇÁÉÍÓÚÃÕ]', '', texto_upper)
+                                    
+                                    # 2. Pula se for palavra genérica ou o nome do aluno
+                                    if texto_upper in palavras_ignoradas or (texto_limpo and texto_limpo in palavras_ignoradas):
+                                        continue
+                                    
+                                    # 3. Bônus por palavra-chave (peso extra)
+                                    score = size
+                                    if any(g in texto_upper for g in gatilhos):
+                                        score += 20.0  # Pontuação bônus
+                                        
+                                    if score > melhor_score:
+                                        melhor_score = score
                                         texto_maior_fonte = text
 
             titulo_sugerido = texto_maior_fonte
