@@ -483,19 +483,31 @@ class AnalisePreviaView(APIView):
             doc.close()
             print("Texto Bruto Extraído:\n", texto_completo)
 
-            # Busca datas no formato dd/mm/aaaa ou dd-mm-aaaa
-            datas_encontradas = re.findall(r"\b\d{1,2}[/\-]\d{1,2}[/\-]\d{4}\b", texto_completo)
+            # Busca datas usando ordem de prioridade
+            texto_limpo = re.sub(r'\s+', ' ', texto_completo)
             
-            # Remove duplicatas mantendo a ordem original
-            datas_unicas = list(dict.fromkeys(datas_encontradas))
+            # Prioridade 1 (Período por extenso): "26 a 27 de março de 2024"
+            match_p1 = re.search(r"(\d{1,2}\s+a\s+\d{1,2}\s+de\s+[a-zA-ZçÇ]+\s+de\s+\d{4})", texto_limpo, re.IGNORECASE)
             
-            if len(datas_unicas) == 2:
-                periodo_sugerido = f"{datas_unicas[0]} a {datas_unicas[1]}"
-            elif len(datas_unicas) == 1:
-                periodo_sugerido = datas_unicas[0]
+            # Prioridade 2 (Data única por extenso): "27 de março de 2024"
+            match_p2 = re.search(r"(\d{1,2}\s+de\s+[a-zA-ZçÇ]+\s+de\s+\d{4})", texto_limpo, re.IGNORECASE)
+
+            if match_p1:
+                periodo_sugerido = match_p1.group(1).strip()
+            elif match_p2:
+                periodo_sugerido = match_p2.group(1).strip()
             else:
-                # Fallback: retorna o ano atual
-                periodo_sugerido = str(datetime.datetime.now().year)
+                # Prioridade 3 (Formato Numérico - Fallback): 10/01/2025
+                datas_encontradas = re.findall(r"\b\d{1,2}[/\-]\d{1,2}[/\-]\d{4}\b", texto_completo)
+                datas_unicas = list(dict.fromkeys(datas_encontradas))
+                
+                if len(datas_unicas) == 2:
+                    periodo_sugerido = f"{datas_unicas[0]} a {datas_unicas[1]}"
+                elif len(datas_unicas) == 1:
+                    periodo_sugerido = datas_unicas[0]
+                else:
+                    # Fallback: retorna o ano atual
+                    periodo_sugerido = str(datetime.datetime.now().year)
 
         except Exception as exc:
             logger.warning("[AnalisePrévia] Extração falhou para '%s': %s", arquivo.name, exc)
