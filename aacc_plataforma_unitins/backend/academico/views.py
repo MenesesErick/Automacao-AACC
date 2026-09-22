@@ -499,31 +499,35 @@ class AnalisePreviaView(APIView):
             doc.close()
             print("Texto Bruto Extraído:\n", texto_completo)
 
-            # Busca datas usando ordem de prioridade
+            # --- DATA: Cascata de Regex (5 níveis) ---
             texto_limpo = re.sub(r'\s+', ' ', texto_completo)
             
-            # Prioridade 1 (Período por extenso): "26 a 27 de março de 2024"
-            match_p1 = re.search(r"(\d{1,2}\s+a\s+\d{1,2}\s+de\s+[a-zA-ZçÇ]+\s+de\s+\d{4})", texto_limpo, re.IGNORECASE)
-            
-            # Prioridade 2 (Data única por extenso): "27 de março de 2024"
-            match_p2 = re.search(r"(\d{1,2}\s+de\s+[a-zA-ZçÇ]+\s+de\s+\d{4})", texto_limpo, re.IGNORECASE)
-
-            if match_p1:
-                periodo_sugerido = match_p1.group(1).strip()
-            elif match_p2:
-                periodo_sugerido = match_p2.group(1).strip()
-            else:
-                # Prioridade 3 (Formato Numérico - Fallback): 10/01/2025
-                datas_encontradas = re.findall(r"\b\d{1,2}[/\-]\d{1,2}[/\-]\d{4}\b", texto_completo)
-                datas_unicas = list(dict.fromkeys(datas_encontradas))
+            padroes_data = [
+                # Padrão 1 (Intervalo Numérico): 03/02/2025 a 23/06/2025
+                r"(\d{2}/\d{2}/\d{4}\s*(?:a|à|-)\s*\d{2}/\d{2}/\d{4})",
                 
-                if len(datas_unicas) == 2:
-                    periodo_sugerido = f"{datas_unicas[0]} a {datas_unicas[1]}"
-                elif len(datas_unicas) == 1:
-                    periodo_sugerido = datas_unicas[0]
-                else:
-                    # Fallback: retorna o ano atual
-                    periodo_sugerido = str(datetime.datetime.now().year)
+                # Padrão 2 (Intervalo Extenso - Meses Diferentes): 03 de fevereiro a 23 de junho de 2025
+                r"(\d{1,2}\s+de\s+[a-zA-ZçÇ]+\s+(?:a|à|-)\s+\d{1,2}\s+de\s+[a-zA-ZçÇ]+\s+de\s+\d{4})",
+                
+                # Padrão 3 (Intervalo Extenso - Mesmo Mês): 26 a 27 de março de 2024
+                r"(\d{1,2}\s*(?:a|à|-)\s*\d{1,2}\s+de\s+[a-zA-ZçÇ]+\s+de\s+\d{4})",
+                
+                # Padrão 4 (Data Única Extensa): 27 de março de 2024
+                r"(\d{1,2}\s+de\s+[a-zA-ZçÇ]+\s+de\s+\d{4})",
+                
+                # Padrão 5 (Data Única Numérica): 10/02/2025
+                r"(\d{2}/\d{2}/\d{4})"
+            ]
+
+            periodo_sugerido = ""
+            for padrao in padroes_data:
+                match = re.search(padrao, texto_limpo, re.IGNORECASE)
+                if match:
+                    periodo_sugerido = match.group(1).replace('\n', ' ').strip()
+                    break
+            
+            if not periodo_sugerido:
+                periodo_sugerido = str(datetime.datetime.now().year)
 
         except Exception as exc:
             logger.warning("[AnalisePrévia] Extração falhou para '%s': %s", arquivo.name, exc)
