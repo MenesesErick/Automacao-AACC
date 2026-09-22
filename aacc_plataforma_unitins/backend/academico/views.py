@@ -424,6 +424,7 @@ class AnalisePreviaView(APIView):
             doc = fitz.open(stream=io.BytesIO(conteudo), filetype="pdf")
             texto_completo = "\n".join(page.get_text() for page in doc)
             doc.close()
+            print("Texto Bruto Extraído:\n", texto_completo)
 
             linhas = [l.strip() for l in texto_completo.splitlines() if l.strip()]
 
@@ -440,13 +441,10 @@ class AnalisePreviaView(APIView):
                     titulo_sugerido = m.group(1).strip().rstrip(".,;")
                     break
 
-            # Fallback: primeira linha substancial com ≥ 5 palavras
+            # Fallback: as duas primeiras linhas de texto legível
             if not titulo_sugerido:
-                for linha in linhas[:20]:
-                    palavras = linha.split()
-                    if 5 <= len(palavras) <= 20 and not re.search(r"\d{2}/\d{2}/\d{4}", linha):
-                        titulo_sugerido = linha
-                        break
+                linhas_legiveis = [l for l in linhas if len(l) > 3]
+                titulo_sugerido = " ".join(linhas_legiveis[:2])
 
             # ── Heurística 2: Período ────────────────────────────────────────
             PADROES_PERIODO = [
@@ -473,6 +471,11 @@ class AnalisePreviaView(APIView):
                     else:
                         periodo_sugerido = partes[0]
                     break
+            
+            # Fallback: retorna o ano atual
+            if not periodo_sugerido:
+                import datetime
+                periodo_sugerido = str(datetime.datetime.now().year)
 
         except Exception as exc:
             logger.warning("[AnalisePrévia] Extração falhou para '%s': %s", arquivo.name, exc)

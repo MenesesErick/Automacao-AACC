@@ -162,13 +162,17 @@ export default function SubmeterCertificado() {
 
     try {
       const { data } = await certificadosService.analisarPrevia(file)
+      console.log("Resposta da API:", data)
+      
       if (data.titulo_sugerido || data.periodo_sugerido) {
         setTitulo(data.titulo_sugerido || '')
         setPeriodo(data.periodo_sugerido || '')
         setCoPilotoUsado(true)
+      } else {
+        toast.info("A IA não conseguiu ler os dados automaticamente. Preencha manualmente.")
       }
     } catch {
-      // Silencioso — o aluno preenche manualmente
+      toast.error("Falha ao comunicar com o assistente de extração.")
     } finally {
       setAnalisando(false)
     }
