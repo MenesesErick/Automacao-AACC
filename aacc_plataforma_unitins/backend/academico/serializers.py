@@ -141,6 +141,9 @@ class CertificadoSerializer(serializers.ModelSerializer):
             "categoria_obj",
             "arquivo_pdf",
             "horas_declaradas",
+            # --- metadados descritivos (Copiloto / Anexo I) ---
+            "titulo_atividade",
+            "periodo_realizacao",
             # --- campos controlados pelo motor de regras ---
             "texto_extraido_ocr",
             "horas_validadas_ocr",

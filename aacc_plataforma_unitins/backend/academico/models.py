@@ -81,7 +81,19 @@ class Certificado(models.Model):
     
     arquivo_pdf = models.FileField(upload_to='uploads_alunos/', verbose_name="Arquivo PDF")
     horas_declaradas = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name="Horas Declaradas")
-    
+
+    # ── Metadados descritivos (Copiloto / Anexo I) ────────────────────────────
+    titulo_atividade = models.CharField(
+        max_length=255, null=True, blank=True,
+        verbose_name="Título da Atividade",
+        help_text="Extraído pelo Copiloto OCR e confirmado pelo aluno. Usado no Anexo I.",
+    )
+    periodo_realizacao = models.CharField(
+        max_length=100, null=True, blank=True,
+        verbose_name="Período de Realização",
+        help_text="Ex: 'Janeiro/2025' ou '10/01/2025 a 15/03/2025'. Confirmado pelo aluno.",
+    )
+
     texto_extraido_ocr = models.TextField(blank=True, null=True, verbose_name="Texto Bruto Extraído (OCR)")
     horas_validadas_ocr = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name="Horas Validadas OCR")
     horas_computadas_final = models.DecimalField(
