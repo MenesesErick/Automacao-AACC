@@ -21,7 +21,7 @@ import {
   CheckCircle2, XCircle, Clock, Eye,
   ShieldCheck, Award, ShieldAlert, Download,
 } from 'lucide-react'
-import toast from 'react-hot-toast'
+import { toast } from 'sonner'
 import { cn } from '@/utils/cn'
 import { alunoService, certificadosService } from '@/services/api/endpoints'
 import { AppLayout } from '@/components/layout/AppLayout'
