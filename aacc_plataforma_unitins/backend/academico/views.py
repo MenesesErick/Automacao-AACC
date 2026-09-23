@@ -15,6 +15,9 @@ import logging
 
 from django.shortcuts import get_object_or_404
 from django.db.models import Sum
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+from django.utils import timezone
 
 from rest_framework import mixins, viewsets, status as http_status
 from rest_framework.decorators import action
@@ -661,3 +664,65 @@ class ListaAlunosView(APIView):
         ]
 
         return Response(data)
+
+
+class GerarAnexoIView(APIView):
+    """
+    GET /api/academico/alunos/<perfil_id>/gerar-anexo-i/
+
+    Gera e retorna o PDF do Anexo I (Requerimento de AACC) para um aluno
+    com os seus certificados com status='aprovado'.
+
+    Acesso: apenas coordenadores (is_staff=True).
+    """
+
+    def get(self, request, perfil_id):
+        from xhtml2pdf import pisa
+        import io
+
+        if not request.user.is_staff:
+            return Response(
+                {"detail": "Apenas coordenadores podem gerar o Anexo I."},
+                status=http_status.HTTP_403_FORBIDDEN,
+            )
+
+        aluno = get_object_or_404(AlunoPerfil, pk=perfil_id)
+
+        certificados = (
+            Certificado.objects
+            .filter(aluno=aluno, status="aprovado")
+            .select_related("categoria")
+            .order_by("categoria__eixo", "data_envio")
+        )
+
+        total_horas = (
+            certificados.aggregate(
+                total=Sum("horas_computadas_final")
+            )["total"] or 0
+        )
+
+        html_string = render_to_string(
+            "academico/pdf_anexo_i.html",
+            {
+                "aluno": aluno,
+                "certificados": certificados,
+                "total_horas": total_horas,
+                "data_atual": timezone.now().date(),
+            },
+            request=request,
+        )
+
+        buffer = io.BytesIO()
+        pisa_status = pisa.CreatePDF(html_string, dest=buffer, encoding="utf-8")
+
+        if pisa_status.err:
+            logger.error("[GerarAnexoI] Erro ao gerar PDF para aluno %s: %s", perfil_id, pisa_status.err)
+            return Response(
+                {"detail": "Erro ao gerar o PDF. Tente novamente."},
+                status=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        nome_aluno = aluno.usuario.get_full_name().replace(" ", "_") or aluno.matricula
+        response = HttpResponse(buffer.getvalue(), content_type="application/pdf")
+        response["Content-Disposition"] = f'attachment; filename="Anexo_I_{nome_aluno}.pdf"'
+        return response

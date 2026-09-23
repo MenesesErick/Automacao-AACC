@@ -26,6 +26,7 @@ from academico.views import (
     ExtratoAlunoCoordenadorView,
     ListaAlunosView,
     AnalisePreviaView,
+    GerarAnexoIView,
 )
 
 router = DefaultRouter()
@@ -33,13 +34,14 @@ router.register(r"categorias",   CategoriaAACCViewSet, basename="categoria")
 router.register(r"certificados", CertificadoViewSet,   basename="certificado")
 
 urlpatterns = [
+    # ── Copiloto de Metadados (Anexo I) ────────────────────────────────────
+    path("certificados/analise-previa/",   AnalisePreviaView.as_view(),            name="analise-previa"),
+
     path("", include(router.urls)),
 
     # ── Alunos (RN02) ───────────────────────────────────────────────────────
-    path("alunos/",                        ListaAlunosView.as_view(),              name="lista-alunos"),
-    path("alunos/meu-extrato/",            ExtratoAlunoMeView.as_view(),           name="extrato-aluno-me"),
-    path("alunos/<int:perfil_id>/extrato/", ExtratoAlunoCoordenadorView.as_view(), name="extrato-aluno-coordenador"),
-
-    # ── Copiloto de Metadados (Anexo I) ────────────────────────────────────
-    path("certificados/analise-previa/",   AnalisePreviaView.as_view(),            name="analise-previa"),
+    path("alunos/",                             ListaAlunosView.as_view(),              name="lista-alunos"),
+    path("alunos/meu-extrato/",                 ExtratoAlunoMeView.as_view(),           name="extrato-aluno-me"),
+    path("alunos/<int:perfil_id>/extrato/",      ExtratoAlunoCoordenadorView.as_view(),  name="extrato-aluno-coordenador"),
+    path("alunos/<int:perfil_id>/gerar-anexo-i/", GerarAnexoIView.as_view(),            name="gerar-anexo-i"),
 ]
