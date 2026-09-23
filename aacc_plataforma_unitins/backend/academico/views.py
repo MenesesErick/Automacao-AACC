@@ -701,6 +701,10 @@ class GerarAnexoIView(APIView):
             )["total"] or 0
         )
 
+        MIN_LINHAS = 10
+        qtd_certs = certificados.count()
+        linhas_vazias = range(max(0, MIN_LINHAS - qtd_certs))
+
         html_string = render_to_string(
             "academico/pdf_anexo_i.html",
             {
@@ -708,6 +712,7 @@ class GerarAnexoIView(APIView):
                 "certificados": certificados,
                 "total_horas": total_horas,
                 "data_atual": timezone.now().date(),
+                "linhas_vazias": linhas_vazias,
             },
             request=request,
         )

@@ -2,69 +2,253 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>Anexo I - AACC</title>
+  <title>Anexo I - AACC - UNITINS</title>
   <style>
-    @page { size: A4; margin: 2cm 2.5cm; }
-    body { font-family: Arial, Helvetica, sans-serif; font-size: 10pt; color: #111; }
-    h1 { font-size: 13pt; text-align: center; margin-bottom: 2px; }
-    h2 { font-size: 11pt; text-align: center; margin-top: 0; color: #444; }
-    hr { border: none; border-top: 1px solid #333; margin: 10px 0; }
-    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 9pt; }
-    th { background-color: #1a3a5c; color: #fff; padding: 6px 8px; text-align: left; }
-    td { padding: 5px 8px; border-bottom: 1px solid #ddd; vertical-align: top; }
-    tr:nth-child(even) td { background-color: #f5f7fa; }
-    .totais td { border: none; padding: 3px 8px; }
-    .totais .label { font-weight: bold; }
-    .assinatura { margin-top: 40px; }
-    .assinatura td { text-align: center; padding: 0 20px; }
-    .linha-ass { border-top: 1px solid #333; margin-top: 40px; padding-top: 4px; font-size: 9pt; }
+    @page {
+      size: A4 landscape;
+      margin: 1.2cm 1.5cm;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 9pt;
+      color: #000;
+    }
+
+    /* ---- Cabecalho institucional ---- */
+    .header-logos {
+      text-align: center;
+      padding-bottom: 4px;
+      border-bottom: 2px solid #00529B;
+      margin-bottom: 4px;
+    }
+    .header-logos img { height: 45px; }
+    .header-address {
+      text-align: center;
+      font-size: 7.5pt;
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    /* ---- SGD e titulos ---- */
+    .sgd {
+      text-align: right;
+      font-size: 7.5pt;
+      margin-bottom: 4px;
+    }
+    .titulo-anexo {
+      text-align: center;
+      font-weight: bold;
+      font-size: 10pt;
+      margin-bottom: 2px;
+    }
+    .titulo-requerimento {
+      text-align: center;
+      font-weight: bold;
+      font-size: 10pt;
+      margin-bottom: 10px;
+    }
+
+    /* ---- Dados do discente ---- */
+    .dados-discente {
+      width: 100%;
+      margin-bottom: 8px;
+      font-size: 9pt;
+    }
+    .dados-discente td { padding: 1px 2px; }
+    .campo-label { font-weight: bold; white-space: nowrap; }
+    .campo-valor {
+      border-bottom: 1px solid #000;
+      min-width: 100px;
+      padding-bottom: 1px;
+    }
+
+    /* ---- Tabela principal ---- */
+    .tabela-aacc {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 14px;
+      font-size: 8.5pt;
+    }
+    .tabela-aacc th, .tabela-aacc td {
+      border: 1px solid #000;
+      padding: 4px 5px;
+      text-align: center;
+    }
+    .tabela-aacc thead th {
+      background-color: #c8c8c8;
+      font-weight: bold;
+      font-size: 8.5pt;
+    }
+    .tabela-aacc tbody tr td { height: 16px; }
+    .col-atividade { width: 32%; text-align: left; }
+    .col-especificacao { width: 22%; }
+    .col-periodo { width: 16%; }
+    .col-horas-sol { width: 15%; }
+    .col-horas-val { width: 15%; }
+
+    /* ---- Linha de total ---- */
+    .linha-total td {
+      border: 1px solid #000;
+      padding: 3px 5px;
+      font-weight: bold;
+      font-size: 8.5pt;
+    }
+
+    /* ---- Rodape ---- */
+    .rodape-local {
+      width: 100%;
+      margin-top: 14px;
+      font-size: 9pt;
+    }
+    .rodape-local td { padding: 1px 4px; vertical-align: bottom; }
+    .campo-local { border-bottom: 1px solid #000; width: 200px; display: inline-block; }
+    .campo-data { border-bottom: 1px solid #000; width: 30px; display: inline-block; }
+
+    .encaminhamento {
+      font-size: 9pt;
+      margin: 10px 0;
+      text-align: center;
+    }
+
+    .assinatura {
+      text-align: center;
+      margin-top: 26px;
+    }
+    .linha-assinatura {
+      display: inline-block;
+      width: 260px;
+      border-top: 1px solid #000;
+      padding-top: 3px;
+      font-size: 9pt;
+      text-align: center;
+    }
+    .footer-autenticidade {
+      margin-top: 16px;
+      font-size: 7pt;
+      color: #444;
+      border-top: 1px solid #aaa;
+      padding-top: 4px;
+    }
   </style>
 </head>
 <body>
-  <h1>UNITINS - Universidade Estadual do Tocantins</h1>
-  <h2>Requerimento de Validacao de AACC - Anexo I</h2>
-  <hr/>
-  <p style="font-size:9pt; margin:8px 0;">
-    <strong>Aluno:</strong> {{ aluno.usuario.get_full_name }}<br/>
-    <strong>Matricula:</strong> {{ aluno.matricula }}<br/>
-    <strong>Curso:</strong> {{ aluno.curso.nome }}<br/>
-    <strong>Gerado em:</strong> {{ data_atual|date:"d/m/Y" }}
+
+  <!-- Cabecalho institucional -->
+  <div class="header-logos">
+    <table width="100%"><tr>
+      <td style="text-align:center; vertical-align:middle;">
+        <span style="font-size:22pt; font-weight:bold; color:#00529B; letter-spacing:1px;">U</span>
+        <span style="font-size:13pt; font-weight:bold; color:#00529B;">NITINS</span>
+        &nbsp;&nbsp;
+        <span style="font-size:9pt; font-weight:bold; color:#333;">TOCANTINS<br/><span style="font-size:7.5pt; font-weight:normal;">GOVERNO DO ESTADO</span></span>
+      </td>
+    </tr></table>
+  </div>
+  <p class="header-address">
+    Unitins &ndash; Sede Administrativa &ndash; Qd. 108 Sul, Alameda 11, lote 03 &ndash; CEP 77020-122 | www.unitins.br
   </p>
-  <hr/>
-  <table>
+
+  <!-- SGD e Titulos -->
+  <p class="sgd">SGD: {{ data_atual|date:"Y/m/d" }}/000000</p>
+  <p class="titulo-anexo">ANEXO I</p>
+  <p class="titulo-requerimento">REQUERIMENTO DE CONTABILIZA&Ccedil;&Atilde;O DE CARGA HOR&Aacute;RIA PARA AS ATIVIDADES</p>
+
+  <!-- Dados do discente -->
+  <table class="dados-discente">
+    <tr>
+      <td><span class="campo-label">Nome do aluno:</span></td>
+      <td class="campo-valor" style="width:360px;">{{ aluno.usuario.get_full_name }}</td>
+      <td>&nbsp;&nbsp;</td>
+      <td><span class="campo-label">Matr&iacute;cula:</span></td>
+      <td class="campo-valor" style="width:120px;">{{ aluno.matricula }}</td>
+    </tr>
+    <tr>
+      <td><span class="campo-label">Curso:</span></td>
+      <td class="campo-valor" style="width:200px;">{{ aluno.curso.nome }}</td>
+      <td><span class="campo-label">&nbsp;&nbsp;C&acirc;mpus:</span></td>
+      <td class="campo-valor" style="width:150px;">Palmas</td>
+      <td><span class="campo-label">&nbsp;&nbsp;Semestre:</span></td>
+      <td class="campo-valor" style="width:60px;">{{ data_atual|date:"Y/1" }}</td>
+      <td><span class="campo-label">&nbsp;&nbsp;Turno:</span></td>
+      <td class="campo-valor" style="width:80px;">&nbsp;</td>
+    </tr>
+  </table>
+
+  <!-- Tabela principal de atividades -->
+  <table class="tabela-aacc">
     <thead>
       <tr>
-        <th>#</th>
-        <th>Titulo da Atividade</th>
-        <th>Categoria</th>
-        <th>Periodo</th>
-        <th style="text-align:right;">Horas</th>
+        <th class="col-atividade">Atividade</th>
+        <th class="col-especificacao">Especifica&ccedil;&atilde;o<br/>(Ensino, Pesquisa ou Extens&atilde;o)</th>
+        <th class="col-periodo">Per&iacute;odo de realiza&ccedil;&atilde;o</th>
+        <th class="col-horas-sol">Total de horas<br/>(solicitadas)</th>
+        <th class="col-horas-val">Total de horas<br/>(validadas)</th>
       </tr>
     </thead>
     <tbody>
       {% for cert in certificados %}
       <tr>
-        <td>{{ forloop.counter }}</td>
-        <td>{{ cert.titulo_atividade|default:"-" }}</td>
-        <td>{{ cert.categoria.nome }}</td>
-        <td>{{ cert.periodo_realizacao|default:"-" }}</td>
-        <td style="text-align:right;">{{ cert.horas_computadas_final|default:cert.horas_declaradas|default:0 }}h</td>
+        <td class="col-atividade" style="text-align:left;">{{ cert.titulo_atividade|default:cert.categoria.nome }}</td>
+        <td class="col-especificacao">{{ cert.categoria.eixo }}</td>
+        <td class="col-periodo">{{ cert.periodo_realizacao|default:"-" }}</td>
+        <td class="col-horas-sol">{{ cert.horas_declaradas|default:0 }}h</td>
+        <td class="col-horas-val">{{ cert.horas_computadas_final|default:cert.horas_declaradas|default:0 }}h</td>
       </tr>
-      {% empty %}
-      <tr><td colspan="5" style="text-align:center;color:#888;font-style:italic;">Nenhum certificado deferido encontrado.</td></tr>
+      {% endfor %}
+      <!-- Linhas em branco para completar o formulario -->
+      {% for i in linhas_vazias %}
+      <tr>
+        <td class="col-atividade">&nbsp;</td>
+        <td class="col-especificacao">&nbsp;</td>
+        <td class="col-periodo">&nbsp;</td>
+        <td class="col-horas-sol">&nbsp;</td>
+        <td class="col-horas-val">&nbsp;</td>
+      </tr>
       {% endfor %}
     </tbody>
   </table>
-  <table class="totais" style="margin-top:14px;">
-    <tr><td class="label">Total de Horas Validadas:</td><td><strong>{{ total_horas }}h</strong></td></tr>
+
+  <!-- Linha de total -->
+  <table class="tabela-aacc" style="margin-top:-14px;">
+    <tr class="linha-total">
+      <td colspan="3" style="text-align:right; width:70%; border:1px solid #000;">
+        <strong>TOTAL DE HORAS VALIDADAS:</strong>
+      </td>
+      <td style="width:15%; border:1px solid #000; text-align:center;">{{ total_horas }}h</td>
+      <td style="width:15%; border:1px solid #000;">&nbsp;</td>
+    </tr>
   </table>
+
+  <!-- Local e Data -->
+  <table class="rodape-local" style="margin-top:12px;">
+    <tr>
+      <td style="text-align:center; width:50%;">
+        Local: <span class="campo-local">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+        &nbsp;&nbsp;&nbsp;&nbsp;
+        Data: <span class="campo-data">&nbsp;&nbsp;&nbsp;&nbsp;</span> /
+               <span class="campo-data">&nbsp;&nbsp;&nbsp;&nbsp;</span> /
+               <span class="campo-data">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Encaminhamento -->
+  <p class="encaminhamento">
+    Encaminhe-se &agrave; Secret&aacute;ria Acad&ecirc;mica para lan&ccedil;amento do total de
+    <strong>{{ total_horas }}</strong> horas atividades no hist&oacute;rico do acad&ecirc;mico.
+  </p>
+
+  <!-- Assinatura -->
   <div class="assinatura">
-    <table width="100%">
-      <tr>
-        <td width="50%"><div class="linha-ass">{{ aluno.usuario.get_full_name }}<br/>Aluno(a) - Matricula {{ aluno.matricula }}</div></td>
-        <td width="50%"><div class="linha-ass">Coordenador(a) de Curso / SEBR<br/>{{ aluno.curso.nome }}</div></td>
-      </tr>
-    </table>
+    <span class="linha-assinatura">Coordena&ccedil;&atilde;o do Curso (assinatura digital)</span>
   </div>
+
+  <!-- Rodape de autenticidade -->
+  <div class="footer-autenticidade">
+    <p>Documento gerado automaticamente pela Plataforma AACC &ndash; UNITINS em {{ data_atual|date:"d/m/Y" }}.</p>
+    <p>Aluno: {{ aluno.usuario.get_full_name }} &mdash; Matr&iacute;cula: {{ aluno.matricula }} &mdash; Curso: {{ aluno.curso.nome }}</p>
+  </div>
+
 </body>
 </html>
