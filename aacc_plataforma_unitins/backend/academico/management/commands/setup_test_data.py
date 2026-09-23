@@ -70,11 +70,19 @@ class Command(BaseCommand):
             ano_vigencia=2023,
             defaults={'horas_totais_exigidas': 120}
         )
+        matriz_180h, matriz180_created = MatrizCurricular.objects.get_or_create(
+            curso=curso_si,
+            ano_vigencia=2024,
+            defaults={'horas_totais_exigidas': 180}
+        )
 
         # 3. Alunos
         alunos_dados = [
-            {'username': 'joao.silva@unitins.br', 'first_name': 'Joao', 'last_name': 'Silva', 'matricula': '202311001', 'cpf': '111.111.111-11'},
-            {'username': 'maria.souza@unitins.br', 'first_name': 'Maria', 'last_name': 'Souza', 'matricula': '202311002', 'cpf': '222.222.222-22'}
+            {'username': 'joao.silva@unitins.br', 'first_name': 'Joao', 'last_name': 'Silva', 'matricula': '202311001', 'cpf': '111.111.111-11', 'matriz': matriz_120h},
+            {'username': 'maria.souza@unitins.br', 'first_name': 'Maria', 'last_name': 'Souza', 'matricula': '202311002', 'cpf': '222.222.222-22', 'matriz': matriz_120h},
+            {'username': 'pedro.santos@unitins.br', 'first_name': 'Pedro', 'last_name': 'Santos', 'matricula': '202411001', 'cpf': '333.333.333-33', 'matriz': matriz_180h},
+            {'username': 'ana.costa@unitins.br', 'first_name': 'Ana', 'last_name': 'Costa', 'matricula': '202411002', 'cpf': '444.444.444-44', 'matriz': matriz_180h},
+            {'username': 'lucas.ferreira@unitins.br', 'first_name': 'Lucas', 'last_name': 'Ferreira', 'matricula': '202411003', 'cpf': '555.555.555-55', 'matriz': matriz_180h},
         ]
 
         for dados in alunos_dados:
@@ -99,12 +107,12 @@ class Command(BaseCommand):
                 defaults={
                     'matricula': dados['matricula'],
                     'curso': curso_si,
-                    'matriz_curricular': matriz_120h
+                    'matriz_curricular': dados['matriz']
                 }
             )
 
             if u_created or p_created:
-                self.stdout.write(self.style.SUCCESS(f"  [+] CRIADO: Aluno {user_aluno.get_full_name()} (Login: {dados['username']} / Senha: unitins2026) - Meta: {matriz_120h.horas_totais_exigidas}h"))
+                self.stdout.write(self.style.SUCCESS(f"  [+] CRIADO: Aluno {user_aluno.get_full_name()} (Login: {dados['username']} / Senha: unitins2026) - Meta: {dados['matriz'].horas_totais_exigidas}h"))
             else:
                 self.stdout.write(self.style.WARNING(f"  [~] MANTIDO: Aluno {user_aluno.get_full_name()} ja existe."))
 
