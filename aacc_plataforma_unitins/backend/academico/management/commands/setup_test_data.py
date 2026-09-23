@@ -42,7 +42,7 @@ class Command(BaseCommand):
 
         # 1. Coordenador
         coordenador, coord_created = User.objects.get_or_create(
-            username='coordenador',
+            username='coord@unitins.br',
             defaults={
                 'first_name': 'Carlos',
                 'last_name': 'Coordenador',
@@ -56,7 +56,7 @@ class Command(BaseCommand):
         if coord_created:
             coordenador.set_password('unitins2026')
             coordenador.save()
-            self.stdout.write(self.style.SUCCESS('  [+] CRIADO: Usuario Coordenador (Login: coordenador / Senha: unitins2026)'))
+            self.stdout.write(self.style.SUCCESS('  [+] CRIADO: Usuario Coordenador (Login: coord@unitins.br / Senha: unitins2026)'))
         else:
             self.stdout.write(self.style.WARNING('  [~] MANTIDO: Usuario Coordenador ja existe.'))
 
@@ -73,8 +73,8 @@ class Command(BaseCommand):
 
         # 3. Alunos
         alunos_dados = [
-            {'username': 'joao.aluno', 'first_name': 'Joao', 'last_name': 'Silva', 'matricula': '202311001', 'cpf': '111.111.111-11'},
-            {'username': 'maria.aluna', 'first_name': 'Maria', 'last_name': 'Souza', 'matricula': '202311002', 'cpf': '222.222.222-22'}
+            {'username': 'joao.silva@unitins.br', 'first_name': 'Joao', 'last_name': 'Silva', 'matricula': '202311001', 'cpf': '111.111.111-11'},
+            {'username': 'maria.souza@unitins.br', 'first_name': 'Maria', 'last_name': 'Souza', 'matricula': '202311002', 'cpf': '222.222.222-22'}
         ]
 
         for dados in alunos_dados:
@@ -83,7 +83,7 @@ class Command(BaseCommand):
                 defaults={
                     'first_name': dados['first_name'],
                     'last_name': dados['last_name'],
-                    'email': f"{dados['username']}@aluno.unitins.br",
+                    'email': dados['username'],
                     'cpf': dados['cpf'],
                     'is_aluno': True,
                     'is_staff': False,
