@@ -406,6 +406,8 @@ class AnalisePreviaView(APIView):
     def post(self, request):
         import re
         import io
+        import os
+        import datetime
 
         arquivo = request.FILES.get("arquivo")
         if not arquivo:
@@ -416,17 +418,42 @@ class AnalisePreviaView(APIView):
 
         titulo_sugerido = ""
         periodo_sugerido = ""
+        leitura_por_imagem = False
 
         try:
             import fitz  # PyMuPDF
-            import os
-            import datetime
 
             conteudo = arquivo.read()
-            doc = fitz.open(stream=io.BytesIO(conteudo), filetype="pdf")
-            
-            # Extrai todo o texto para o gatilho posicional e datas
-            texto_completo = "\n".join(page.get_text() for page in doc)
+            content_type = arquivo.content_type or ""
+            is_image = content_type in ("image/jpeg", "image/png", "image/jpg")
+
+            texto_completo = ""
+
+            if not is_image:
+                doc = fitz.open(stream=io.BytesIO(conteudo), filetype="pdf")
+                texto_completo = "\n".join(page.get_text() for page in doc)
+                doc.close()
+
+            if is_image or len(texto_completo.strip()) < 20:
+                try:
+                    import pytesseract
+                    from PIL import Image
+                    if is_image:
+                        imagem = Image.open(io.BytesIO(conteudo))
+                    else:
+                        doc_ocr = fitz.open(stream=io.BytesIO(conteudo), filetype="pdf")
+                        page_ocr = doc_ocr[0]
+                        pix = page_ocr.get_pixmap(dpi=200)
+                        doc_ocr.close()
+                        imagem = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+                    texto_completo = pytesseract.image_to_string(imagem, lang="por")
+                    leitura_por_imagem = True
+                    print("[Tesseract] Texto extraido:", texto_completo[:200])
+                except Exception as ocr_exc:
+                    logger.warning("[AnalisePrévia] Tesseract falhou: %s", ocr_exc)
+            else:
+                print("[PyMuPDF] Texto extraido:", texto_completo[:200])
+
             texto_limpo_espacos = re.sub(r'\s+', ' ', texto_completo)
             
             # --- TÍTULO: Heurística de Gatilho Posicional ---
@@ -439,8 +466,8 @@ class AnalisePreviaView(APIView):
             elif match_gatilho_virgula:
                 titulo_sugerido = match_gatilho_virgula.group(1).strip()
             
-            if not titulo_sugerido:
-                # --- TÍTULO: Análise por tamanho de fonte ---
+            if not titulo_sugerido and not leitura_por_imagem:
+                # --- TITULO: Analise por tamanho de fonte (PDF com camada de texto) ---
                 melhor_score = 0.0
                 texto_maior_fonte = ""
             
@@ -461,7 +488,8 @@ class AnalisePreviaView(APIView):
                 
                 gatilhos = ['CURSO', 'EVENTO', 'PALESTRA', 'SEMINÁRIO', 'SEMINARIO', 'OFICINA', 'WORKSHOP', 'JORNADA', 'SIMPÓSIO', 'SIMPOSIO', 'MINICURSO']
                 
-                for page in doc:
+                doc_font = fitz.open(stream=io.BytesIO(conteudo), filetype="pdf")
+                for page in doc_font:
                     blocks = page.get_text("dict").get("blocks", [])
                     for block in blocks:
                         if block.get("type") == 0:  # type 0 é texto
@@ -490,16 +518,14 @@ class AnalisePreviaView(APIView):
                                             melhor_score = score
                                             texto_maior_fonte = text
 
+                doc_font.close()
                 titulo_sugerido = texto_maior_fonte
 
             # Fallback do Título: nome do arquivo sem extensão
             if not titulo_sugerido:
                 titulo_sugerido = os.path.splitext(arquivo.name)[0]
 
-            doc.close()
-            print("Texto Bruto Extraído:\n", texto_completo)
-
-            # --- DATA: Cascata de Regex (5 níveis) ---
+            # --- DATA: Cascata de Regex (5 niveis) ---
             texto_limpo = re.sub(r'\s+', ' ', texto_completo)
             
             padroes_data = [
@@ -536,6 +562,7 @@ class AnalisePreviaView(APIView):
         return Response({
             "titulo_sugerido": titulo_sugerido[:255] if titulo_sugerido else "",
             "periodo_sugerido": periodo_sugerido[:100] if periodo_sugerido else "",
+            "leitura_por_imagem": leitura_por_imagem,
         })
 
 

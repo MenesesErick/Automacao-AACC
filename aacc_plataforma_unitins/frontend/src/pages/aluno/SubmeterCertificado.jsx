@@ -136,6 +136,7 @@ export default function SubmeterCertificado() {
   const [periodo,          setPeriodo]          = useState('')
   const [analisando,       setAnalisando]       = useState(false)
   const [coPilotoUsado,    setCoPilotoUsado]    = useState(false)
+  const [leituraImagem,    setLeituraImagem]    = useState(false)
   const [submitting,       setSubmitting]       = useState(false)
   const [sucesso,          setSucesso]          = useState(false)
   const [erros,            setErros]            = useState({
@@ -159,6 +160,7 @@ export default function SubmeterCertificado() {
     setErros(prev => ({ ...prev, arquivo: '' }))
     setAnalisando(true)
     setCoPilotoUsado(false)
+    setLeituraImagem(false)
 
     try {
       const { data } = await certificadosService.analisarPrevia(file)
@@ -168,6 +170,7 @@ export default function SubmeterCertificado() {
         setTitulo(data.titulo_sugerido || '')
         setPeriodo(data.periodo_sugerido || '')
         setCoPilotoUsado(true)
+        setLeituraImagem(data.leitura_por_imagem === true)
       } else {
         toast.info("A IA não conseguiu ler os dados automaticamente. Preencha manualmente.")
       }
@@ -373,13 +376,26 @@ export default function SubmeterCertificado() {
 
                 {/* ── Callout do Copiloto ──────────────────────────────── */}
                 {coPilotoUsado && (
-                  <div className="flex gap-2.5 rounded-sm border border-amber-300 bg-amber-50 p-3 text-amber-800">
-                    <Sparkles className="h-4 w-4 shrink-0 mt-0.5 text-amber-500" />
-                    <p className="text-helper font-medium leading-relaxed">
-                      Extraímos esses dados automaticamente do seu certificado.{' '}
-                      <span className="font-bold">Por favor, revise-os antes de enviar.</span>
-                    </p>
-                  </div>
+                  leituraImagem ? (
+                    // Alerta severo para imagens/PDFs escaneados
+                    <div className="flex gap-2.5 rounded-sm border border-orange-400 bg-orange-50 p-3 text-orange-900">
+                      <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-orange-500" />
+                      <p className="text-helper font-medium leading-relaxed">
+                        <span className="font-bold">Atenção: Este documento é uma imagem ou PDF escaneado.</span>{' '}
+                        A leitura automática pode conter falhas de reconhecimento.{' '}
+                        <span className="font-bold">Revise o Título e a Data com atenção redobrada antes de enviar.</span>
+                      </p>
+                    </div>
+                  ) : (
+                    // Alerta discreto para PDFs com camada de texto
+                    <div className="flex gap-2.5 rounded-sm border border-amber-300 bg-amber-50 p-3 text-amber-800">
+                      <Sparkles className="h-4 w-4 shrink-0 mt-0.5 text-amber-500" />
+                      <p className="text-helper font-medium leading-relaxed">
+                        Extraímos esses dados automaticamente do seu certificado.{' '}
+                        <span className="font-bold">Por favor, revise-os antes de enviar.</span>
+                      </p>
+                    </div>
+                  )
                 )}
 
                 {/* ── Título da Atividade ──────────────────────────────── */}
