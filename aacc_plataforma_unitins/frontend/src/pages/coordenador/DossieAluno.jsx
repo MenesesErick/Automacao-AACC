@@ -14,13 +14,14 @@
  */
 
 import { useEffect, useState } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, UserCircle, GraduationCap, Hash,
   Mail, Loader2, AlertTriangle, FileText,
   CheckCircle2, XCircle, Clock, Eye,
-  ShieldCheck, Award, ShieldAlert,
+  ShieldCheck, Award, ShieldAlert, Download,
 } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { cn } from '@/utils/cn'
 import { alunoService, certificadosService } from '@/services/api/endpoints'
 import { AppLayout } from '@/components/layout/AppLayout'
@@ -30,6 +31,7 @@ import {
   GraficoProgresso,
   GraficoEixos,
 } from '@/components/organisms/ExtratoCharts'
+import apiClient from '@/services/api/client'
 
 // ─── Status config ────────────────────────────────────────────────────────────
 
@@ -273,11 +275,12 @@ export default function DossieAluno() {
   const { id }   = useParams()
   const navigate = useNavigate()
 
-  const [aluno,    setAluno]   = useState(null)    // dados da lista (nome, matric.)
-  const [extrato,  setExtrato] = useState(null)    // extrato completo (horas, eixos)
-  const [certs,    setCerts]   = useState([])
-  const [loading,  setLoading] = useState(true)
-  const [erro,     setErro]    = useState(null)
+  const [aluno,       setAluno]      = useState(null)
+  const [extrato,     setExtrato]    = useState(null)
+  const [certs,       setCerts]      = useState([])
+  const [loading,     setLoading]    = useState(true)
+  const [erro,        setErro]       = useState(null)
+  const [gerandoPdf,  setGerandoPdf] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -321,6 +324,33 @@ export default function DossieAluno() {
     fetchTudo()
     return () => { cancelled = true }
   }, [id])
+
+  // ── RN05: Gerar Anexo I (PDF) ───────────────────────────────────────────────
+  const gerarAnexoI = async () => {
+    setGerandoPdf(true)
+    const toastId = toast.loading('Gerando Anexo I...')
+    try {
+      const response = await apiClient.get(
+        `/academico/alunos/${id}/gerar-anexo-i/`,
+        { responseType: 'blob' },
+      )
+      const blob = new Blob([response.data], { type: 'application/pdf' })
+      const url  = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      const nomeAluno = (extrato?.aluno_nome ?? 'Aluno').replace(/\s+/g, '_')
+      link.href     = url
+      link.download = `Anexo_I_${nomeAluno}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+      toast.success('PDF gerado com sucesso!', { id: toastId })
+    } catch {
+      toast.error('Erro ao gerar o PDF. Tente novamente.', { id: toastId })
+    } finally {
+      setGerandoPdf(false)
+    }
+  }
 
   const pct  = extrato?.progresso_percentual ?? 0
   const total = extrato?.total_horas_aprovadas ?? 0
@@ -394,11 +424,34 @@ export default function DossieAluno() {
             <p className="text-helper font-bold text-text-disabled uppercase tracking-widest">
               Histórico de Certificados ({certs.length})
             </p>
-            <p className="text-helper text-text-disabled">
-              {certs.filter(c => c.status === 'aprovado').length} aprovado(s)
-              {' · '}
-              {certs.filter(c => ['pendente_ocr', 'revisao_manual'].includes(c.status)).length} pendente(s)
-            </p>
+            <div className="flex items-center gap-3">
+              <p className="text-helper text-text-disabled">
+                {certs.filter(c => c.status === 'aprovado').length} aprovado(s)
+                {' · '}
+                {certs.filter(c => ['pendente_ocr', 'revisao_manual'].includes(c.status)).length} pendente(s)
+              </p>
+
+              {/* Botão RN05 — só aparece quando aluno atingiu 100% */}
+              {pct >= 100 && (
+                <button
+                  id="btn-gerar-anexo-i"
+                  onClick={gerarAnexoI}
+                  disabled={gerandoPdf}
+                  className={cn(
+                    'inline-flex items-center gap-2 px-3 py-1.5 rounded-sm text-label font-semibold',
+                    'bg-success text-white border border-success/80',
+                    'hover:bg-success/90 transition-colors',
+                    'disabled:opacity-60 disabled:cursor-not-allowed',
+                  )}
+                >
+                  {gerandoPdf
+                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    : <Download className="h-3.5 w-3.5" />
+                  }
+                  {gerandoPdf ? 'Gerando...' : 'Gerar Anexo I (PDF)'}
+                </button>
+              )}
+            </div>
           </div>
           <TabelaCertificados certs={certs} loading={false} />
         </div>
