@@ -1,4 +1,4 @@
-﻿"""
+"""
 Django settings for aacc_plataforma_unitins project.
 """
 
@@ -72,16 +72,19 @@ WSGI_APPLICATION = 'aacc_core.wsgi.application'
 # Database
 # Em produção (Render + Supabase), DATABASE_URL é definida como variável de ambiente.
 # Em desenvolvimento local, faz fallback para SQLite automaticamente.
-import dj_database_url, os
+import dj_database_url
+import os
 
-_DATABASE_URL = os.environ.get('DATABASE_URL')
+_DATABASE_URL = config('DATABASE_URL', default='')
 
 if _DATABASE_URL:
+    # Em produção (Render): exige SSL. Localmente (Docker): não usa SSL.
+    _is_production = not config('DEBUG', default=False, cast=bool)
     DATABASES = {
         'default': dj_database_url.config(
             default=_DATABASE_URL,
             conn_max_age=600,
-            ssl_require=True,
+            ssl_require=_is_production,
         )
     }
 else:

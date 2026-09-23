@@ -1,49 +1,36 @@
 ﻿import logging
 from django.core.management.base import BaseCommand
 from academico.models import CategoriaAACC
+from academico.rules.resolucao_057 import LIMITES_CATEGORIAS
 
 logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
-    help = 'Popula o banco de dados com eixos e categorias AACC iniciais'
+    help = 'Popula o banco de dados com eixos e categorias AACC iniciais a partir da Fonte da Verdade (SEBR)'
 
     def handle(self, *args, **kwargs):
-        self.stdout.write(self.style.NOTICE('Iniciando o povoamento das Categorias AACC...'))
+        self.stdout.write(self.style.NOTICE('Iniciando o povoamento das Categorias AACC (Resolução 057/2025)...'))
 
-        categorias_iniciais = [
-            {
-                'nome': 'Disciplinas cursadas em outros cursos',
-                'eixo': 'Ensino',
-                'codigo_slug': 'disciplinas_outros_cursos',
-                'limite_maximo_horas': 90,
-            },
-            {
-                'nome': 'Projetos de pesquisa',
-                'eixo': 'Pesquisa',
-                'codigo_slug': 'projetos_pesquisa',
-                'limite_maximo_horas': 100,
-            },
-            {
-                'nome': 'Cursos de extensão e nivelamento',
-                'eixo': 'Extensao',
-                'codigo_slug': 'cursos_extensao',
-                'limite_maximo_horas': 60,
-            },
-        ]
+        criadas = 0
+        atualizadas = 0
 
-        for cat_data in categorias_iniciais:
-            cat, created = CategoriaAACC.objects.get_or_create(
-                codigo_slug=cat_data['codigo_slug'],
+        for slug, regra in LIMITES_CATEGORIAS.items():
+            teto = regra.teto_total if regra.teto_total is not None else 9999
+            
+            cat, created = CategoriaAACC.objects.update_or_create(
+                codigo_slug=slug,
                 defaults={
-                    'nome': cat_data['nome'],
-                    'eixo': cat_data['eixo'],
-                    'limite_maximo_horas': cat_data['limite_maximo_horas']
+                    'nome': regra.nome,
+                    'eixo': regra.eixo,
+                    'limite_maximo_horas': teto,
                 }
             )
             
             if created:
-                self.stdout.write(self.style.SUCCESS(f"Categoria criada: {cat.nome} ({cat.eixo})"))
+                criadas += 1
+                self.stdout.write(self.style.SUCCESS(f"  [+] CRIADA: {cat.nome} ({cat.eixo})"))
             else:
-                self.stdout.write(self.style.WARNING(f"Categoria ja existe: {cat.nome} ({cat.eixo})"))
+                atualizadas += 1
+                self.stdout.write(self.style.WARNING(f"  [~] ATUALIZADA: {cat.nome} ({cat.eixo})"))
 
-        self.stdout.write(self.style.SUCCESS('Povoamento inicial concluido com sucesso!'))
+        self.stdout.write(self.style.SUCCESS(f'Povoamento concluído! {criadas} criadas, {atualizadas} atualizadas.'))

@@ -9,16 +9,18 @@ import { Badge } from '@/components/atoms/Badge'
 import { certificadosService } from '@/services/api/endpoints'
 
 const STATUS_MAP = {
-  pendente_ocr:   { label: 'Pendente OCR',   variant: 'default' },
+  pendente_ocr: { label: 'Pendente OCR', variant: 'default' },
   revisao_manual: { label: 'Revisão Manual', variant: 'warning' },
 }
 
 export default function FilaRevisao() {
   const navigate = useNavigate()
   const [certificados, setCertificados] = useState([])
-  const [loading,      setLoading]      = useState(true)
-  const [erro,         setErro]         = useState(null)
-  const [busca,        setBusca]        = useState('')
+  const [loading, setLoading] = useState(true)
+  const [erro, setErro] = useState(null)
+  const [busca, setBusca] = useState('')
+  const [filtroStatus, setFiltroStatus] = useState('todas') // 'todas' | 'pendente_ocr' | 'revisao_manual'
+  const [filtroCurso, setFiltroCurso] = useState('')
 
   const fetchFila = useCallback(async () => {
     try {
@@ -60,12 +62,23 @@ export default function FilaRevisao() {
       ),
     },
     {
+      key: 'matricula',
+      label: 'Matricula',
+      render: (row) => (
+        <div className="min-w-0">
+          <p className="text-label font-medium text-text-primary truncate max-w-[150px]">
+            Matrícula {row.aluno}
+          </p>
+        </div>
+      ),
+    },
+    {
       key: 'aluno',
       label: 'Aluno',
       render: (row) => (
         <div className="min-w-0">
           <p className="text-label font-medium text-text-primary truncate max-w-[150px]">
-            Matrícula {row.aluno}
+            {row.aluno_nome}
           </p>
         </div>
       ),
@@ -148,7 +161,7 @@ export default function FilaRevisao() {
               type="text"
               value={busca}
               onChange={e => setBusca(e.target.value)}
-              placeholder="Buscar matrícula ou categoria..."
+              placeholder="Buscar matrícula, Nome ou categoria..."
               className="pl-9 pr-3 h-9 rounded-xs border border-border bg-bg-surface text-label focus:ring-2 focus:ring-primary outline-none w-64"
             />
           </div>
