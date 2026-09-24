@@ -285,12 +285,12 @@ export default function DossieAluno() {
   const [gerandoPdf,   setGerandoPdf]  = useState(false)
   const [dadosAnexo,   setDadosAnexo]  = useState(null)
 
-  // ref do componente de impressão (oculto no DOM)
+  // ref do componente de impressao (oculto no DOM)
   const anexoRef = useRef(null)
 
-  // hook do react-to-print — dispara a impressão nativa
+  // react-to-print v3: passa o ref via contentRef; a funcao retornada dispara a impressao
   const handlePrint = useReactToPrint({
-    content: () => anexoRef.current,
+    contentRef: anexoRef,
     documentTitle: `Anexo_I_${extrato?.aluno_nome ?? 'Aluno'}`,
     onAfterPrint: () => setGerandoPdf(false),
   })
@@ -338,22 +338,31 @@ export default function DossieAluno() {
     return () => { cancelled = true }
   }, [id])
 
-  // ── RN05: Gerar Anexo I — busca JSON e dispara impressão nativa ────────────
+  // ── RN05: Gerar Anexo I — busca JSON, atualiza state e dispara print ────────
+  // useEffect aguarda o DOM atualizar antes de chamar handlePrint
+  const [printPendente, setPrintPendente] = useState(false)
+
+  useEffect(() => {
+    if (printPendente && dadosAnexo) {
+      handlePrint()
+      setPrintPendente(false)
+    }
+  }, [printPendente, dadosAnexo, handlePrint])
+
   const gerarAnexoI = useCallback(async () => {
     setGerandoPdf(true)
     const toastId = toast.loading('Buscando dados do Anexo I...')
     try {
       const response = await apiClient.get(`/academico/alunos/${id}/gerar-anexo-i/`)
       setDadosAnexo(response.data)
-      toast.success('Pronto! Abrindo janela de impressão...', { id: toastId })
-      // Aguarda um tick para o DOM atualizar o componente oculto
-      setTimeout(() => handlePrint(), 100)
+      toast.success('Pronto! Abrindo janela de impressao...', { id: toastId })
+      setPrintPendente(true)  // dispara o useEffect apos o re-render
     } catch (err) {
       const msg = err?.response?.data?.detail ?? 'Erro ao gerar o Anexo I.'
       toast.error(msg, { id: toastId })
       setGerandoPdf(false)
     }
-  }, [id, handlePrint])
+  }, [id])
 
   const pct  = extrato?.progresso_percentual ?? 0
   const total = extrato?.total_horas_aprovadas ?? 0
