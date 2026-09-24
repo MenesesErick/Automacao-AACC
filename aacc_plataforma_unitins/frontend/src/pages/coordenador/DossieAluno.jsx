@@ -13,7 +13,7 @@
  *   └──────────────────────────────────────────────────────────────┘
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, UserCircle, GraduationCap, Hash,
@@ -22,6 +22,7 @@ import {
   ShieldCheck, Award, ShieldAlert, Download,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useReactToPrint } from 'react-to-print'
 import { cn } from '@/utils/cn'
 import { alunoService, certificadosService } from '@/services/api/endpoints'
 import { AppLayout } from '@/components/layout/AppLayout'
@@ -32,6 +33,7 @@ import {
   GraficoEixos,
 } from '@/components/organisms/ExtratoCharts'
 import apiClient from '@/services/api/client'
+import AnexoIPDF from '@/components/AnexoIPDF'
 
 // ─── Status config ────────────────────────────────────────────────────────────
 
@@ -277,10 +279,21 @@ export default function DossieAluno() {
 
   const [aluno,       setAluno]      = useState(null)
   const [extrato,     setExtrato]    = useState(null)
-  const [certs,       setCerts]      = useState([])
-  const [loading,     setLoading]    = useState(true)
-  const [erro,        setErro]       = useState(null)
-  const [gerandoPdf,  setGerandoPdf] = useState(false)
+  const [certs,        setCerts]       = useState([])
+  const [loading,      setLoading]     = useState(true)
+  const [erro,         setErro]        = useState(null)
+  const [gerandoPdf,   setGerandoPdf]  = useState(false)
+  const [dadosAnexo,   setDadosAnexo]  = useState(null)
+
+  // ref do componente de impressão (oculto no DOM)
+  const anexoRef = useRef(null)
+
+  // hook do react-to-print — dispara a impressão nativa
+  const handlePrint = useReactToPrint({
+    content: () => anexoRef.current,
+    documentTitle: `Anexo_I_${extrato?.aluno_nome ?? 'Aluno'}`,
+    onAfterPrint: () => setGerandoPdf(false),
+  })
 
   useEffect(() => {
     let cancelled = false
@@ -325,32 +338,22 @@ export default function DossieAluno() {
     return () => { cancelled = true }
   }, [id])
 
-  // ── RN05: Gerar Anexo I (PDF) ───────────────────────────────────────────────
-  const gerarAnexoI = async () => {
+  // ── RN05: Gerar Anexo I — busca JSON e dispara impressão nativa ────────────
+  const gerarAnexoI = useCallback(async () => {
     setGerandoPdf(true)
-    const toastId = toast.loading('Gerando Anexo I...')
+    const toastId = toast.loading('Buscando dados do Anexo I...')
     try {
-      const response = await apiClient.get(
-        `/academico/alunos/${id}/gerar-anexo-i/`,
-        { responseType: 'blob' },
-      )
-      const blob = new Blob([response.data], { type: 'application/pdf' })
-      const url  = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      const nomeAluno = (extrato?.aluno_nome ?? 'Aluno').replace(/\s+/g, '_')
-      link.href     = url
-      link.download = `Anexo_I_${nomeAluno}.pdf`
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      URL.revokeObjectURL(url)
-      toast.success('PDF gerado com sucesso!', { id: toastId })
-    } catch {
-      toast.error('Erro ao gerar o PDF. Tente novamente.', { id: toastId })
-    } finally {
+      const response = await apiClient.get(`/academico/alunos/${id}/gerar-anexo-i/`)
+      setDadosAnexo(response.data)
+      toast.success('Pronto! Abrindo janela de impressão...', { id: toastId })
+      // Aguarda um tick para o DOM atualizar o componente oculto
+      setTimeout(() => handlePrint(), 100)
+    } catch (err) {
+      const msg = err?.response?.data?.detail ?? 'Erro ao gerar o Anexo I.'
+      toast.error(msg, { id: toastId })
       setGerandoPdf(false)
     }
-  }
+  }, [id, handlePrint])
 
   const pct  = extrato?.progresso_percentual ?? 0
   const total = extrato?.total_horas_aprovadas ?? 0
@@ -454,6 +457,11 @@ export default function DossieAluno() {
             </div>
           </div>
           <TabelaCertificados certs={certs} loading={false} />
+        </div>
+
+        {/* AnexoIPDF oculto — renderizado para o react-to-print */}
+        <div style={{ display: 'none' }}>
+          <AnexoIPDF ref={anexoRef} dados={dadosAnexo} />
         </div>
 
       </div>
