@@ -45,8 +45,24 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-CORS_ALLOW_ALL_ORIGINS = True
-X_FRAME_OPTIONS = 'SAMEORIGIN'
+# ── CORS ─────────────────────────────────────────────────────────────────────
+# Em desenvolvimento: permite todas as origens para facilitar o trabalho local.
+# Em produção: a Vercel (frontend) precisa chamar o Render (backend).
+CORS_ALLOW_ALL_ORIGINS = DEBUG  # True apenas em dev (DEBUG=True)
+
+CORS_ALLOWED_ORIGINS = [
+    # Produção — Vercel (ajuste para o seu domínio real se for customizado)
+    "https://automacao-aacc.vercel.app",
+    # Desenvolvimento local
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+# ── X-Frame-Options ───────────────────────────────────────────────────────────
+# ALLOWALL: necessário para o Vercel conseguir abrir/exibir arquivos (PDFs)
+# servidos pelo Render sem bloqueio de ERR_BLOCKED_BY_RESPONSE.
+# Mitigação de clickjacking é feita via Content-Security-Policy no Render.
+X_FRAME_OPTIONS = 'ALLOWALL'
 
 ROOT_URLCONF = 'aacc_core.urls'
 
