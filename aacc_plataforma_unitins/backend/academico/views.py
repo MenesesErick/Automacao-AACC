@@ -15,8 +15,6 @@ import logging
 
 from django.shortcuts import get_object_or_404
 from django.db.models import Sum
-from django.http import HttpResponse
-from django.template.loader import render_to_string
 from django.utils import timezone
 
 from rest_framework import mixins, viewsets, status as http_status
@@ -671,17 +669,16 @@ class GerarAnexoIView(APIView):
     """
     GET /api/academico/alunos/<perfil_id>/gerar-anexo-i/
 
-    Gera e retorna o PDF do Anexo I (Requerimento de AACC) para um aluno
-    com os seus certificados com status='aprovado'.
+    Fornecedor de dados JSON para o Anexo I (Requerimento de AACC).
+
+    RN05: Só retorna 200 se o total de horas validadas atingir a meta
+    da matriz curricular do aluno (120h ou 180h). Caso contrário, 400.
 
     Acesso: apenas coordenadores (is_staff=True).
     """
     permission_classes = [IsAuthenticated]
 
     def get(self, request, perfil_id):
-        from xhtml2pdf import pisa
-        import io
-
         if not request.user.is_staff:
             return Response(
                 {"detail": "Apenas coordenadores podem gerar o Anexo I."},
@@ -698,38 +695,49 @@ class GerarAnexoIView(APIView):
         )
 
         total_horas = (
-            certificados.aggregate(
-                total=Sum("horas_computadas_final")
-            )["total"] or 0
+            certificados.aggregate(total=Sum("horas_computadas_final"))["total"] or 0
         )
 
-        MIN_LINHAS = 10
-        qtd_certs = certificados.count()
-        linhas_vazias = range(max(0, MIN_LINHAS - qtd_certs))
-
-        html_string = render_to_string(
-            "academico/pdf_anexo_i.html",
-            {
-                "aluno": aluno,
-                "certificados": certificados,
-                "total_horas": total_horas,
-                "data_atual": timezone.now().date(),
-                "linhas_vazias": linhas_vazias,
-            },
-            request=request,
-        )
-
-        buffer = io.BytesIO()
-        pisa_status = pisa.CreatePDF(html_string, dest=buffer, encoding="utf-8")
-
-        if pisa_status.err:
-            logger.error("[GerarAnexoI] Erro ao gerar PDF para aluno %s: %s", perfil_id, pisa_status.err)
+        # ── RN05: meta da matriz deve ser atingida ────────────────────────────
+        meta = aluno.matriz_curricular.horas_totais_exigidas
+        if total_horas < meta:
             return Response(
-                {"detail": "Erro ao gerar o PDF. Tente novamente."},
-                status=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+                {
+                    "detail": (
+                        f"Meta não atingida. O aluno possui {total_horas}h validadas "
+                        f"de {meta}h exigidas pela matriz curricular."
+                    ),
+                    "total_horas_validadas": float(total_horas),
+                    "meta_horas": meta,
+                },
+                status=http_status.HTTP_400_BAD_REQUEST,
             )
 
-        nome_aluno = aluno.usuario.get_full_name().replace(" ", "_") or aluno.matricula
-        response = HttpResponse(buffer.getvalue(), content_type="application/pdf")
-        response["Content-Disposition"] = f'attachment; filename="Anexo_I_{nome_aluno}.pdf"'
-        return response
+        # ── Monta payload JSON para o react-to-print ─────────────────────────
+        lista_certificados = [
+            {
+                "titulo_atividade":  cert.titulo_atividade or "",
+                "eixo_formativo":    cert.categoria.eixo if cert.categoria else "",
+                "periodo_realizacao": cert.periodo_realizacao or "",
+                "horas_solicitadas": float(cert.horas_declaradas or 0),
+                "horas_validadas":   float(cert.horas_computadas_final or 0),
+            }
+            for cert in certificados
+        ]
+
+        return Response(
+            {
+                "aluno": {
+                    "nome":      aluno.usuario.get_full_name(),
+                    "matricula": aluno.matricula,
+                    "curso":     aluno.curso.nome if aluno.curso_id else "",
+                    "campus":    "Palmas - TO",
+                    "semestre":  "",
+                    "turno":     "",
+                },
+                "certificados":           lista_certificados,
+                "total_horas_validadas":  float(total_horas),
+                "data_emissao":           timezone.now().date().strftime("%d/%m/%Y"),
+            },
+            status=http_status.HTTP_200_OK,
+        )
