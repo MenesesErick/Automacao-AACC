@@ -7,11 +7,11 @@ import { Header } from './Header'
  * Template raiz que combina Sidebar + Header + área de conteúdo.
  * Todos os layouts autenticados devem usar este componente.
  */
-export function AppLayout({ children, breadcrumb }) {
+export function AppLayout({ children, title, breadcrumb }) {
   const [collapsed, setCollapsed] = useState(false)
 
   return (
-    <div className="min-h-screen bg-bg flex">
+    <div className="min-h-screen bg-white flex">
       <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
 
       {/* Área principal */}
@@ -22,9 +22,9 @@ export function AppLayout({ children, breadcrumb }) {
           collapsed ? 'ml-16' : 'ml-60',
         )}
       >
-        <Header breadcrumb={breadcrumb} sidebarCollapsed={collapsed} />
+        <Header title={title} breadcrumb={breadcrumb} sidebarCollapsed={collapsed} />
 
-        <main className="flex-1 mt-14 p-4 sm:p-6 overflow-auto">
+        <main className="flex-1 mt-14 bg-gray-50 p-6 sm:p-8 lg:p-10 overflow-auto">
           {children}
         </main>
       </div>

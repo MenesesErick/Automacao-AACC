@@ -5,7 +5,6 @@ import {
   ShieldCheck, SendHorizonal, History
 } from 'lucide-react'
 import { cn } from '@/utils/cn'
-import { Avatar } from '@/components/atoms/Avatar'
 import { useAuth } from '@/contexts/AuthContext'
 
 const NAV_ALUNO = [
@@ -32,7 +31,7 @@ export function Sidebar({ collapsed, onToggle }) {
     <aside
       className={cn(
         'fixed left-0 top-0 h-screen z-30',
-        'bg-sidebar-bg border-r border-border',
+        'bg-white border-r border-gray-200',
         'flex flex-col transition-[width] duration-300 ease-in-out',
         collapsed ? 'w-16' : 'w-60',
       )}
@@ -90,20 +89,8 @@ export function Sidebar({ collapsed, onToggle }) {
             collapsed && 'justify-center',
           )}
         >
-          <Avatar name={user?.nome || user?.name || 'U'} size="xs" className="shrink-0" />
-          {!collapsed && (
-            <>
-              <div className="min-w-0 flex-1 text-left">
-                <p className="text-label font-medium text-text-primary group-hover:text-danger truncate leading-tight">
-                  {user?.nome || user?.name || 'Utilizador'}
-                </p>
-                <p className="text-helper text-text-secondary group-hover:text-danger/70 truncate" style={{ fontSize: '10px' }}>
-                  {user?.email || '—'}
-                </p>
-              </div>
-              <LogOut className="h-3.5 w-3.5 shrink-0 opacity-60 group-hover:opacity-100" />
-            </>
-          )}
+          <LogOut className="h-4 w-4 shrink-0" />
+          {!collapsed && <span className="truncate text-label">Sair</span>}
         </button>
       </div>
     </aside>
