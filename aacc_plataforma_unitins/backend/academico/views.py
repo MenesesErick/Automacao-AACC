@@ -22,12 +22,17 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated, IsAdminUser, SAFE_METHODS
+from rest_framework.permissions import IsAuthenticated, SAFE_METHODS
 
-from academico.models import AlunoPerfil, CategoriaAACC, Certificado, Eixo
+from django.contrib.auth import get_user_model
+
+from academico.models import AlunoPerfil, CategoriaAACC, Certificado, Curso, Eixo
+from academico.permissions import IsSuperAdmin
 from academico.serializers import (
     CategoriaAACCSerializer,
     CertificadoSerializer,
+    CoordenadorSerializer,
+    CursoSerializer,
     EixoSerializer,
 )
 from rule_engine.validator import ValidadorCertificado
@@ -38,13 +43,16 @@ logger = logging.getLogger(__name__)
 class AdminWriteOrAuthenticatedReadMixin:
     """
     Leitura (GET/HEAD/OPTIONS): qualquer usuário autenticado (aluno preenche formulário).
-    Escrita (POST/PUT/PATCH/DELETE): somente administradores (is_staff).
+    Escrita (POST/PUT/PATCH/DELETE): somente o Administrador (is_superuser).
+
+    Obs.: IsAdminUser do DRF checa is_staff, que também é True para coordenadores;
+    por isso usamos IsSuperAdmin.
     """
 
     def get_permissions(self):
         if self.request.method in SAFE_METHODS:
             return [IsAuthenticated()]
-        return [IsAuthenticated(), IsAdminUser()]
+        return [IsAuthenticated(), IsSuperAdmin()]
 
 
 class EixoViewSet(viewsets.ModelViewSet):
@@ -56,7 +64,40 @@ class EixoViewSet(viewsets.ModelViewSet):
 
     queryset = Eixo.objects.all().order_by("id")
     serializer_class = EixoSerializer
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, IsSuperAdmin]
+
+
+class CursoViewSet(AdminWriteOrAuthenticatedReadMixin, viewsets.ModelViewSet):
+    """
+    CRUD de Cursos (com meta de carga horária na matriz curricular).
+    Leitura: autenticado. Escrita: somente Admin.
+    """
+
+    queryset = Curso.objects.all().order_by("nome")
+    serializer_class = CursoSerializer
+    permission_classes = [IsAuthenticated, IsSuperAdmin]
+
+
+class CoordenadorViewSet(
+    mixins.ListModelMixin,
+    mixins.CreateModelMixin,
+    viewsets.GenericViewSet,
+):
+    """
+    Gestão de Coordenadores (somente Admin): listar e criar.
+
+    Cria Usuario com is_staff=True e is_coordenador=True (não superuser, não aluno).
+    """
+
+    serializer_class = CoordenadorSerializer
+    permission_classes = [IsAuthenticated, IsSuperAdmin]
+
+    def get_queryset(self):
+        return (
+            get_user_model().objects
+            .filter(is_staff=True, is_coordenador=True, is_superuser=False)
+            .order_by("first_name", "email")
+        )
 
 
 class CategoriaAACCViewSet(AdminWriteOrAuthenticatedReadMixin, viewsets.ModelViewSet):
@@ -75,7 +116,7 @@ class CategoriaAACCViewSet(AdminWriteOrAuthenticatedReadMixin, viewsets.ModelVie
         .order_by("eixo__id", "nome")
     )
     serializer_class = CategoriaAACCSerializer
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, IsSuperAdmin]
 
 
 class CertificadoViewSet(viewsets.ModelViewSet):

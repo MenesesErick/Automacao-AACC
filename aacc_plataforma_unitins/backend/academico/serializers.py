@@ -8,7 +8,126 @@ são declarados como read_only para impedir que o cliente os sobrescreva.
 
 from rest_framework import serializers
 
-from academico.models import CategoriaAACC, Certificado, Eixo, RuleValidationLog, Requerimento
+import datetime
+
+from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
+from django.db import transaction
+
+from academico.models import (
+    CategoriaAACC, Certificado, Curso, Eixo, MatrizCurricular, RuleValidationLog, Requerimento,
+)
+
+
+class CursoSerializer(serializers.ModelSerializer):
+    """
+    Curso + meta de carga horária (120h, 180h...).
+
+    A meta vive na MatrizCurricular mais recente do curso; ao criar/editar,
+    `horas_totais_exigidas` cria/atualiza essa matriz automaticamente.
+    """
+
+    horas_totais_exigidas = serializers.IntegerField(min_value=1, required=False)
+    ano_vigencia = serializers.IntegerField(required=False, min_value=2000)
+
+    class Meta:
+        model = Curso
+        fields = ["id", "nome", "codigo", "horas_totais_exigidas", "ano_vigencia"]
+
+    def to_representation(self, instance):
+        data = {"id": instance.id, "nome": instance.nome, "codigo": instance.codigo}
+        matriz = instance.matrizes.order_by("-ano_vigencia", "-id").first()
+        data["horas_totais_exigidas"] = matriz.horas_totais_exigidas if matriz else None
+        data["ano_vigencia"] = matriz.ano_vigencia if matriz else None
+        return data
+
+    def validate(self, attrs):
+        # Na criação a meta de horas é obrigatória.
+        if self.instance is None and "horas_totais_exigidas" not in attrs:
+            raise serializers.ValidationError(
+                {"horas_totais_exigidas": "Este campo é obrigatório."}
+            )
+        return attrs
+
+    @transaction.atomic
+    def create(self, validated_data):
+        horas = validated_data.pop("horas_totais_exigidas")
+        ano = validated_data.pop("ano_vigencia", datetime.date.today().year)
+        curso = Curso.objects.create(**validated_data)
+        MatrizCurricular.objects.create(curso=curso, ano_vigencia=ano, horas_totais_exigidas=horas)
+        return curso
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        horas = validated_data.pop("horas_totais_exigidas", None)
+        ano = validated_data.pop("ano_vigencia", None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        if horas is not None or ano is not None:
+            matriz = instance.matrizes.order_by("-ano_vigencia", "-id").first()
+            if matriz is None:
+                if horas is None:
+                    raise serializers.ValidationError(
+                        {"horas_totais_exigidas": "Informe a meta de horas para criar a matriz."}
+                    )
+                MatrizCurricular.objects.create(
+                    curso=instance,
+                    ano_vigencia=ano or datetime.date.today().year,
+                    horas_totais_exigidas=horas,
+                )
+            else:
+                if horas is not None:
+                    matriz.horas_totais_exigidas = horas
+                if ano is not None:
+                    matriz.ano_vigencia = ano
+                matriz.save()
+        return instance
+
+
+class CoordenadorSerializer(serializers.ModelSerializer):
+    """
+    Lista/cria contas de Coordenador.
+
+    Na criação: is_staff=True e is_coordenador=True (is_aluno=False, is_superuser=False).
+    O e-mail institucional é usado como username (login do sistema).
+    """
+
+    password = serializers.CharField(write_only=True, style={"input_type": "password"})
+
+    class Meta:
+        model = get_user_model()
+        fields = ["id", "first_name", "last_name", "email", "cpf", "password", "is_active", "date_joined"]
+        read_only_fields = ["id", "date_joined"]
+        extra_kwargs = {"email": {"required": True}, "first_name": {"required": True}}
+
+    def validate_email(self, value):
+        value = value.strip().lower()
+        if not value.endswith("@unitins.br"):
+            raise serializers.ValidationError("Apenas e-mails institucionais (@unitins.br) são permitidos.")
+        if get_user_model().objects.filter(username__iexact=value).exists():
+            raise serializers.ValidationError("Já existe um usuário com este e-mail.")
+        return value
+
+    def validate_password(self, value):
+        validate_password(value)
+        return value
+
+    def create(self, validated_data):
+        password = validated_data.pop("password")
+        User = get_user_model()
+        user = User(
+            username=validated_data["email"],
+            is_staff=True,
+            is_superuser=False,
+            is_coordenador=True,
+            is_aluno=False,
+            **validated_data,
+        )
+        user.set_password(password)
+        user.save()
+        return user
 
 
 class EixoSerializer(serializers.ModelSerializer):
