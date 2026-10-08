@@ -120,13 +120,44 @@ class CategoriaAACCViewSet(AdminWriteOrAuthenticatedReadMixin, viewsets.ModelVie
     permission_classes = [IsAuthenticated, IsSuperAdmin]
 
 
+def _curso_do_coordenador(user):
+    """Curso do coordenador logado, ou None se não houver CoordenadorPerfil."""
+    perfil = getattr(user, "perfil_coordenador", None)
+    return perfil.curso if perfil else None
+
+
+def _filtrar_por_curso_do_usuario(queryset, user, campo_curso: str):
+    """
+    RN06 — Isolamento de Visão de Dados:
+        - Administrador (is_superuser): vê tudo.
+        - Coordenador: apenas registros do curso do seu CoordenadorPerfil
+          (queryset vazio se o perfil não existir).
+        - Demais usuários: queryset vazio.
+    `campo_curso` é o caminho ORM até o curso (ex.: "curso" ou "aluno__curso").
+    """
+    if user.is_superuser:
+        return queryset
+    if user.is_coordenador:
+        curso = _curso_do_coordenador(user)
+        if curso is None:
+            return queryset.none()
+        return queryset.filter(**{campo_curso: curso})
+    return queryset.none()
+
+
+def _alunos_visiveis(user):
+    """AlunoPerfis que o usuário (admin/coordenador) pode enxergar."""
+    return _filtrar_por_curso_do_usuario(AlunoPerfil.objects.all(), user, "curso")
+
+
 class CertificadoViewSet(viewsets.ModelViewSet):
     """
     ViewSet completo para Certificado.
 
     Segurança e isolamento de dados:
         - Aluno: vê apenas os seus próprios certificados.
-        - Coordenador: vê todos os certificados.
+        - Coordenador: vê apenas certificados de alunos do seu curso (RN06).
+        - Administrador: vê todos os certificados.
         - perform_create: associa automaticamente ao AlunoPerfil logado.
 
     Motor de regras (perform_create):
@@ -141,17 +172,13 @@ class CertificadoViewSet(viewsets.ModelViewSet):
     # ── Blindagem do queryset (RN privacidade) ──────────────────────────────
     def get_queryset(self):
         user = self.request.user
+        base = Certificado.objects.select_related("aluno", "categoria")
 
-        if user.is_coordenador:
-            # Coordenador tem visibilidade total — necessária para fila de revisão
-            return Certificado.objects.select_related("aluno", "categoria").all()
+        if user.is_superuser or user.is_coordenador:
+            return _filtrar_por_curso_do_usuario(base, user, "aluno__curso")
 
         # Aluno vê apenas os seus próprios documentos
-        return (
-            Certificado.objects
-            .select_related("aluno", "categoria")
-            .filter(aluno__usuario=user)
-        )
+        return base.filter(aluno__usuario=user)
 
     # ── Cálculo de saldo ────────────────────────────────────────────────────
     def _calcular_saldo_atual(
@@ -679,13 +706,14 @@ class ExtratoAlunoCoordenadorView(APIView):
     def get(self, request, perfil_id: int):
         user = request.user
 
-        if not user.is_coordenador:
+        if not (user.is_coordenador or user.is_superuser):
             return Response(
                 {"detail": "Apenas coordenadores podem consultar extratos de outros alunos."},
                 status=http_status.HTTP_403_FORBIDDEN,
             )
 
-        perfil = get_object_or_404(AlunoPerfil, pk=perfil_id)
+        # RN06: 404 se o aluno não pertence ao curso do coordenador
+        perfil = get_object_or_404(_alunos_visiveis(user), pk=perfil_id)
         return Response(_calcular_extrato(perfil))
 
 
@@ -693,13 +721,13 @@ class ListaAlunosView(APIView):
     """
     GET /api/academico/alunos/
 
-    Devolve a lista de todos os AlunoPerfis do sistema.
-    Acessível apenas por coordenadores.
+    Devolve a lista de AlunoPerfis visíveis ao usuário (RN06):
+    coordenador → apenas alunos do seu curso; administrador → todos.
     """
 
     def get(self, request):
         user = request.user
-        if not user.is_coordenador:
+        if not (user.is_coordenador or user.is_superuser):
             return Response(
                 {"detail": "Apenas coordenadores podem listar os alunos."},
                 status=http_status.HTTP_403_FORBIDDEN,
@@ -708,7 +736,7 @@ class ListaAlunosView(APIView):
         from django.db.models import Count, Sum, Q
 
         perfis = (
-            AlunoPerfil.objects
+            _alunos_visiveis(user)
             .select_related("usuario", "curso")
             .annotate(
                 total_certs=Count("certificados"),
@@ -757,7 +785,7 @@ class GerarAnexoIView(APIView):
                 status=http_status.HTTP_403_FORBIDDEN,
             )
 
-        aluno = get_object_or_404(AlunoPerfil, pk=perfil_id)
+        aluno = get_object_or_404(_alunos_visiveis(request.user), pk=perfil_id)
 
         certificados = (
             Certificado.objects
