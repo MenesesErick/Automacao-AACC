@@ -40,10 +40,9 @@ export default function DashboardCoordenador() {
   // Contagem de alunos
   const totalAlunos = alunos.length
   
-  // Aluno aprovado se horas_computadas >= (meta ou 120h)
   const alunosElegiveis = alunos.filter(a => {
     const computadas = parseFloat(a.horas_aprovadas || 0)
-    const meta = parseFloat(a.meta_horas || 120) // fallback
+    const meta = parseFloat(a.meta_horas || 120)
     return computadas >= meta && meta > 0
   }).length
 

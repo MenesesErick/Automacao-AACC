@@ -737,7 +737,7 @@ class ListaAlunosView(APIView):
 
         perfis = (
             _alunos_visiveis(user)
-            .select_related("usuario", "curso")
+            .select_related("usuario", "curso", "matriz_curricular")
             .annotate(
                 total_certs=Count("certificados"),
                 horas_aprovadas=Sum(
@@ -756,6 +756,7 @@ class ListaAlunosView(APIView):
                 "email":          p.usuario.email,
                 "matricula":      p.matricula,
                 "curso":          p.curso.nome if p.curso_id else "—",
+                "meta_horas":     p.matriz_curricular.horas_totais_exigidas if p.matriz_curricular_id else 120,
                 "total_certs":    p.total_certs,
                 "horas_aprovadas": p.horas_aprovadas or 0,
             }
