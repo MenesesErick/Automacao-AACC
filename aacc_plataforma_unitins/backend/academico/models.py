@@ -80,6 +80,7 @@ class Eixo(models.Model):
 
 class CategoriaAACC(models.Model):
     nome = models.CharField(max_length=255, verbose_name="Nome da Categoria")
+    descricao = models.TextField(blank=True, null=True, verbose_name="Descrição")
     eixo = models.ForeignKey(Eixo, on_delete=models.PROTECT, related_name="categorias", verbose_name="Eixo")
     codigo_slug = models.CharField(
         max_length=60,
@@ -89,7 +90,8 @@ class CategoriaAACC(models.Model):
         verbose_name="Código Slug (SEBR)",
         help_text="Chave imutável que referencia a categoria em LIMITES_CATEGORIAS (resolucao_057.py).",
     )
-    limite_maximo_horas = models.IntegerField(verbose_name="Limite Máximo de Horas")
+    limite_maximo_horas = models.IntegerField(null=True, blank=True, verbose_name="Teto Global de Horas")
+    limite_por_certificado = models.IntegerField(null=True, blank=True, verbose_name="Limite de Horas por Certificado")
 
     class Meta:
         verbose_name = "Categoria AACC"

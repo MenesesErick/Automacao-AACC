@@ -40,7 +40,7 @@ export default function AdminCategorias() {
 
   // Modais de Categoria
   const [isCatModalOpen, setIsCatModalOpen] = useState(false)
-  const [catForm, setCatForm] = useState({ id: null, nome: '', teto_horas: '', eixo: '' })
+  const [catForm, setCatForm] = useState({ id: null, nome: '', descricao: '', limite_maximo_horas: '', limite_por_certificado: '', eixo: '' })
 
   const fetchDados = useCallback(async () => {
     setLoading(true)
@@ -102,7 +102,14 @@ export default function AdminCategorias() {
 
   // ===================== CRUD CATEGORIAS =====================
   const handleOpenCatModal = (cat = null) => {
-    setCatForm(cat ? { id: cat.id, nome: cat.nome, teto_horas: cat.teto_horas, eixo: cat.eixo } : { id: null, nome: '', teto_horas: '', eixo: '' })
+    setCatForm(cat ? { 
+      id: cat.id, 
+      nome: cat.nome, 
+      descricao: cat.descricao || '',
+      limite_maximo_horas: cat.limite_maximo_horas || '', 
+      limite_por_certificado: cat.limite_por_certificado || '', 
+      eixo: cat.eixo 
+    } : { id: null, nome: '', descricao: '', limite_maximo_horas: '', limite_por_certificado: '', eixo: '' })
     setIsCatModalOpen(true)
   }
 
@@ -111,7 +118,9 @@ export default function AdminCategorias() {
     try {
       const payload = { 
         nome: catForm.nome, 
-        teto_horas: parseInt(catForm.teto_horas, 10), 
+        descricao: catForm.descricao || '',
+        limite_maximo_horas: catForm.limite_maximo_horas ? parseInt(catForm.limite_maximo_horas, 10) : null,
+        limite_por_certificado: catForm.limite_por_certificado ? parseInt(catForm.limite_por_certificado, 10) : null,
         eixo: parseInt(catForm.eixo, 10) 
       }
       if (catForm.id) {
@@ -154,7 +163,8 @@ export default function AdminCategorias() {
     { key: 'id', label: 'ID', render: (row) => <span className="font-mono text-gray-500">#{row.id}</span> },
     { key: 'eixo_nome', label: 'Eixo', render: (row) => <span className="text-gray-600 font-medium">{eixos.find(e => e.id === row.eixo)?.nome || `Eixo #${row.eixo}`}</span> },
     { key: 'nome', label: 'Nome' },
-    { key: 'teto_horas', label: 'Teto (h)', render: (row) => <span className="font-mono">{row.teto_horas}h</span> },
+    { key: 'teto_horas', label: 'Teto Global (h)', render: (row) => <span className="font-mono">{row.limite_maximo_horas ? `${row.limite_maximo_horas}h` : 'Sem teto'}</span> },
+    { key: 'limite_por_certificado', label: 'Lim. p/ Certificado', render: (row) => <span className="font-mono text-gray-500">{row.limite_por_certificado ? `${row.limite_por_certificado}h` : '—'}</span> },
     {
       key: 'actions', label: '', render: (row) => (
         <div className="flex gap-2 justify-end" onClick={(e) => e.stopPropagation()}>
@@ -251,15 +261,33 @@ export default function AdminCategorias() {
             onChange={e => setCatForm({...catForm, nome: e.target.value})} 
             required 
           />
-          <Input 
-            label="Teto de Horas" 
-            type="number"
-            min="1"
-            placeholder="Ex: 60" 
-            value={catForm.teto_horas} 
-            onChange={e => setCatForm({...catForm, teto_horas: e.target.value})} 
-            required 
-          />
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700">Descrição / Instruções</label>
+            <textarea 
+              className="px-3 py-2 w-full rounded-md border border-gray-300 bg-white text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary min-h-[80px] resize-y"
+              placeholder="Instruções opcionais sobre o que se enquadra na categoria..."
+              value={catForm.descricao}
+              onChange={e => setCatForm({...catForm, descricao: e.target.value})}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Input 
+              label="Teto Global (h)" 
+              type="number"
+              min="1"
+              placeholder="Ex: 60" 
+              value={catForm.limite_maximo_horas} 
+              onChange={e => setCatForm({...catForm, limite_maximo_horas: e.target.value})} 
+            />
+            <Input 
+              label="Lim. por Certificado (h)" 
+              type="number"
+              min="1"
+              placeholder="Ex: 10" 
+              value={catForm.limite_por_certificado} 
+              onChange={e => setCatForm({...catForm, limite_por_certificado: e.target.value})} 
+            />
+          </div>
           <div className="pt-4 flex justify-end gap-3">
             <Button variant="ghost" type="button" onClick={() => setIsCatModalOpen(false)}>Cancelar</Button>
             <Button type="submit">Salvar</Button>

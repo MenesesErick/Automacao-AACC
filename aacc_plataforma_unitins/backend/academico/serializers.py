@@ -168,18 +168,15 @@ class EixoSerializer(serializers.ModelSerializer):
 
 class CategoriaAACCSerializer(serializers.ModelSerializer):
     """
-    Serializer de leitura para CategoriaAACC.
-
-    Expõe todas as categorias de atividade definidas pela Resolução 057,
-    incluindo o eixo, teto máximo e o tooltip oficial (SEBR).
+    Serializer para CategoriaAACC.
     """
     tooltip = serializers.SerializerMethodField()
-    # Lê/escreve o eixo pelo nome (mantém compatibilidade com o frontend: 'Ensino', 'Pesquisa'...)
-    eixo = serializers.SlugRelatedField(slug_field="nome", queryset=Eixo.objects.all())
+    # Lê/escreve o eixo pelo ID
+    eixo_nome = serializers.CharField(source='eixo.nome', read_only=True)
 
     class Meta:
         model = CategoriaAACC
-        fields = ["id", "nome", "eixo", "codigo_slug", "limite_maximo_horas", "tooltip"]
+        fields = ["id", "nome", "descricao", "eixo", "eixo_nome", "codigo_slug", "limite_maximo_horas", "limite_por_certificado", "tooltip"]
 
     def get_tooltip(self, obj):
         if not obj.codigo_slug:
