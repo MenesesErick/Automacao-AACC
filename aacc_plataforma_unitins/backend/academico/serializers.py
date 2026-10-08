@@ -15,7 +15,8 @@ from django.contrib.auth.password_validation import validate_password
 from django.db import transaction
 
 from academico.models import (
-    CategoriaAACC, Certificado, Curso, Eixo, MatrizCurricular, RuleValidationLog, Requerimento,
+    CategoriaAACC, Certificado, CoordenadorPerfil, Curso, Eixo, MatrizCurricular,
+    RuleValidationLog, Requerimento,
 )
 
 
@@ -88,19 +89,43 @@ class CursoSerializer(serializers.ModelSerializer):
 
 class CoordenadorSerializer(serializers.ModelSerializer):
     """
-    Lista/cria contas de Coordenador.
+    Lista/cria contas de Coordenador vinculadas a um Curso (RN06).
 
-    Na criação: is_staff=True e is_coordenador=True (is_aluno=False, is_superuser=False).
+    Na criação: is_staff=True e is_coordenador=True (is_aluno=False, is_superuser=False)
+    e criação imediata do CoordenadorPerfil com o `curso_id` recebido.
     O e-mail institucional é usado como username (login do sistema).
+    Na listagem retorna `curso_id` e `curso_nome`.
     """
 
     password = serializers.CharField(write_only=True, style={"input_type": "password"})
+    curso_id = serializers.PrimaryKeyRelatedField(
+        source="curso", queryset=Curso.objects.all(), write_only=True,
+    )
+    curso_nome = serializers.SerializerMethodField()
 
     class Meta:
         model = get_user_model()
-        fields = ["id", "first_name", "last_name", "email", "cpf", "password", "is_active", "date_joined"]
+        fields = [
+            "id", "first_name", "last_name", "email", "cpf", "password",
+            "curso_id", "curso_nome", "is_active", "date_joined",
+        ]
         read_only_fields = ["id", "date_joined"]
         extra_kwargs = {"email": {"required": True}, "first_name": {"required": True}}
+
+    @staticmethod
+    def _curso_do(user):
+        perfil = getattr(user, "perfil_coordenador", None)
+        return perfil.curso if perfil else None
+
+    def get_curso_nome(self, obj):
+        curso = self._curso_do(obj)
+        return curso.nome if curso else None
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        curso = self._curso_do(instance)
+        data["curso_id"] = curso.id if curso else None
+        return data
 
     def validate_email(self, value):
         value = value.strip().lower()
@@ -114,8 +139,10 @@ class CoordenadorSerializer(serializers.ModelSerializer):
         validate_password(value)
         return value
 
+    @transaction.atomic
     def create(self, validated_data):
         password = validated_data.pop("password")
+        curso = validated_data.pop("curso")
         User = get_user_model()
         user = User(
             username=validated_data["email"],
@@ -127,6 +154,7 @@ class CoordenadorSerializer(serializers.ModelSerializer):
         )
         user.set_password(password)
         user.save()
+        CoordenadorPerfil.objects.create(usuario=user, curso=curso)
         return user
 
 

@@ -40,6 +40,20 @@ class AlunoPerfil(models.Model):
         return f"{self.usuario.get_full_name() or self.usuario.username} - {self.matricula}"
 
 
+class CoordenadorPerfil(models.Model):
+    """Vincula um Coordenador a um curso específico (isolamento de visão de dados - RN06)."""
+
+    usuario = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='perfil_coordenador', verbose_name="Usuário")
+    curso = models.ForeignKey(Curso, on_delete=models.PROTECT, related_name='coordenadores', verbose_name="Curso")
+
+    class Meta:
+        verbose_name = "Perfil de Coordenador"
+        verbose_name_plural = "Perfis de Coordenadores"
+
+    def __str__(self):
+        return f"{self.usuario.get_full_name() or self.usuario.username} - {self.curso.nome}"
+
+
 class Eixo(models.Model):
     """Eixo formativo da Resolução (Ensino, Pesquisa, Extensão...)."""
 

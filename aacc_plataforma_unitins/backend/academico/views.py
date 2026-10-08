@@ -95,6 +95,7 @@ class CoordenadorViewSet(
     def get_queryset(self):
         return (
             get_user_model().objects
+            .select_related("perfil_coordenador__curso")
             .filter(is_staff=True, is_coordenador=True, is_superuser=False)
             .order_by("first_name", "email")
         )
