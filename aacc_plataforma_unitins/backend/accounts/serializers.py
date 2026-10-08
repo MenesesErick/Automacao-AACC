@@ -25,6 +25,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         # Claims de perfil — consumidos pelo frontend para decidir o layout
         token['is_aluno']        = user.is_aluno
         token['is_coordenador']  = user.is_coordenador
+        token['is_superuser']    = user.is_superuser
         token['nome']            = user.first_name or user.username
         token['email']           = user.email
 

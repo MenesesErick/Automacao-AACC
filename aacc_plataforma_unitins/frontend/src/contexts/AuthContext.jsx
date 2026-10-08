@@ -16,9 +16,10 @@ function extrairPerfilDoToken(accessToken) {
       nome:            payload.nome   || 'Utilizador',
       email:           payload.email  || '',
       // O role é derivado dos claims de perfil injetados no backend
-      role:            payload.is_coordenador ? 'coordenador' : 'aluno',
+      role:            payload.is_superuser ? 'admin' : (payload.is_coordenador ? 'coordenador' : 'aluno'),
       is_aluno:        payload.is_aluno        ?? false,
       is_coordenador:  payload.is_coordenador  ?? false,
+      is_superuser:    payload.is_superuser    ?? false,
     }
   } catch {
     return null

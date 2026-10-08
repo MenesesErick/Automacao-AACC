@@ -33,7 +33,7 @@ export function Header({ title, breadcrumb, sidebarCollapsed }) {
             {user?.nome || user?.name || 'Utilizador'}
           </p>
           <p className="text-gray-500" style={{ fontSize: '10px' }}>
-            {user?.role === 'coordenador' ? 'Coordenador' : 'Aluno'}
+            {user?.role === 'admin' ? 'Administrador' : (user?.role === 'coordenador' ? 'Coordenador' : 'Aluno')}
           </p>
         </div>
       </div>

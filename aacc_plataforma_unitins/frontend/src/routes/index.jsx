@@ -17,6 +17,10 @@ import GestaoAlunos from '@/pages/coordenador/GestaoAlunos'
 import AvaliarCertificado from '@/pages/coordenador/AvaliarCertificado'
 import DossieAluno from '@/pages/coordenador/DossieAluno'
 
+// Administrador
+import AdminDashboard from '@/pages/admin/AdminDashboard'
+
+
 // Protected Route Component
 function RoleRoute({ children, allowedRole }) {
   const { user, loading } = useAuth()
@@ -127,6 +131,17 @@ export function AppRouter() {
             </RoleRoute>
           }
         />
+
+        {/* ADMIN Routes */}
+        <Route 
+          path="/admin/dashboard" 
+          element={
+            <RoleRoute allowedRole="admin">
+              <AdminDashboard />
+            </RoleRoute>
+          } 
+        />
+
 
         {/* Root Redirect */}
         <Route 

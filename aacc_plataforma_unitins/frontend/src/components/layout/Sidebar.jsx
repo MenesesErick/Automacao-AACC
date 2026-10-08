@@ -17,7 +17,6 @@ const NAV_COORDENADOR = [
   { label: 'Dashboard',       icon: LayoutDashboard, to: '/coordenador/dashboard' },
   { label: 'Fila de Revisão', icon: ShieldCheck,     to: '/coordenador/revisao' },
   { label: 'Alunos',          icon: Users,            to: '/coordenador/alunos' },
-  { label: 'Categorias',      icon: BookOpen,         to: '/coordenador/categorias' },
 ]
 
 export function Sidebar({ collapsed, onToggle }) {
