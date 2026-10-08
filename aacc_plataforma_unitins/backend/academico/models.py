@@ -80,7 +80,7 @@ class Eixo(models.Model):
 
 class CategoriaAACC(models.Model):
     nome = models.CharField(max_length=255, verbose_name="Nome da Categoria")
-    descricao = models.TextField(blank=True, null=True, verbose_name="Descrição")
+    tooltip = models.TextField(blank=True, null=True, verbose_name="Descrição")
     eixo = models.ForeignKey(Eixo, on_delete=models.PROTECT, related_name="categorias", verbose_name="Eixo")
     codigo_slug = models.CharField(
         max_length=60,

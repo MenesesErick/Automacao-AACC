@@ -40,7 +40,7 @@ export default function AdminCategorias() {
 
   // Modais de Categoria
   const [isCatModalOpen, setIsCatModalOpen] = useState(false)
-  const [catForm, setCatForm] = useState({ id: null, nome: '', descricao: '', limite_maximo_horas: '', limite_por_certificado: '', eixo: '' })
+  const [catForm, setCatForm] = useState({ id: null, nome: '', tooltip: '', limite_maximo_horas: '', limite_por_certificado: '', eixo: '' })
 
   const fetchDados = useCallback(async () => {
     setLoading(true)
@@ -105,11 +105,11 @@ export default function AdminCategorias() {
     setCatForm(cat ? { 
       id: cat.id, 
       nome: cat.nome, 
-      descricao: cat.descricao || '',
+      tooltip: cat.tooltip || '',
       limite_maximo_horas: cat.limite_maximo_horas || '', 
       limite_por_certificado: cat.limite_por_certificado || '', 
       eixo: cat.eixo 
-    } : { id: null, nome: '', descricao: '', limite_maximo_horas: '', limite_por_certificado: '', eixo: '' })
+    } : { id: null, nome: '', tooltip: '', limite_maximo_horas: '', limite_por_certificado: '', eixo: '' })
     setIsCatModalOpen(true)
   }
 
@@ -118,7 +118,7 @@ export default function AdminCategorias() {
     try {
       const payload = { 
         nome: catForm.nome, 
-        descricao: catForm.descricao || '',
+        tooltip: catForm.tooltip || '',
         limite_maximo_horas: catForm.limite_maximo_horas ? parseInt(catForm.limite_maximo_horas, 10) : null,
         limite_por_certificado: catForm.limite_por_certificado ? parseInt(catForm.limite_por_certificado, 10) : null,
         eixo: parseInt(catForm.eixo, 10) 
@@ -266,8 +266,8 @@ export default function AdminCategorias() {
             <textarea 
               className="px-3 py-2 w-full rounded-md border border-gray-300 bg-white text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary min-h-[80px] resize-y"
               placeholder="Instruções opcionais sobre o que se enquadra na categoria..."
-              value={catForm.descricao}
-              onChange={e => setCatForm({...catForm, descricao: e.target.value})}
+              value={catForm.tooltip}
+              onChange={e => setCatForm({...catForm, tooltip: e.target.value})}
             />
           </div>
           <div className="grid grid-cols-2 gap-4">

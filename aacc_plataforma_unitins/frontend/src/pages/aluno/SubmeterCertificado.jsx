@@ -23,7 +23,7 @@ import { categoriasService, certificadosService } from '@/services/api/endpoints
 // ─── Agrupamento de categorias por eixo ──────────────────────────────────────
 function agruparPorEixo(categorias) {
   return categorias.reduce((acc, cat) => {
-    const eixo = cat.eixo || 'Outros'
+    const eixo = cat.eixo_nome || 'Outros'
     if (!acc[eixo]) acc[eixo] = []
     acc[eixo].push(cat)
     return acc

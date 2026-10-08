@@ -170,23 +170,12 @@ class CategoriaAACCSerializer(serializers.ModelSerializer):
     """
     Serializer para CategoriaAACC.
     """
-    tooltip = serializers.SerializerMethodField()
     # Lê/escreve o eixo pelo ID
     eixo_nome = serializers.CharField(source='eixo.nome', read_only=True)
 
     class Meta:
         model = CategoriaAACC
-        fields = ["id", "nome", "descricao", "eixo", "eixo_nome", "codigo_slug", "limite_maximo_horas", "limite_por_certificado", "tooltip"]
-
-    def get_tooltip(self, obj):
-        if not obj.codigo_slug:
-            return ""
-        from academico.rules.resolucao_057 import calculadora
-        try:
-            regra = calculadora.get_regra(obj.codigo_slug)
-            return regra.tooltip
-        except ValueError:
-            return ""
+        fields = ["id", "nome", "tooltip", "eixo", "eixo_nome", "codigo_slug", "limite_maximo_horas", "limite_por_certificado"]
 
 
 class CertificadoSerializer(serializers.ModelSerializer):
