@@ -1,7 +1,7 @@
-﻿import logging
+import logging
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
-from academico.models import CategoriaAACC, Curso, MatrizCurricular, AlunoPerfil
+from academico.models import CategoriaAACC, Curso, Eixo, MatrizCurricular, AlunoPerfil
 from academico.rules.resolucao_057 import LIMITES_CATEGORIAS
 
 logger = logging.getLogger(__name__)
@@ -18,7 +18,7 @@ class Command(BaseCommand):
             teto = regra.teto_total if regra.teto_total is not None else 9999
             _, created = CategoriaAACC.objects.update_or_create(
                 codigo_slug=slug,
-                defaults={'nome': regra.nome, 'eixo': regra.eixo, 'limite_maximo_horas': teto},
+                defaults={'nome': regra.nome, 'eixo': Eixo.obter(regra.eixo), 'limite_maximo_horas': teto},
             )
             if created:
                 criadas += 1

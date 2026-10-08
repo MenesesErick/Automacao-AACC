@@ -37,7 +37,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_JUSTIFY, TA_CENTER, TA_LEFT
 from reportlab.platypus import Paragraph, Frame
 
-from academico.models import AlunoPerfil, CategoriaAACC, Certificado
+from academico.models import AlunoPerfil, CategoriaAACC, Certificado, Eixo
 
 User   = get_user_model()
 _fake  = Faker('pt_BR')
@@ -559,7 +559,7 @@ class Command(BaseCommand):
                 "  [AVISO] Nenhuma CategoriaAACC encontrada. Criando categorias de fallback..."
             ))
             for cat in CATEGORIAS_FALLBACK:
-                CategoriaAACC.objects.create(**cat)
+                CategoriaAACC.objects.create(**{**cat, 'eixo': Eixo.obter(cat['eixo'])})
             self.stdout.write(self.style.SUCCESS(
                 f"  [OK] {len(CATEGORIAS_FALLBACK)} categorias criadas."
             ))

@@ -22,30 +22,60 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser, SAFE_METHODS
 
-from academico.models import AlunoPerfil, CategoriaAACC, Certificado
-from academico.serializers import CategoriaAACCSerializer, CertificadoSerializer
+from academico.models import AlunoPerfil, CategoriaAACC, Certificado, Eixo
+from academico.serializers import (
+    CategoriaAACCSerializer,
+    CertificadoSerializer,
+    EixoSerializer,
+)
 from rule_engine.validator import ValidadorCertificado
 
 logger = logging.getLogger(__name__)
 
 
-class CategoriaAACCViewSet(
-    mixins.ListModelMixin,
-    mixins.RetrieveModelMixin,
-    viewsets.GenericViewSet,
-):
+class AdminWriteOrAuthenticatedReadMixin:
     """
-    ViewSet somente-leitura para CategoriaAACC.
+    Leitura (GET/HEAD/OPTIONS): qualquer usuário autenticado (aluno preenche formulário).
+    Escrita (POST/PUT/PATCH/DELETE): somente administradores (is_staff).
+    """
+
+    def get_permissions(self):
+        if self.request.method in SAFE_METHODS:
+            return [IsAuthenticated()]
+        return [IsAuthenticated(), IsAdminUser()]
+
+
+class EixoViewSet(viewsets.ModelViewSet):
+    """
+    CRUD de Eixos Formativos.
+
+    Endpoints: /api/academico/eixos/ (list/create) e /eixos/{id}/ (retrieve/update/delete).
+    """
+
+    queryset = Eixo.objects.all().order_by("id")
+    serializer_class = EixoSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+
+class CategoriaAACCViewSet(AdminWriteOrAuthenticatedReadMixin, viewsets.ModelViewSet):
+    """
+    CRUD de CategoriaAACC.
 
     Endpoints:
-        GET /api/academico/categorias/         → lista todas as categorias
-        GET /api/academico/categorias/{id}/    → detalhe de uma categoria
+        GET    /api/academico/categorias/         → lista (qualquer autenticado)
+        GET    /api/academico/categorias/{id}/    → detalhe (qualquer autenticado)
+        POST/PUT/PATCH/DELETE                     → somente Admin
     """
 
-    queryset = CategoriaAACC.objects.exclude(codigo_slug__startswith="obsoleta_").order_by("eixo", "nome")
+    queryset = (
+        CategoriaAACC.objects.select_related("eixo")
+        .exclude(codigo_slug__startswith="obsoleta_")
+        .order_by("eixo__id", "nome")
+    )
     serializer_class = CategoriaAACCSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
 
 
 class CertificadoViewSet(viewsets.ModelViewSet):
@@ -352,13 +382,13 @@ def _calcular_extrato(perfil: AlunoPerfil) -> dict:
         Certificado.objects
         .filter(aluno=perfil, status="aprovado")
         .exclude(horas_computadas_final__isnull=True)
-        .values("categoria__eixo")
+        .values("categoria__eixo__nome")
         .annotate(total=Sum("horas_computadas_final"))
     )
 
     horas_por_eixo = {eixo: 0 for eixo in EIXOS}
     for row in qs:
-        eixo_db = row["categoria__eixo"]  # ex: 'Extensao'
+        eixo_db = row["categoria__eixo__nome"]  # ex: 'Extensao'
         if eixo_db in horas_por_eixo:
             horas_por_eixo[eixo_db] = row["total"]
 
@@ -691,7 +721,7 @@ class GerarAnexoIView(APIView):
             Certificado.objects
             .filter(aluno=aluno, status="aprovado")
             .select_related("categoria")
-            .order_by("categoria__eixo", "data_envio")
+            .order_by("categoria__eixo__id", "data_envio")
         )
 
         total_horas = (
@@ -717,7 +747,7 @@ class GerarAnexoIView(APIView):
         lista_certificados = [
             {
                 "titulo_atividade":  cert.titulo_atividade or "",
-                "eixo_formativo":    cert.categoria.eixo if cert.categoria else "",
+                "eixo_formativo":    cert.categoria.eixo.nome if cert.categoria else "",
                 "periodo_realizacao": cert.periodo_realizacao or "",
                 "horas_solicitadas": float(cert.horas_declaradas or 0),
                 "horas_validadas":   float(cert.horas_computadas_final or 0),

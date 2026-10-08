@@ -8,7 +8,15 @@ são declarados como read_only para impedir que o cliente os sobrescreva.
 
 from rest_framework import serializers
 
-from academico.models import CategoriaAACC, Certificado, RuleValidationLog, Requerimento
+from academico.models import CategoriaAACC, Certificado, Eixo, RuleValidationLog, Requerimento
+
+
+class EixoSerializer(serializers.ModelSerializer):
+    """CRUD de Eixos Formativos (todos os campos)."""
+
+    class Meta:
+        model = Eixo
+        fields = "__all__"
 
 
 class CategoriaAACCSerializer(serializers.ModelSerializer):
@@ -19,6 +27,8 @@ class CategoriaAACCSerializer(serializers.ModelSerializer):
     incluindo o eixo, teto máximo e o tooltip oficial (SEBR).
     """
     tooltip = serializers.SerializerMethodField()
+    # Lê/escreve o eixo pelo nome (mantém compatibilidade com o frontend: 'Ensino', 'Pesquisa'...)
+    eixo = serializers.SlugRelatedField(slug_field="nome", queryset=Eixo.objects.all())
 
     class Meta:
         model = CategoriaAACC
@@ -95,7 +105,7 @@ class CertificadoSerializer(serializers.ModelSerializer):
         return {
             "id": cat.id,
             "nome": cat.nome,
-            "eixo": cat.eixo,
+            "eixo": cat.eixo.nome,
             "codigo_slug": cat.codigo_slug,
             "limite_maximo_horas": cat.limite_maximo_horas,
             "teto_total": teto_total,

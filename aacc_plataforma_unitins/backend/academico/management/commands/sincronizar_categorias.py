@@ -3,7 +3,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.db.models import Count
 
-from academico.models import CategoriaAACC
+from academico.models import CategoriaAACC, Eixo
 from academico.rules.resolucao_057 import LIMITES_CATEGORIAS
 
 logger = logging.getLogger(__name__)
@@ -69,7 +69,7 @@ class Command(BaseCommand):
                     # Atualiza a categoria existente
                     categoria_encontrada.codigo_slug = slug
                     categoria_encontrada.nome = regra.nome
-                    categoria_encontrada.eixo = regra.eixo
+                    categoria_encontrada.eixo = Eixo.obter(regra.eixo)
                     categoria_encontrada.limite_maximo_horas = limite_horas
                     categoria_encontrada.save()
                     atualizadas += 1
@@ -79,7 +79,7 @@ class Command(BaseCommand):
                     CategoriaAACC.objects.create(
                         codigo_slug=slug,
                         nome=regra.nome,
-                        eixo=regra.eixo,
+                        eixo=Eixo.obter(regra.eixo),
                         limite_maximo_horas=limite_horas
                     )
                     criadas += 1

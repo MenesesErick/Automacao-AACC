@@ -11,7 +11,7 @@ Uso:
 
 from django.core.management.base import BaseCommand
 
-from academico.models import CategoriaAACC
+from academico.models import CategoriaAACC, Eixo
 
 
 CATEGORIAS: list[dict] = [
@@ -130,7 +130,7 @@ class Command(BaseCommand):
         for dados in CATEGORIAS:
             obj, created = CategoriaAACC.objects.get_or_create(
                 nome=dados["nome"],
-                eixo=dados["eixo"],
+                eixo=Eixo.obter(dados["eixo"]),
                 defaults={"limite_maximo_horas": dados["limite_maximo_horas"]},
             )
 
@@ -138,7 +138,7 @@ class Command(BaseCommand):
                 criadas += 1
                 self.stdout.write(
                     self.style.SUCCESS(
-                        f"  [CRIADO]   [{obj.eixo:8}] {obj.nome} "
+                        f"  [CRIADO]   [{obj.eixo.nome:8}] {obj.nome} "
                         f"({obj.limite_maximo_horas}h)"
                     )
                 )
@@ -146,7 +146,7 @@ class Command(BaseCommand):
                 existentes += 1
                 self.stdout.write(
                     self.style.WARNING(
-                        f"  [JA EXISTE] [{obj.eixo:8}] {obj.nome}"
+                        f"  [JA EXISTE] [{obj.eixo.nome:8}] {obj.nome}"
                     )
                 )
 

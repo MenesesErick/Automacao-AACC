@@ -40,15 +40,33 @@ class AlunoPerfil(models.Model):
         return f"{self.usuario.get_full_name() or self.usuario.username} - {self.matricula}"
 
 
-class CategoriaAACC(models.Model):
-    EIXO_CHOICES = [
-        ('Ensino', 'Ensino'),
-        ('Pesquisa', 'Pesquisa'),
-        ('Extensao', 'Extensão'),
-    ]
+class Eixo(models.Model):
+    """Eixo formativo da Resolução (Ensino, Pesquisa, Extensão...)."""
 
+    nome = models.CharField(max_length=50, unique=True, verbose_name="Nome do Eixo")
+    slug = models.SlugField(max_length=50, unique=True, verbose_name="Slug")
+
+    class Meta:
+        verbose_name = "Eixo Formativo"
+        verbose_name_plural = "Eixos Formativos"
+        ordering = ["id"]
+
+    def __str__(self):
+        return self.nome
+
+    @classmethod
+    def obter(cls, nome):
+        """Retorna (ou cria) o Eixo a partir do nome/slug legado ('Ensino', 'Extensao'...)."""
+        if isinstance(nome, cls):
+            return nome
+        from django.utils.text import slugify
+        obj, _ = cls.objects.get_or_create(slug=slugify(nome), defaults={"nome": nome})
+        return obj
+
+
+class CategoriaAACC(models.Model):
     nome = models.CharField(max_length=255, verbose_name="Nome da Categoria")
-    eixo = models.CharField(max_length=20, choices=EIXO_CHOICES, verbose_name="Eixo")
+    eixo = models.ForeignKey(Eixo, on_delete=models.PROTECT, related_name="categorias", verbose_name="Eixo")
     codigo_slug = models.CharField(
         max_length=60,
         unique=True,
@@ -64,7 +82,7 @@ class CategoriaAACC(models.Model):
         verbose_name_plural = "Categorias AACC"
 
     def __str__(self):
-        return f"{self.nome} ({self.eixo})"
+        return f"{self.nome} ({self.eixo.nome})"
 
 
 class Certificado(models.Model):

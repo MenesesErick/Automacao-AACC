@@ -7,7 +7,8 @@ que gera automaticamente as URLs RESTful para cada recurso.
 Prefixo base (configurado em aacc_core/urls.py): /api/academico/
 
 Rotas geradas automaticamente (Router):
-    /api/academico/categorias/              -> CategoriaAACCViewSet (GET list/retrieve)
+    /api/academico/eixos/                   -> EixoViewSet           (CRUD, somente Admin)
+    /api/academico/categorias/              -> CategoriaAACCViewSet (GET autenticado; escrita Admin)
     /api/academico/certificados/            -> CertificadoViewSet   (GET/POST/PATCH/DELETE)
     /api/academico/certificados/<id>/avaliar/ -> CertificadoViewSet.avaliar (PATCH)
 
@@ -21,6 +22,7 @@ from rest_framework.routers import DefaultRouter
 
 from academico.views import (
     CategoriaAACCViewSet,
+    EixoViewSet,
     CertificadoViewSet,
     ExtratoAlunoMeView,
     ExtratoAlunoCoordenadorView,
@@ -30,6 +32,7 @@ from academico.views import (
 )
 
 router = DefaultRouter()
+router.register(r"eixos",        EixoViewSet,         basename="eixo")
 router.register(r"categorias",   CategoriaAACCViewSet, basename="categoria")
 router.register(r"certificados", CertificadoViewSet,   basename="certificado")
 
