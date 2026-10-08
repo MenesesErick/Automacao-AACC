@@ -40,10 +40,12 @@ export default function AdminCoordenadores() {
     setError(null)
     try {
       const resCoord = await coordenadoresService.listar()
-      setCoordenadores(Array.isArray(resCoord.data) ? resCoord.data : resCoord.data.results || [])
+      const coordArray = resCoord.data.results ? resCoord.data.results : resCoord.data;
+      setCoordenadores(coordArray);
       
       const resCursos = await cursosService.listar()
-      setCursos(Array.isArray(resCursos.data) ? resCursos.data : resCursos.data.results || [])
+      const cursosArray = resCursos.data.results ? resCursos.data.results : resCursos.data;
+      setCursos(cursosArray);
     } catch (err) {
       setError(err.friendlyMessage || 'Erro ao buscar dados.')
     } finally {
