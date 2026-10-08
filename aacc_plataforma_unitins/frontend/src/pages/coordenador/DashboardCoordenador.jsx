@@ -35,14 +35,14 @@ export default function DashboardCoordenador() {
   }, [])
 
   // Processamento
-  const pendentes = certificados.filter(c => c.status === 'analise')
+  const pendentes = certificados.filter(c => c.status === 'revisao_manual' || c.status === 'pendente_ocr')
   
   // Contagem de alunos
   const totalAlunos = alunos.length
   
   // Aluno aprovado se horas_computadas >= (meta ou 120h)
   const alunosElegiveis = alunos.filter(a => {
-    const computadas = parseFloat(a.horas_computadas || 0)
+    const computadas = parseFloat(a.horas_aprovadas || 0)
     const meta = parseFloat(a.meta_horas || 120) // fallback
     return computadas >= meta && meta > 0
   }).length
@@ -50,7 +50,7 @@ export default function DashboardCoordenador() {
   // Filtro de busca de alunos
   const alunosFiltrados = alunos.filter(a => {
     const text = buscaAluno.toLowerCase()
-    const nome = (a.nome || a.usuario?.first_name || '').toLowerCase()
+    const nome = (a.aluno_nome || a.nome || a.usuario?.first_name || '').toLowerCase()
     const matricula = (a.matricula || '').toLowerCase()
     return nome.includes(text) || matricula.includes(text)
   })
@@ -205,8 +205,8 @@ export default function DashboardCoordenador() {
                   </thead>
                   <tbody className="divide-y divide-border">
                     {alunosFiltrados.slice(0, 10).map(aluno => {
-                      const nome = aluno.nome || aluno.usuario?.first_name || 'Desconhecido'
-                      const comp = parseFloat(aluno.horas_computadas || 0)
+                      const nome = aluno.aluno_nome || aluno.nome || aluno.usuario?.first_name || 'Desconhecido'
+                      const comp = parseFloat(aluno.horas_aprovadas || 0)
                       const meta = parseFloat(aluno.meta_horas || 120)
                       const pct = Math.min(100, Math.round((comp / meta) * 100)) || 0
 
