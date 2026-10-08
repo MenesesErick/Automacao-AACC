@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { Button } from '@/components/atoms/Button'
 import { UploadCloud, File, X, Info, CheckCircle, AlertCircle, Cpu } from 'lucide-react'
-import { categoriasService, certificadosService } from '@/services/api/endpoints'
+import { categoriasService, certificadosService, eixosService } from '@/services/api/endpoints'
 import { useAuth } from '@/contexts/AuthContext'
 
 export default function EnviarCertificado() {
@@ -12,23 +12,30 @@ export default function EnviarCertificado() {
   const [dragging, setDragging]       = useState(false)
   const [categoria, setCategoria]     = useState('')
   const [categorias, setCategorias]   = useState([])
+  const [eixos, setEixos]             = useState([])
   const [loadingCats, setLoadingCats] = useState(true)
   const [submitting, setSubmitting]   = useState(false)
   const [resultado, setResultado]     = useState(null) // { type: 'success'|'error', message, ocr? }
 
-  // ── Carrega categorias do banco na montagem ──────────────────────────────
+  // ── Carrega categorias e eixos do banco na montagem ──────────────────────
   useEffect(() => {
-    async function fetchCategorias() {
+    async function fetchDados() {
       try {
-        const { data } = await categoriasService.listar()
-        setCategorias(Array.isArray(data) ? data : (data.results ?? []))
+        const [resCats, resEixos] = await Promise.all([
+          categoriasService.listar(),
+          eixosService.listar?.() || fetch('/api/academico/eixos/').then(res => res.json())
+        ])
+        setCategorias(Array.isArray(resCats.data) ? resCats.data : (resCats.data?.results ?? []))
+        
+        const dataEixos = resEixos.data ? resEixos.data : resEixos;
+        setEixos(Array.isArray(dataEixos) ? dataEixos : (dataEixos.results ?? []))
       } catch {
         setCategorias([])
       } finally {
         setLoadingCats(false)
       }
     }
-    fetchCategorias()
+    fetchDados()
   }, [])
 
   // ── Handlers de Drag & Drop ──────────────────────────────────────────────
@@ -142,11 +149,19 @@ export default function EnviarCertificado() {
                 <option value="">
                   {loadingCats ? 'Carregando categorias...' : 'Selecione uma categoria...'}
                 </option>
-                {categorias.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    [{cat.eixo}] {cat.nome} — até {cat.limite_maximo_horas}h
-                  </option>
-                ))}
+                {eixos.map(eixo => {
+                  const catsDoEixo = categorias.filter(c => c.eixo === eixo.id);
+                  if (catsDoEixo.length === 0) return null;
+                  return (
+                    <optgroup key={eixo.id} label={eixo.nome}>
+                      {catsDoEixo.map(cat => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.nome} {cat.limite_maximo_horas ? `(até ${cat.limite_maximo_horas}h)` : ''}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )
+                })}
               </select>
             </div>
 
