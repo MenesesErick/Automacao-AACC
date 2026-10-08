@@ -41,6 +41,11 @@ export const cursosService = {
   remover:   (id)         => api.delete(`/academico/cursos/${id}/`),
 }
 
+export const coordenadoresService = {
+  listar:    (params)     => api.get('/academico/coordenadores/', { params }),
+  criar:     (data)       => api.post('/academico/coordenadores/', data),
+}
+
 export const categoriasService = {
   listar:    (params)     => api.get('/academico/categorias/', { params }),
   obter:     (id)         => api.get(`/academico/categorias/${id}/`),
