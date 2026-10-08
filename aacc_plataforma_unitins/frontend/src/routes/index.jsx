@@ -19,6 +19,7 @@ import DossieAluno from '@/pages/coordenador/DossieAluno'
 
 // Administrador
 import AdminDashboard from '@/pages/admin/AdminDashboard'
+import AdminCategorias from '@/pages/admin/AdminCategorias'
 
 
 // Protected Route Component
@@ -138,6 +139,14 @@ export function AppRouter() {
           element={
             <RoleRoute allowedRole="admin">
               <AdminDashboard />
+            </RoleRoute>
+          } 
+        />
+        <Route 
+          path="/admin/categorias" 
+          element={
+            <RoleRoute allowedRole="admin">
+              <AdminCategorias />
             </RoleRoute>
           } 
         />

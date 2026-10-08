@@ -25,9 +25,20 @@ export const alunoService = {
   obterExtrato:    (perfilId)  => api.get(`/academico/alunos/${perfilId}/extrato/`),
 }
 
+export const eixosService = {
+  listar:    (params)     => api.get('/academico/eixos/', { params }),
+  obter:     (id)         => api.get(`/academico/eixos/${id}/`),
+  criar:     (data)       => api.post('/academico/eixos/', data),
+  atualizar: (id, data)   => api.patch(`/academico/eixos/${id}/`, data),
+  remover:   (id)         => api.delete(`/academico/eixos/${id}/`),
+}
+
 export const categoriasService = {
-  listar: (params) => api.get('/academico/categorias/', { params }),
-  obter:  (id)     => api.get(`/academico/categorias/${id}/`),
+  listar:    (params)     => api.get('/academico/categorias/', { params }),
+  obter:     (id)         => api.get(`/academico/categorias/${id}/`),
+  criar:     (data)       => api.post('/academico/categorias/', data),
+  atualizar: (id, data)   => api.patch(`/academico/categorias/${id}/`, data),
+  remover:   (id)         => api.delete(`/academico/categorias/${id}/`),
 }
 
 export const authService = {
