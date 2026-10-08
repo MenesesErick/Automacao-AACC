@@ -334,11 +334,11 @@ export default function SubmeterCertificado() {
                     </p>
                   )}
 
-                  {catSelecionada?.tooltip && (
+                  {catSelecionada?.tooltip_display && (
                     <div className="mt-3 flex gap-2.5 rounded-sm border border-primary-muted bg-primary-light/80 p-3 text-primary-hover">
                       <Info className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
                       <p className="text-helper font-medium leading-relaxed">
-                        {catSelecionada.tooltip}
+                        {catSelecionada.tooltip_display}
                       </p>
                     </div>
                   )}

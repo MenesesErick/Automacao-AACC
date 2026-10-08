@@ -172,10 +172,25 @@ class CategoriaAACCSerializer(serializers.ModelSerializer):
     """
     # Lê/escreve o eixo pelo ID
     eixo_nome = serializers.CharField(source='eixo.nome', read_only=True)
+    tooltip_display = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = CategoriaAACC
-        fields = ["id", "nome", "tooltip", "eixo", "eixo_nome", "codigo_slug", "limite_maximo_horas", "limite_por_certificado"]
+        fields = ["id", "nome", "tooltip", "tooltip_display", "eixo", "eixo_nome", "codigo_slug", "limite_maximo_horas", "limite_por_certificado"]
+
+    def get_tooltip_display(self, obj):
+        # Se o admin escreveu um texto, usa ele.
+        if obj.tooltip:
+            return obj.tooltip
+        # Senão, tenta puxar das regras hardcoded se tiver slug
+        if not obj.codigo_slug:
+            return ""
+        from academico.rules.resolucao_057 import calculadora
+        try:
+            regra = calculadora.get_regra(obj.codigo_slug)
+            return regra.tooltip
+        except ValueError:
+            return ""
 
 
 class CertificadoSerializer(serializers.ModelSerializer):
