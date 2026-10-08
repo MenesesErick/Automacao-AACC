@@ -119,7 +119,7 @@ export default function AdminCategorias() {
       const payload = { 
         nome: catForm.nome, 
         tooltip: catForm.tooltip || '',
-        limite_maximo_horas: catForm.limite_maximo_horas ? parseInt(catForm.limite_maximo_horas, 10) : null,
+        limite_maximo_horas: catForm.limite_maximo_horas && parseInt(catForm.limite_maximo_horas, 10) !== 9999 ? parseInt(catForm.limite_maximo_horas, 10) : 9999,
         limite_por_certificado: catForm.limite_por_certificado ? parseInt(catForm.limite_por_certificado, 10) : null,
         eixo: parseInt(catForm.eixo, 10) 
       }
@@ -164,7 +164,7 @@ export default function AdminCategorias() {
     { key: 'eixo_nome', label: 'Eixo', render: (row) => <span className="text-gray-600 font-medium">{eixos.find(e => e.id === row.eixo)?.nome || `Eixo #${row.eixo}`}</span> },
     { key: 'nome', label: 'Nome' },
     { key: 'descricao', label: 'Descrição', render: (row) => <span className="text-gray-500 text-sm truncate max-w-[200px] block" title={row.tooltip_display || row.tooltip}>{row.tooltip_display || row.tooltip || '—'}</span> },
-    { key: 'teto_horas', label: 'Teto Global (h)', render: (row) => <span className="font-mono">{row.limite_maximo_horas ? `${row.limite_maximo_horas}h` : 'Sem teto'}</span> },
+    { key: 'teto_horas', label: 'Teto Global (h)', render: (row) => <span className="font-mono">{row.limite_maximo_horas && row.limite_maximo_horas !== 9999 ? `${row.limite_maximo_horas}h` : 'Sem teto global'}</span> },
     { key: 'limite_por_certificado', label: 'Lim. p/ Certificado', render: (row) => <span className="font-mono text-gray-500">{row.limite_por_certificado ? `${row.limite_por_certificado}h` : '—'}</span> },
     {
       key: 'actions', label: '', render: (row) => (
@@ -272,14 +272,18 @@ export default function AdminCategorias() {
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <Input 
-              label="Teto Global (h)" 
-              type="number"
-              min="1"
-              placeholder="Ex: 60" 
-              value={catForm.limite_maximo_horas} 
-              onChange={e => setCatForm({...catForm, limite_maximo_horas: e.target.value})} 
-            />
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-gray-700">Teto Global (h)</label>
+              <input 
+                className="px-3 py-2 w-full rounded-md border border-gray-300 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                type="number"
+                min="1"
+                placeholder="Ex: 60" 
+                value={catForm.limite_maximo_horas} 
+                onChange={e => setCatForm({...catForm, limite_maximo_horas: e.target.value})} 
+              />
+              <p className="text-xs text-gray-500">Deixe em branco ou digite 9999 para categorias sem teto global</p>
+            </div>
             <Input 
               label="Lim. por Certificado (h)" 
               type="number"

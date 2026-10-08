@@ -79,7 +79,9 @@ export default function RegrasCategorias() {
                 </h3>
                 
                 <div className="grid gap-4">
-                  {categorias.map(cat => (
+                  {categorias.map(cat => {
+                    const isIlimitado = !cat.limite_maximo_horas || cat.limite_maximo_horas === 9999;
+                    return (
                     <div key={cat.id} className="surface rounded-sm border border-border p-5 hover:border-primary-muted transition-colors">
                       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-3">
                         <h4 className="text-label font-bold text-text-primary">{cat.nome}</h4>
@@ -87,10 +89,10 @@ export default function RegrasCategorias() {
                         <div className="flex flex-wrap items-center gap-3 shrink-0">
                           <span className={cn(
                             "px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5",
-                            cat.limite_maximo_horas ? "bg-primary-light text-primary" : "bg-gray-100 text-gray-600"
+                            !isIlimitado ? "bg-primary-light text-primary" : "bg-gray-100 text-gray-600"
                           )}>
                             <Clock className="h-3.5 w-3.5" />
-                            Teto Global: {cat.limite_maximo_horas ? `${cat.limite_maximo_horas}h` : 'Sem limite'}
+                            Teto Global: {!isIlimitado ? `${cat.limite_maximo_horas}h` : 'Sem limite'}
                           </span>
                           
                           {cat.limite_por_certificado && (
@@ -109,7 +111,8 @@ export default function RegrasCategorias() {
                         )}
                       </div>
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </section>
             ))}

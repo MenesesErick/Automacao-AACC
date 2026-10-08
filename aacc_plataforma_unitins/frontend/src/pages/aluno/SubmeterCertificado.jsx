@@ -314,7 +314,7 @@ export default function SubmeterCertificado() {
                         <optgroup key={eixo} label={`── ${eixo}`}>
                           {cats.map(cat => (
                             <option key={cat.id} value={cat.id}>
-                              {cat.nome}{cat.limite_maximo_horas ? ` (teto: ${cat.limite_maximo_horas}h)` : ''}
+                              {cat.nome}{cat.limite_maximo_horas && cat.limite_maximo_horas !== 9999 ? ` (teto: ${cat.limite_maximo_horas}h)` : ''}
                             </option>
                           ))}
                         </optgroup>
@@ -327,11 +327,21 @@ export default function SubmeterCertificado() {
                       <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> {erros.categoria}
                     </p>
                   )}
-                  {catSelecionada?.limite_maximo_horas && (
-                    <p className="text-helper text-text-secondary mt-1.5">
-                      Limite aproveitável nesta categoria:{' '}
-                      <span className="font-semibold text-primary">{catSelecionada.limite_maximo_horas}h</span>
-                    </p>
+                  {catSelecionada && (
+                    <div className="mt-1.5 flex flex-col gap-0.5">
+                      {catSelecionada.limite_maximo_horas && catSelecionada.limite_maximo_horas !== 9999 && (
+                        <p className="text-helper text-text-secondary">
+                          Limite aproveitável nesta categoria:{' '}
+                          <span className="font-semibold text-primary">{catSelecionada.limite_maximo_horas}h</span>
+                        </p>
+                      )}
+                      {catSelecionada.limite_por_certificado && (
+                        <p className="text-helper text-text-secondary">
+                          Limite máximo por certificado:{' '}
+                          <span className="font-semibold text-primary">{catSelecionada.limite_por_certificado}h</span>
+                        </p>
+                      )}
+                    </div>
                   )}
 
                   {catSelecionada?.tooltip_display && (
