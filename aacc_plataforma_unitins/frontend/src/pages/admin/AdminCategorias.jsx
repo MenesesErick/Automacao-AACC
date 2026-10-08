@@ -105,7 +105,7 @@ export default function AdminCategorias() {
     setCatForm(cat ? { 
       id: cat.id, 
       nome: cat.nome, 
-      tooltip: cat.tooltip || '',
+      tooltip: cat.tooltip_display || cat.tooltip || '',
       limite_maximo_horas: cat.limite_maximo_horas || '', 
       limite_por_certificado: cat.limite_por_certificado || '', 
       eixo: cat.eixo 
@@ -240,8 +240,8 @@ export default function AdminCategorias() {
       </Modal>
 
       <Modal isOpen={isCatModalOpen} onClose={() => setIsCatModalOpen(false)} title={catForm.id ? "Editar Categoria" : "Criar Categoria"}>
-        <form onSubmit={handleSaveCat} className="space-y-4">
-          <div className="flex flex-col gap-1">
+        <form onSubmit={handleSaveCat} className="space-y-5">
+          <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-gray-700">Eixo Formativo</label>
             <select 
               className="h-10 px-3 w-full rounded-md border border-gray-300 bg-white text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
@@ -262,10 +262,10 @@ export default function AdminCategorias() {
             onChange={e => setCatForm({...catForm, nome: e.target.value})} 
             required 
           />
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-gray-700">Descrição / Instruções</label>
             <textarea 
-              className="px-3 py-2 w-full rounded-md border border-gray-300 bg-white text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary min-h-[80px] resize-y"
+              className="px-3 py-2 w-full rounded-md border border-gray-300 bg-white text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary min-h-[100px] resize-y leading-relaxed"
               placeholder="Instruções opcionais sobre o que se enquadra na categoria..."
               value={catForm.tooltip}
               onChange={e => setCatForm({...catForm, tooltip: e.target.value})}
