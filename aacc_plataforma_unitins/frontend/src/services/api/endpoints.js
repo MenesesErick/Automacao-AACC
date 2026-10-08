@@ -33,6 +33,14 @@ export const eixosService = {
   remover:   (id)         => api.delete(`/academico/eixos/${id}/`),
 }
 
+export const cursosService = {
+  listar:    (params)     => api.get('/academico/cursos/', { params }),
+  obter:     (id)         => api.get(`/academico/cursos/${id}/`),
+  criar:     (data)       => api.post('/academico/cursos/', data),
+  atualizar: (id, data)   => api.patch(`/academico/cursos/${id}/`, data),
+  remover:   (id)         => api.delete(`/academico/cursos/${id}/`),
+}
+
 export const categoriasService = {
   listar:    (params)     => api.get('/academico/categorias/', { params }),
   obter:     (id)         => api.get(`/academico/categorias/${id}/`),
