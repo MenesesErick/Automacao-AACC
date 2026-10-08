@@ -163,6 +163,7 @@ export default function AdminCategorias() {
     { key: 'id', label: 'ID', render: (row) => <span className="font-mono text-gray-500">#{row.id}</span> },
     { key: 'eixo_nome', label: 'Eixo', render: (row) => <span className="text-gray-600 font-medium">{eixos.find(e => e.id === row.eixo)?.nome || `Eixo #${row.eixo}`}</span> },
     { key: 'nome', label: 'Nome' },
+    { key: 'descricao', label: 'Descrição', render: (row) => <span className="text-gray-500 text-sm truncate max-w-[200px] block" title={row.tooltip_display || row.tooltip}>{row.tooltip_display || row.tooltip || '—'}</span> },
     { key: 'teto_horas', label: 'Teto Global (h)', render: (row) => <span className="font-mono">{row.limite_maximo_horas ? `${row.limite_maximo_horas}h` : 'Sem teto'}</span> },
     { key: 'limite_por_certificado', label: 'Lim. p/ Certificado', render: (row) => <span className="font-mono text-gray-500">{row.limite_por_certificado ? `${row.limite_por_certificado}h` : '—'}</span> },
     {
