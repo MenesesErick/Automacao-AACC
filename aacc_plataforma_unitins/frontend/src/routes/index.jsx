@@ -23,6 +23,9 @@ import AdminCategorias from '@/pages/admin/AdminCategorias'
 import AdminCursos from '@/pages/admin/AdminCursos'
 import AdminCoordenadores from '@/pages/admin/AdminCoordenadores'
 
+// Shared
+import RegrasCategorias from '@/pages/shared/RegrasCategorias'
+
 
 // Protected Route Component
 function RoleRoute({ children, allowedRole }) {
@@ -92,7 +95,14 @@ export function AppRouter() {
             </RoleRoute>
           }
         />
-        
+        <Route
+          path="/aluno/regras"
+          element={
+            <RoleRoute allowedRole="aluno">
+              <RegrasCategorias />
+            </RoleRoute>
+          }
+        />
         {/* COORDENADOR Routes */}
         <Route 
           path="/coordenador/dashboard" 
@@ -131,6 +141,14 @@ export function AppRouter() {
           element={
             <RoleRoute allowedRole="coordenador">
               <DossieAluno />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/coordenador/regras"
+          element={
+            <RoleRoute allowedRole="coordenador">
+              <RegrasCategorias />
             </RoleRoute>
           }
         />

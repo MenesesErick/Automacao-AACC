@@ -11,12 +11,14 @@ const NAV_ALUNO = [
   { label: 'Dashboard',     icon: LayoutDashboard, to: '/aluno/dashboard' },
   { label: 'Enviar Novo',   icon: SendHorizonal,   to: '/aluno/enviar' },
   { label: 'Meu Histórico', icon: History,          to: '/aluno/historico' },
+  { label: 'Manual de Categorias', icon: BookOpen, to: '/aluno/regras' },
 ]
 
 const NAV_COORDENADOR = [
   { label: 'Dashboard',       icon: LayoutDashboard, to: '/coordenador/dashboard' },
   { label: 'Fila de Revisão', icon: ShieldCheck,     to: '/coordenador/revisao' },
   { label: 'Alunos',          icon: Users,            to: '/coordenador/alunos' },
+  { label: 'Regras e Atividades', icon: BookOpen, to: '/coordenador/regras' },
 ]
 
 export function Sidebar({ collapsed, onToggle }) {
