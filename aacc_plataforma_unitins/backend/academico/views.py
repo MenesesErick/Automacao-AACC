@@ -26,7 +26,7 @@ from rest_framework.permissions import IsAuthenticated, SAFE_METHODS
 
 from django.contrib.auth import get_user_model
 
-from academico.models import AlunoPerfil, CategoriaAACC, Certificado, Curso, Eixo
+from academico.models import AlunoPerfil, CategoriaAACC, Certificado, Curso, Eixo, Notificacao
 from academico.permissions import IsSuperAdmin
 from academico.serializers import (
     CategoriaAACCSerializer,
@@ -34,6 +34,7 @@ from academico.serializers import (
     CoordenadorSerializer,
     CursoSerializer,
     EixoSerializer,
+    NotificacaoSerializer,
 )
 from rule_engine.validator import ValidadorCertificado
 
@@ -148,6 +149,19 @@ def _filtrar_por_curso_do_usuario(queryset, user, campo_curso: str):
 def _alunos_visiveis(user):
     """AlunoPerfis que o usuário (admin/coordenador) pode enxergar."""
     return _filtrar_por_curso_do_usuario(AlunoPerfil.objects.all(), user, "curso")
+
+
+def _notificar_resultado(certificado, aprovado, horas=None, justificativa=""):
+    """UC04.3 — cria a notificação in-app para o aluno dono do certificado."""
+    titulo = certificado.titulo_atividade or certificado.categoria.nome
+    if aprovado:
+        msg = f"Seu certificado \"{titulo}\" foi deferido"
+        msg += f" ({horas}h computadas)." if horas is not None else "."
+    else:
+        msg = f"Seu certificado \"{titulo}\" foi indeferido."
+        if justificativa:
+            msg += f" Motivo: {justificativa}"
+    Notificacao.objects.create(usuario=certificado.aluno.usuario, mensagem=msg)
 
 
 class CertificadoViewSet(viewsets.ModelViewSet):
@@ -437,6 +451,8 @@ class CertificadoViewSet(viewsets.ModelViewSet):
                 resultado["atingiu_teto_total"],
             )
 
+            _notificar_resultado(certificado, aprovado=True, horas=resultado["horas_deferidas"])
+
             return Response(
                 {
                     "detail":                "Certificado aprovado com sucesso.",
@@ -471,10 +487,43 @@ class CertificadoViewSet(viewsets.ModelViewSet):
             certificado.pk, user.username, justificativa,
         )
 
+        _notificar_resultado(certificado, aprovado=False, justificativa=justificativa)
+
         return Response(
             {"detail": "Certificado rejeitado com sucesso.", "justificativa": justificativa},
             status=http_status.HTTP_200_OK,
         )
+
+
+class NotificacaoViewSet(
+    mixins.ListModelMixin,
+    mixins.UpdateModelMixin,
+    viewsets.GenericViewSet,
+):
+    """
+    UC04.3 — Notificações in-app.
+
+    GET   /api/academico/notificacoes/         → lista as do usuário logado (?lida=false filtra)
+    PATCH /api/academico/notificacoes/{id}/    → marca como lida (apenas o campo `lida`)
+    """
+
+    serializer_class = NotificacaoSerializer
+    permission_classes = [IsAuthenticated]
+    http_method_names = ["get", "patch", "head", "options"]
+    pagination_class = None
+
+    def get_queryset(self):
+        qs = Notificacao.objects.filter(usuario=self.request.user)
+        lida = self.request.query_params.get("lida")
+        if lida is not None:
+            qs = qs.filter(lida=lida.lower() in ("true", "1"))
+        return qs.order_by("-criado_em")
+
+    @action(detail=False, methods=["patch"], url_path="marcar-todas-lidas")
+    def marcar_todas_lidas(self, request):
+        self.get_queryset().filter(lida=False).update(lida=True)
+        return Response(status=http_status.HTTP_204_NO_CONTENT)
+
 
 
 

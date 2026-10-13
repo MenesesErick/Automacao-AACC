@@ -202,3 +202,19 @@ class Requerimento(models.Model):
 
     def __str__(self):
         return f"Requerimento {self.id} - {self.aluno.matricula}"
+
+
+class Notificacao(models.Model):
+    """UC04.3 — Notificação in-app (ex.: certificado deferido/indeferido)."""
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notificacoes', verbose_name="Usuário")
+    mensagem = models.TextField(verbose_name="Mensagem")
+    lida = models.BooleanField(default=False, verbose_name="Lida")
+    criado_em = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
+
+    class Meta:
+        verbose_name = "Notificação"
+        verbose_name_plural = "Notificações"
+        ordering = ['-criado_em']
+
+    def __str__(self):
+        return f"Notificação {self.id} → usuário {self.usuario_id} ({'lida' if self.lida else 'nova'})"

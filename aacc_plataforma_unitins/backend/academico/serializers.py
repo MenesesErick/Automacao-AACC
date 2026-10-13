@@ -16,7 +16,7 @@ from django.db import transaction
 
 from academico.models import (
     CategoriaAACC, Certificado, CoordenadorPerfil, Curso, Eixo, MatrizCurricular,
-    RuleValidationLog, Requerimento,
+    Notificacao, RuleValidationLog, Requerimento,
 )
 
 
@@ -359,3 +359,12 @@ class RequerimentoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Requerimento
         fields = "__all__"
+
+
+class NotificacaoSerializer(serializers.ModelSerializer):
+    """Notificações in-app (UC04.3). Apenas `lida` é editável."""
+
+    class Meta:
+        model = Notificacao
+        fields = ["id", "mensagem", "lida", "criado_em"]
+        read_only_fields = ["id", "mensagem", "criado_em"]

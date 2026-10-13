@@ -20,6 +20,12 @@ export const certificadosService = {
   },
 }
 
+export const notificacaoService = {
+  listar:           (params) => api.get('/academico/notificacoes/', { params }),
+  marcarLida:       (id)     => api.patch(`/academico/notificacoes/${id}/`, { lida: true }),
+  marcarTodasLidas: ()       => api.patch('/academico/notificacoes/marcar-todas-lidas/'),
+}
+
 export const alunoService = {
   listarAlunos:    ()          => api.get('/academico/alunos/'),
   obterMeuExtrato: ()          => api.get('/academico/alunos/meu-extrato/'),

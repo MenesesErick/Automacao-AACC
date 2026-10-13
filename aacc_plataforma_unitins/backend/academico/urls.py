@@ -33,6 +33,7 @@ from academico.views import (
     ListaAlunosView,
     AnalisePreviaView,
     GerarAnexoIView,
+    NotificacaoViewSet,
 )
 
 router = DefaultRouter()
@@ -41,6 +42,7 @@ router.register(r"cursos",       CursoViewSet,        basename="curso")
 router.register(r"coordenadores", CoordenadorViewSet, basename="coordenador")
 router.register(r"categorias",   CategoriaAACCViewSet, basename="categoria")
 router.register(r"certificados", CertificadoViewSet,   basename="certificado")
+router.register(r"notificacoes", NotificacaoViewSet,   basename="notificacao")
 
 urlpatterns = [
     # ── Copiloto de Metadados (Anexo I) ────────────────────────────────────

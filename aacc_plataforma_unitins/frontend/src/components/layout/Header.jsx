@@ -1,6 +1,7 @@
 import { cn } from '@/utils/cn'
 import { Avatar } from '@/components/atoms/Avatar'
 import { useAuth } from '@/contexts/AuthContext'
+import { NotificacoesBell } from '@/components/layout/NotificacoesBell'
 
 export function Header({ title, breadcrumb, sidebarCollapsed }) {
   const { user } = useAuth()
@@ -26,7 +27,8 @@ export function Header({ title, breadcrumb, sidebarCollapsed }) {
       </div>
 
       {/* Perfil (direita) */}
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex items-center gap-3 shrink-0">
+        <NotificacoesBell />
         <Avatar name={user?.nome || user?.name || 'U'} size="sm" online />
         <div className="hidden sm:block min-w-0">
           <p className="text-label font-semibold text-gray-800 leading-tight truncate max-w-[140px]">
