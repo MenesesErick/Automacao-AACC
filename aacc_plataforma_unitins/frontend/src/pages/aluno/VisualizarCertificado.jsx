@@ -11,10 +11,11 @@ import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, CheckCircle2, Loader2,
   AlertTriangle, Hourglass, Layers, Hash,
-  Calendar, TrendingDown, Info, BadgeCheck, MessageSquareX, Clock
+  Calendar, TrendingDown, Info, BadgeCheck, MessageSquareX, Clock, Pencil, Type
 } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import { certificadosService } from '@/services/api/endpoints'
+import { EditarCertificadoModal } from '@/components/organisms/EditarCertificadoModal'
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -144,8 +145,9 @@ export default function VisualizarCertificado() {
   const [cert,          setCert]         = useState(null)
   const [loading,       setLoading]      = useState(true)
   const [erro,          setErro]         = useState(null)
+  const [editando,      setEditando]     = useState(false)
 
-  useEffect(() => {
+  const carregar = () => {
     setLoading(true)
     certificadosService.obter(id)
       .then(({ data }) => {
@@ -153,7 +155,9 @@ export default function VisualizarCertificado() {
       })
       .catch((e) => setErro(e.friendlyMessage ?? 'Erro ao carregar certificado.'))
       .finally(() => setLoading(false))
-  }, [id])
+  }
+
+  useEffect(() => { carregar() }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const getPdfUrl = (path) => {
     if (!path) return null
@@ -222,7 +226,25 @@ export default function VisualizarCertificado() {
             {statusCfg.label}
           </span>
         </div>
+
+        {['pendente_ocr', 'revisao_manual'].includes(cert.status) && (
+          <button
+            type="button"
+            onClick={() => setEditando(true)}
+            className="ml-auto flex items-center gap-2 px-3 h-8 rounded-xs border border-border text-label font-medium text-text-secondary hover:text-primary hover:border-primary transition-colors"
+          >
+            <Pencil className="h-3.5 w-3.5" /> Editar
+          </button>
+        )}
       </header>
+
+      {editando && (
+        <EditarCertificadoModal
+          cert={cert}
+          onClose={() => setEditando(false)}
+          onSaved={() => { setEditando(false); carregar() }}
+        />
+      )}
 
       {/* ── Split-screen ──────────────────────────────────────────────────── */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
@@ -267,6 +289,8 @@ export default function VisualizarCertificado() {
               <SectionTitle>Detalhes do Documento</SectionTitle>
               <div className="bg-bg rounded-sm border border-border">
                 <MetaRow icon={Layers}   label="Categoria"     value={cert.categoria_nome} />
+                <MetaRow icon={Type}     label="Título"        value={cert.titulo_atividade} />
+                <MetaRow icon={Calendar} label="Período"       value={cert.periodo_realizacao} />
                 <MetaRow icon={Calendar} label="Data de Envio" value={dataEnvio} />
                 <MetaRow
                   icon={Hourglass}
