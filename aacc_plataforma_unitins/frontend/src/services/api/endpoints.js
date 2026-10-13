@@ -6,7 +6,8 @@ export const certificadosService = {
   criar:   (data)   => api.post('/academico/certificados/', data, {
     headers: { 'Content-Type': 'multipart/form-data' },
   }),
-  atualizar: (id, data) => api.patch(`/academico/certificados/${id}/`, data),
+  atualizar: (id, data) => api.patch(`/academico/certificados/${id}/`, data,
+    data instanceof FormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : undefined),
   remover:   (id)       => api.delete(`/academico/certificados/${id}/`),
   avaliar:   (id, data) => api.patch(`/academico/certificados/${id}/avaliar/`, data),
   // Copiloto: extrai título e período do PDF sem salvar no banco

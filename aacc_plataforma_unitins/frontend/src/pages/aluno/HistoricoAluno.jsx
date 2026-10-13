@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   CheckCircle, XCircle, Clock, Eye, AlertCircle,
-  FileText, Plus, ChevronLeft
+  FileText, Plus, ChevronLeft, Pencil
 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { certificadosService } from '@/services/api/endpoints'
+import { EditarCertificadoModal } from '@/components/organisms/EditarCertificadoModal'
 import { cn } from '@/utils/cn'
 
 // ── Configuração semântica de status ─────────────────────────────────────────
@@ -89,8 +90,11 @@ function formatarDataHora(iso) {
 }
 
 // ── Card da Timeline ──────────────────────────────────────────────────────────
-function TimelineItem({ cert, isLast, onClick }) {
+const STATUS_EDITAVEIS = ['pendente_ocr', 'revisao_manual']
+
+function TimelineItem({ cert, isLast, onClick, onEdit }) {
   const cfg = STATUS_CONFIG[cert.status] ?? DEFAULT_CONFIG
+  const podeEditar = STATUS_EDITAVEIS.includes(cert.status)
   const Icon = cfg.icon
 
   return (
@@ -118,8 +122,11 @@ function TimelineItem({ cert, isLast, onClick }) {
       </div>
 
       {/* Card de conteúdo */}
-      <button
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => onClick(cert)}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(cert) } }}
         className={cn(
           'flex-1 mb-4 text-left rounded-sm border p-4 transition-shadow duration-normal',
           'hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
@@ -132,6 +139,17 @@ function TimelineItem({ cert, isLast, onClick }) {
             {cert.categoria_nome ?? 'Categoria não identificada'}
           </p>
           <div className="flex items-center gap-2 shrink-0">
+            {podeEditar && (
+              <button
+                type="button"
+                title="Editar submissão"
+                aria-label="Editar submissão"
+                onClick={(e) => { e.stopPropagation(); onEdit(cert) }}
+                className="h-7 w-7 flex items-center justify-center rounded-xs border border-border bg-bg-surface text-text-secondary hover:text-primary hover:border-primary transition-colors"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            )}
             <span className={cn('text-helper font-semibold px-2 py-0.5 rounded-full', cfg.badge)}>
               {cfg.label}
             </span>
@@ -200,7 +218,7 @@ function TimelineItem({ cert, isLast, onClick }) {
             </p>
           )}
         </div>
-      </button>
+      </div>
     </li>
   )
 }
@@ -231,6 +249,7 @@ export default function HistoricoAluno() {
   const [certificados, setCertificados] = useState([])
   const [loading,      setLoading]      = useState(true)
   const [erro,         setErro]         = useState(null)
+  const [editando,     setEditando]     = useState(null)
 
   const fetchHistorico = useCallback(async () => {
     try {
@@ -347,12 +366,20 @@ export default function HistoricoAluno() {
                     cert={cert}
                     isLast={idx === items.length - 1}
                     onClick={() => navigate(`/aluno/certificados/${cert.id}`)}
+                    onEdit={setEditando}
                   />
                 ))}
               </ul>
             </section>
           ))}
         </div>
+      )}
+      {editando && (
+        <EditarCertificadoModal
+          cert={editando}
+          onClose={() => setEditando(null)}
+          onSaved={() => { setEditando(null); fetchHistorico() }}
+        />
       )}
     </AppLayout>
   )

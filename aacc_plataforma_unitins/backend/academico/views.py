@@ -296,6 +296,60 @@ class CertificadoViewSet(viewsets.ModelViewSet):
             aluno.matricula,
         )
 
+    # ── UC01.5 — Retificação de submissão pelo aluno ────────────────────────
+    STATUS_EDITAVEIS = ("pendente_ocr", "revisao_manual")
+
+    def update(self, request, *args, **kwargs):
+        """
+        PUT/PATCH /api/academico/certificados/{id}/
+
+        Retificação (UC01.5): somente o aluno dono do certificado pode editar,
+        e apenas enquanto o documento não foi auditado (pendente / em análise).
+        Deferido/Indeferido/Requerimento gerado → 403 Forbidden.
+        """
+        user = request.user
+        if user.is_superuser or user.is_coordenador:
+            raise PermissionDenied(
+                "Apenas o aluno autor pode retificar a submissão."
+            )
+
+        certificado = self.get_object()  # queryset já restringe ao dono (404 caso contrário)
+        if certificado.status not in self.STATUS_EDITAVEIS:
+            raise PermissionDenied(
+                "Este certificado já foi auditado e não pode mais ser editado."
+            )
+        return super().update(request, *args, **kwargs)
+
+    def perform_update(self, serializer: CertificadoSerializer) -> None:
+        """Salva a retificação e reprocessa o OCR caso o arquivo tenha sido trocado."""
+        troca_arquivo = "arquivo_pdf" in serializer.validated_data
+        certificado: Certificado = serializer.save()
+
+        if not troca_arquivo:
+            return
+
+        from academico.services.ocr_service import processar_pdf
+        from django.conf import settings
+        import os
+
+        ocr = processar_pdf(os.path.join(settings.MEDIA_ROOT, certificado.arquivo_pdf.name))
+        certificado.horas_sugeridas_ia = ocr.horas_encontradas or 0
+        certificado.confianca_ia = int(ocr.indice_confianca) if ocr.indice_confianca else 0
+        certificado.horas_validadas_ocr = ocr.horas_encontradas or 0
+        certificado.texto_extraido_ocr = ocr.texto_extraido or ""
+        certificado.indice_confianca_ocr = ocr.indice_confianca
+        certificado.status = "revisao_manual"
+        certificado.motivo_status = (
+            f"Retificado pelo aluno. OCR: {ocr.horas_encontradas}h encontradas via "
+            f"{ocr.padrao_usado} (confiança: {ocr.indice_confianca:.0f}%)."
+            if ocr.sucesso
+            else "Retificado pelo aluno. OCR não localizou horas. Aguarda revisão manual."
+        )
+        certificado.save(update_fields=[
+            "horas_validadas_ocr", "texto_extraido_ocr", "indice_confianca_ocr",
+            "horas_sugeridas_ia", "confianca_ia", "status", "motivo_status",
+        ])
+
     # ── Avaliação Human-in-the-Loop com SEBR ────────────────────────────────
     @action(detail=True, methods=["patch"], url_path="avaliar")
     def avaliar(self, request, pk=None):

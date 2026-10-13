@@ -21,7 +21,7 @@ import { cn } from '@/utils/cn'
 import { categoriasService, certificadosService } from '@/services/api/endpoints'
 
 // ─── Agrupamento de categorias por eixo ──────────────────────────────────────
-function agruparPorEixo(categorias) {
+export function agruparPorEixo(categorias) {
   return categorias.reduce((acc, cat) => {
     const eixo = cat.eixo_nome || 'Outros'
     if (!acc[eixo]) acc[eixo] = []
@@ -31,7 +31,7 @@ function agruparPorEixo(categorias) {
 }
 
 // ─── Drop Zone com preview ────────────────────────────────────────────────────
-function DropZone({ arquivo, onChange, erro, analisando }) {
+export function DropZone({ arquivo, onChange, erro, analisando }) {
   const [drag, setDrag] = useState(false)
 
   const handleDrop = (e) => {
