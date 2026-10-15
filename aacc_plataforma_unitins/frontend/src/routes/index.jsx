@@ -25,6 +25,7 @@ import AdminCoordenadores from '@/pages/admin/AdminCoordenadores'
 
 // Shared
 import RegrasCategorias from '@/pages/shared/RegrasCategorias'
+import PerfilConfiguracoes from '@/pages/shared/PerfilConfiguracoes'
 
 
 // Protected Route Component
@@ -41,6 +42,21 @@ function RoleRoute({ children, allowedRole }) {
 
   if (user.role !== allowedRole) {
     return <Navigate to={`/${user.role}/dashboard`} replace />
+  }
+
+  return children
+}
+
+// Authenticated Route Component (Qualquer papel autenticado)
+function AuthenticatedRoute({ children }) {
+  const { user, loading } = useAuth()
+
+  if (loading) {
+    return <div className="min-h-screen bg-bg flex items-center justify-center">Carregando...</div>
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />
   }
 
   return children
@@ -187,6 +203,20 @@ export function AppRouter() {
           } 
         />
 
+
+        {/* CONFIGURACOES / PERFIL Routes */}
+        <Route 
+          path="/configuracoes" 
+          element={
+            <AuthenticatedRoute>
+              <PerfilConfiguracoes />
+            </AuthenticatedRoute>
+          } 
+        />
+        <Route 
+          path="/perfil" 
+          element={<Navigate to="/configuracoes" replace />} 
+        />
 
         {/* Root Redirect */}
         <Route 

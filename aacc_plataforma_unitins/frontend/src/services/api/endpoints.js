@@ -62,7 +62,8 @@ export const categoriasService = {
 }
 
 export const authService = {
-  login:   (credentials) => api.post('/accounts/token/', credentials),
-  refresh: (refresh)     => api.post('/accounts/token/refresh/', { refresh }),
-  me:      ()            => api.get('/accounts/me/'),
+  login:           (credentials) => api.post('/accounts/token/', credentials),
+  refresh:         (refresh)     => api.post('/accounts/token/refresh/', { refresh }),
+  me:              ()            => api.get('/accounts/me/'),
+  atualizarPerfil: (data)        => api.patch('/accounts/me/', data),
 }
