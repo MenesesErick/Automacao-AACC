@@ -11,6 +11,7 @@ import { DataTable } from '@/components/organisms/DataTable'
 import { Badge } from '@/components/atoms/Badge'
 import { certificadosService, alunoService } from '@/services/api/endpoints'
 import { BannerFormatura, GraficoProgresso, GraficoEixos } from '@/components/organisms/ExtratoCharts'
+import { DashboardHero, heroActionCls } from '@/components/organisms/DashboardHero'
 import { cn } from '@/utils/cn'
 
 
@@ -136,6 +137,20 @@ export default function DashboardAluno() {
         </div>
       }
     >
+      {/* ── Banner institucional ────────────────────────────────────────── */}
+      <DashboardHero
+        className="mb-4"
+        modulo="Portal do Discente • Resolução CONSUNI Nº 057/2025"
+        titulo="Meu Progresso em Atividades Complementares"
+        descricao="Acompanhe suas horas de AACC por eixo formativo e o andamento dos certificados enviados."
+        acoes={
+          <Link to="/aluno/enviar" className={heroActionCls}>
+            <Plus className="h-4 w-4" />
+            Submeter Certificado
+          </Link>
+        }
+      />
+
       {/* ── Banner de formatura ─────────────────────────────────────────── */}
       <BannerFormatura extrato={extrato} loading={loadingExtrato} />
 
@@ -175,8 +190,8 @@ export default function DashboardAluno() {
       <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-3 mb-4">
         {loadingExtrato ? (
           <>
-            <div className="surface rounded-sm h-64 animate-pulse" />
-            <div className="surface rounded-sm h-64 animate-pulse" />
+            <div className="surface rounded-xs h-64 animate-pulse" />
+            <div className="surface rounded-xs h-64 animate-pulse" />
           </>
         ) : (
           <>
@@ -189,23 +204,19 @@ export default function DashboardAluno() {
       {/* ── Ação principal ──────────────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-3">
         <div>
-          <h2 className="text-card font-semibold text-text-primary">Histórico de Certificados</h2>
+          <h2 className="text-xs font-extrabold uppercase tracking-wider text-primary flex items-center">
+            <span className="w-1 h-4 bg-gold mr-2 inline-block" />
+            Histórico de Certificados
+          </h2>
           <p className="text-helper text-text-secondary mt-0.5">
             Clique numa linha para ver detalhes e o documento.
           </p>
         </div>
-        <Link
-          to="/aluno/enviar"
-          className="flex items-center gap-2 px-4 h-9 rounded-xs bg-primary text-white text-label font-medium hover:bg-primary-hover transition-colors shrink-0 shadow-xs"
-        >
-          <Plus className="h-4 w-4" />
-          Enviar Certificado
-        </Link>
       </div>
 
       {/* ── Tabela ──────────────────────────────────────────────────────── */}
       {erro ? (
-        <div className="surface rounded-sm p-6 flex items-center gap-3 text-danger">
+        <div className="surface rounded-xs p-6 flex items-center gap-3 text-danger">
           <AlertCircle className="h-5 w-5 shrink-0" />
           <div>
             <p className="text-label font-semibold">Erro ao carregar dados</p>

@@ -11,18 +11,18 @@ import { Info, PartyPopper, TriangleAlert } from 'lucide-react'
 
 // ── Design System cores ───────────────────────────────────────────────────────
 export const CORES = {
-  primary: '#0B5ED7',
-  success: '#16A34A',
-  warning: '#EAB308',
-  danger:  '#DC2626',
+  primary: '#003366',
+  success: '#166534',
+  warning: '#B45309',
+  danger:  '#B91C1C',
   muted:   '#E5E7EB',
-  text:    '#667085',
+  text:    '#4B5563',
 }
 
 export const COR_EIXO = {
-  Ensino:   '#0B5ED7',
-  Pesquisa: '#7C3AED',
-  Extensao: '#16A34A',
+  Ensino:   '#003366',
+  Pesquisa: '#F5A623',
+  Extensao: '#166534',
 }
 
 // ── Tooltip customizado ───────────────────────────────────────────────────────
@@ -41,7 +41,7 @@ export function CustomTooltip({ active, payload, label }) {
 // ── Banner de Aptidão à Formatura ─────────────────────────────────────────────
 export function BannerFormatura({ extrato, loading, compact = false }) {
   if (loading) {
-    return <div className="rounded-sm p-4 mb-4 animate-pulse h-14 bg-border" />
+    return <div className="rounded-xs p-4 mb-4 animate-pulse h-14 bg-border" />
   }
   if (!extrato) return null
 
@@ -49,11 +49,13 @@ export function BannerFormatura({ extrato, loading, compact = false }) {
 
   if (apto_formatura) {
     return (
-      <div className="flex items-center gap-3 rounded-sm p-4 mb-4 bg-success-light border border-success-muted">
-        <PartyPopper className="h-5 w-5 text-success shrink-0" />
+      <div className="flex items-center gap-3 rounded-xs p-4 mb-4 bg-success-light border border-success/40 border-l-4 border-l-gold">
+        <div className="h-11 w-11 rounded-xs bg-gold-light border border-gold/40 flex items-center justify-center shrink-0">
+          <PartyPopper className="h-5 w-5 text-[#B45309]" />
+        </div>
         <div>
-          <p className="text-label font-bold text-success">
-            {compact ? 'Apto para formatura!' : 'Parabéns! Você cumpriu todos os requisitos de AACC.'}
+          <p className="text-xs font-extrabold uppercase tracking-wider text-success">
+            {compact ? 'Apto para formatura!' : 'Elegível ao Anexo I — requisitos de AACC cumpridos'}
           </p>
           {!compact && (
             <p className="text-helper text-success/80 mt-0.5">
@@ -70,12 +72,12 @@ export function BannerFormatura({ extrato, loading, compact = false }) {
   if (faltam_eixos > 0) partes.push(`${faltam_eixos} eixo(s)`)
 
   return (
-    <div className="flex items-start gap-3 rounded-sm p-4 mb-4 bg-warning-light border border-warning-muted">
+    <div className="flex items-start gap-3 rounded-xs p-4 mb-4 bg-warning-light border border-warning-muted border-l-4 border-l-warning">
       <TriangleAlert className="h-5 w-5 text-warning shrink-0 mt-0.5" />
       <div>
-        <p className="text-label font-bold text-yellow-700">Requisitos não cumpridos</p>
+        <p className="text-xs font-extrabold uppercase tracking-wider text-warning">Requisitos não cumpridos</p>
         {!compact && (
-          <p className="text-helper text-yellow-600 mt-0.5">
+          <p className="text-helper text-warning mt-0.5">
             {partes.length > 0
               ? `Faltam ${partes.join(' e ')} — exige ≥ 2 eixos distintos.`
               : 'Verifique as condições com o coordenador.'}
@@ -90,8 +92,8 @@ export function BannerFormatura({ extrato, loading, compact = false }) {
 export function GraficoProgresso({ pct, horasAprovadas, meta }) {
   const data = [{ value: pct, fill: pct >= 100 ? CORES.success : CORES.primary }]
   return (
-    <div className="surface rounded-sm p-5 flex flex-col items-center justify-center gap-2">
-      <p className="text-helper text-text-disabled font-semibold uppercase tracking-wider self-start">
+    <div className="surface rounded-xs p-5 flex flex-col items-center justify-center gap-2">
+      <p className="text-[11px] text-text-secondary font-bold uppercase tracking-wider self-start">
         Progresso Geral
       </p>
       <div className="relative w-full max-w-[180px] mx-auto" style={{ height: 180 }}>
@@ -103,11 +105,11 @@ export function GraficoProgresso({ pct, horasAprovadas, meta }) {
             data={data}
           >
             <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
-            <RadialBar dataKey="value" cornerRadius={6} background={{ fill: CORES.muted }} />
+            <RadialBar dataKey="value" cornerRadius={2} background={{ fill: CORES.muted }} />
           </RadialBarChart>
         </ResponsiveContainer>
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <span className="text-h3 font-bold text-text-primary tabular-nums">{pct}%</span>
+          <span className="text-h3 font-extrabold text-primary tabular-nums">{pct}%</span>
           <span className="text-helper text-text-secondary">{horasAprovadas}h / {meta}h</span>
         </div>
       </div>
@@ -127,12 +129,12 @@ export function GraficoEixos({ horas_por_eixo, meta }) {
   const maxValue = Math.max(meta, ...Object.values(safeEixos), 0) + 10
 
   return (
-    <div className="surface rounded-sm p-5 flex flex-col gap-3 flex-1">
+    <div className="surface rounded-xs p-5 flex flex-col gap-3 flex-1">
       <div className="flex items-center justify-between">
-        <p className="text-helper text-text-disabled font-semibold uppercase tracking-wider">
+        <p className="text-[11px] text-text-secondary font-bold uppercase tracking-wider">
           Horas por Eixo (RN02)
         </p>
-        <div className="flex items-center gap-1 text-helper text-text-disabled">
+        <div className="flex items-center gap-1 text-helper text-text-secondary">
           <Info className="h-3.5 w-3.5" />
           <span>≥ 2 eixos para formatura</span>
         </div>
@@ -144,21 +146,32 @@ export function GraficoEixos({ horas_por_eixo, meta }) {
           <XAxis dataKey="eixo" tick={{ fontSize: 12, fill: CORES.text }} axisLine={false} tickLine={false} />
           <YAxis tick={{ fontSize: 11, fill: CORES.text }} axisLine={false} tickLine={false} domain={[0, maxValue]} />
           <Tooltip content={<CustomTooltip />} cursor={{ fill: '#F7F9FC' }} />
-          <Bar dataKey="horas" radius={[6, 6, 0, 0]}>
+          <Bar dataKey="horas" radius={[2, 2, 0, 0]}>
             {data.map((d, i) => <Cell key={i} fill={d.fill} />)}
           </Bar>
         </BarChart>
       </ResponsiveContainer>
 
-      <div className="flex flex-wrap gap-x-4 gap-y-1">
-        {data.map((d) => (
-          <div key={d.eixo} className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: d.fill }} />
-            <span className="text-helper text-text-secondary">
-              {d.eixo}: <strong className="text-text-primary">{d.horas}h</strong>
-            </span>
-          </div>
-        ))}
+      <div className="space-y-3 pt-1">
+        {data.map((d) => {
+          const pctEixo = meta > 0 ? Math.min(100, Math.round((d.horas / meta) * 100)) : 0
+          return (
+            <div key={d.eixo}>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-text-secondary">{d.eixo}</span>
+                <span className="text-helper text-text-secondary">
+                  <strong className="text-text-primary">{d.horas}h</strong> · {pctEixo}% da meta total
+                </span>
+              </div>
+              <div className="h-2.5 rounded-xs bg-gray-200 overflow-hidden">
+                <div
+                  className={pctEixo >= 100 ? 'h-full bg-success' : 'h-full bg-primary'}
+                  style={{ width: `${pctEixo}%` }}
+                />
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )

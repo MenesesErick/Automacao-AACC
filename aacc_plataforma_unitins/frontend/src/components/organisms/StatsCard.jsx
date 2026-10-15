@@ -23,33 +23,33 @@ export function StatsCard({
   className,
 }) {
   const iconBg = {
-    default: 'bg-bg text-text-secondary',
-    primary: 'bg-primary-light text-primary',
-    success: 'bg-success-light text-success',
-    warning: 'bg-warning-light text-yellow-700',
-    danger:  'bg-danger-light text-danger',
+    default: 'bg-bg text-text-secondary border border-border',
+    primary: 'bg-primary-light text-primary border border-primary-muted',
+    success: 'bg-success-light text-success border border-success/30',
+    warning: 'bg-gold-light text-[#B45309] border border-gold/40',
+    danger:  'bg-danger-light text-danger border border-danger/30',
   }[color]
 
   const TrendIcon = { up: TrendingUp, down: TrendingDown, neutral: Minus }[trend] ?? null
   const trendColor = { up: 'text-success', down: 'text-danger', neutral: 'text-text-secondary' }[trend] ?? ''
 
   return (
-    <div className={cn('surface rounded-sm p-5 flex flex-col gap-4', className)}>
+    <div className={cn('surface rounded-xs p-5 border-l-4 border-l-primary flex flex-col gap-4', className)}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-label text-text-secondary font-medium truncate">{title}</p>
+          <p className="text-[11px] font-bold uppercase tracking-wider text-text-secondary truncate">{title}</p>
         </div>
         {icon && (
-          <div className={cn('h-9 w-9 rounded-xs flex items-center justify-center shrink-0', iconBg)}>
+          <div className={cn('h-11 w-11 rounded-xs flex items-center justify-center shrink-0', iconBg)}>
             {icon}
           </div>
         )}
       </div>
 
       <div>
-        <p className="text-h2 font-bold text-text-primary leading-none">{value}</p>
+        <p className="text-2xl font-extrabold text-primary leading-none">{value}</p>
         {subtitle && (
-          <p className="text-helper text-text-secondary mt-1">{subtitle}</p>
+          <p className="text-helper text-text-secondary mt-1.5">{subtitle}</p>
         )}
       </div>
 

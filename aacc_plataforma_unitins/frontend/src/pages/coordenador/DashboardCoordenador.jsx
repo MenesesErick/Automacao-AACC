@@ -5,6 +5,7 @@ import { StatsCard } from '@/components/organisms/StatsCard'
 import { ShieldAlert, Users, CheckCircle, Search, FileText, ArrowRight, Loader2 } from 'lucide-react'
 import { certificadosService, alunoService } from '@/services/api/endpoints'
 import { cn } from '@/utils/cn'
+import { DashboardHero } from '@/components/organisms/DashboardHero'
 
 export default function DashboardCoordenador() {
   const navigate = useNavigate()
@@ -75,7 +76,14 @@ export default function DashboardCoordenador() {
         </div>
       ) : (
         <div className="space-y-8">
-          
+
+          {/* Banner institucional */}
+          <DashboardHero
+            modulo="Coordenação de Curso • Auditoria AACC"
+            titulo="Dashboard Operacional da Coordenação"
+            descricao="Fila de aprovação de certificados e acompanhamento do progresso dos discentes do seu curso."
+          />
+
           {/* Métricas */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <StatsCard
@@ -102,15 +110,16 @@ export default function DashboardCoordenador() {
           </div>
 
           {/* Fila de Aprovação */}
-          <section className="surface rounded-sm border border-border overflow-hidden">
-            <div className="px-5 py-4 border-b border-border bg-bg-surface flex items-center justify-between">
+          <section className="surface rounded-xs overflow-hidden">
+            <div className="px-6 py-4 border-b border-border bg-[#F8FAFC] flex items-center justify-between">
               <div>
-                <h2 className="text-label font-bold text-text-primary flex items-center gap-2">
-                  <ShieldAlert className="h-4 w-4 text-danger" />
-                  Fila de Aprovação (Prioridade)
+                <h2 className="text-xs font-extrabold uppercase tracking-wider text-primary flex items-center">
+                  <span className="w-1 h-4 bg-gold mr-2 inline-block" />
+                  Fila de Aprovação / Auditoria
                 </h2>
-                <p className="text-helper text-text-secondary">Certificados aguardando a sua análise</p>
+                <p className="text-helper text-text-secondary mt-1">Certificados aguardando a sua análise</p>
               </div>
+              <ShieldAlert className="h-5 w-5 text-danger" />
             </div>
             
             <div className="p-0 overflow-x-auto">
@@ -123,7 +132,7 @@ export default function DashboardCoordenador() {
               ) : (
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-bg border-b border-border text-xs uppercase text-text-secondary tracking-wider font-semibold">
+                    <tr className="bg-bg border-b border-border text-[11px] uppercase text-text-secondary tracking-wider font-bold">
                       <th className="px-5 py-3">Aluno</th>
                       <th className="px-5 py-3">Atividade</th>
                       <th className="px-5 py-3">Data Envio</th>
@@ -153,7 +162,7 @@ export default function DashboardCoordenador() {
                         <td className="px-5 py-3 text-right">
                           <button
                             onClick={() => navigate(`/coordenador/certificados/${cert.id}`)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-light text-primary hover:bg-primary hover:text-white rounded-xs text-sm font-medium transition-colors"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-light text-primary hover:bg-primary hover:text-white rounded-xs text-xs font-bold uppercase tracking-wider transition-colors"
                           >
                             Analisar <ArrowRight className="h-3.5 w-3.5" />
                           </button>
@@ -167,14 +176,14 @@ export default function DashboardCoordenador() {
           </section>
 
           {/* Busca de Discentes */}
-          <section className="surface rounded-sm border border-border overflow-hidden">
-            <div className="px-5 py-4 border-b border-border bg-bg-surface flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <section className="surface rounded-xs overflow-hidden">
+            <div className="px-6 py-4 border-b border-border bg-[#F8FAFC] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h2 className="text-label font-bold text-text-primary flex items-center gap-2">
-                  <Users className="h-4 w-4 text-primary" />
-                  Progresso dos Discentes
+                <h2 className="text-xs font-extrabold uppercase tracking-wider text-primary flex items-center">
+                  <span className="w-1 h-4 bg-gold mr-2 inline-block" />
+                  Acompanhamento de Discentes
                 </h2>
-                <p className="text-helper text-text-secondary">Acompanhe a evolução de horas dos alunos</p>
+                <p className="text-helper text-text-secondary mt-1">Acompanhe a evolução de horas dos alunos</p>
               </div>
               <div className="relative w-full sm:w-64">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-disabled" />
@@ -196,7 +205,7 @@ export default function DashboardCoordenador() {
               ) : (
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-bg border-b border-border text-xs uppercase text-text-secondary tracking-wider font-semibold">
+                    <tr className="bg-bg border-b border-border text-[11px] uppercase text-text-secondary tracking-wider font-bold">
                       <th className="px-5 py-3">Aluno</th>
                       <th className="px-5 py-3">Progresso (Horas)</th>
                       <th className="px-5 py-3 text-right">Ação</th>
@@ -217,7 +226,7 @@ export default function DashboardCoordenador() {
                           </td>
                           <td className="px-5 py-3">
                             <div className="flex items-center gap-3">
-                              <div className="flex-1 max-w-[200px] h-2 bg-gray-200 rounded-full overflow-hidden">
+                              <div className="flex-1 max-w-[200px] h-2.5 bg-gray-200 rounded-xs overflow-hidden">
                                 <div 
                                   className={cn("h-full", pct === 100 ? "bg-success" : "bg-primary")} 
                                   style={{ width: `${pct}%` }} 
@@ -231,7 +240,7 @@ export default function DashboardCoordenador() {
                           <td className="px-5 py-3 text-right">
                             <button
                               onClick={() => navigate(`/coordenador/alunos/${aluno.id}`)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-border text-text-secondary hover:bg-bg hover:text-primary rounded-xs text-sm font-medium transition-colors"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-border text-text-secondary hover:bg-bg hover:text-primary rounded-xs text-xs font-bold uppercase tracking-wider transition-colors"
                             >
                               <FileText className="h-3.5 w-3.5" /> Dossier
                             </button>
