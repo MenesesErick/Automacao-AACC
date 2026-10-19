@@ -95,44 +95,19 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS('\nAmbiente de testes pronto!'))
 
     def _gerar_certificados(self, perfis):
+        import random
         from django.core.files.base import ContentFile
         from academico.models import Certificado
-
-        self.stdout.write(self.style.NOTICE('\nGerando certificados pendentes...'))
-
-        # PDF mock minimo valido em bytes (sem conteudo visual)
-        PDF_MOCK = (
-            b"%PDF-1.0\n1 0 obj<</Type /Catalog /Pages 2 0 R>>endobj "
-            b"2 0 obj<</Type /Pages /Kids [3 0 R] /Count 1>>endobj "
-            b"3 0 obj<</Type /Page /MediaBox [0 0 612 792] /Parent 2 0 R>>endobj "
-            b"xref\n0 4\n0000000000 65535 f\n0000000009 00000 n\n"
-            b"0000000058 00000 n\n0000000115 00000 n\n"
-            b"trailer<</Size 4 /Root 1 0 R>>\nstartxref\n190\n%%EOF"
+        from academico.management.gerador_certificados import (
+            montar_plano_aluno, gerar_periodo, gerar_documento_comprobatorio,
         )
 
-        # (slug, titulo, periodo, horas_declaradas)
-        LOTES = {
-            120: [
-                ('escola_linguas',        'Ingles Intermediario - Escola de Linguas Unitins',          '01/08/2025 a 30/11/2025',    40),
-                ('cursos_curta_duracao',  'Python para Ciencia de Dados - FIAP Online',               'Marco de 2025',              30),
-                ('seminarios_congressos', 'Semana Academica de Sistemas de Informacao 2025',           '14 a 17 de outubro de 2025', 20),
-                ('projetos_pesquisa',     'IC: Inteligencia Artificial Aplicada a Saude Publica',      '01/03/2025 a 30/06/2025',    20),
-                ('grupos_pesquisa',       'Grupo de Estudos em Computacao em Nuvem - UNITINS',         'Fevereiro a Julho de 2025',  20),
-            ],
-            180: [
-                ('escola_linguas',        'Ingles Avancado - Cambridge Online',                        '01/02/2025 a 30/06/2025',    40),
-                ('cursos_curta_duracao',  'React e Node.js: Desenvolvimento Full-Stack',               'Abril de 2025',              30),
-                ('pibid',                 'PIBID Unitins 2025 - Iniciacao a Docencia',                 '01/03/2025 a 30/11/2025',    40),
-                ('projetos_pesquisa',     'Otimizacao de Banco de Dados Distribuidos',                 '01/04/2025 a 31/07/2025',    30),
-                ('seminarios_congressos', 'CNMAC 2025 - Congresso Nacional de Matematica Aplicada',   '08 a 12 de setembro de 2025', 20),
-                ('projetos_extensao',     'Unitins na Comunidade: Inclusao Digital para Idosos',       '01/05/2025 a 15/08/2025',    20),
-            ],
-        }
+        self.stdout.write(self.style.NOTICE('\nGerando certificados pendentes realistas...'))
 
         total = 0
         for perfil in perfis:
-            meta = perfil.matriz_curricular.horas_totais_exigidas
-            lote = LOTES.get(meta, LOTES[180])
+            meta = perfil.matriz_curricular.horas_totais_exigidas if perfil.matriz_curricular_id else 120
+            rng = random.Random(perfil.id)
 
             if perfil.certificados.exists():
                 self.stdout.write(self.style.WARNING(
@@ -140,15 +115,38 @@ class Command(BaseCommand):
                 ))
                 continue
 
+            plano = montar_plano_aluno(meta_horas=meta, rng=rng)
             soma = 0
-            for slug, titulo, periodo, horas in lote:
+            for item in plano:
+                slug = item["slug"]
+                titulo = item["titulo"]
+                horas = item["horas"]
+                emissor = item["emissor"]
+                estilo = item["estilo"]
+
                 try:
                     categoria = CategoriaAACC.objects.get(codigo_slug=slug)
                 except CategoriaAACC.DoesNotExist:
                     self.stdout.write(self.style.ERROR(f"  [!] Categoria '{slug}' nao encontrada. Pulando."))
                     continue
 
-                nome_arquivo = f"mock_{perfil.matricula}_{slug}.pdf"
+                periodo, fim = gerar_periodo(horas, rng)
+                pdf_bytes, tipo_doc = gerar_documento_comprobatorio(
+                    nome_aluno=perfil.usuario.get_full_name() or perfil.usuario.username,
+                    cpf=perfil.usuario.cpf,
+                    matricula=perfil.matricula,
+                    titulo=titulo,
+                    slug=slug,
+                    emissor=emissor,
+                    horas=horas,
+                    estilo=estilo,
+                    periodo=periodo,
+                    data_fim=fim,
+                    formato="auto",
+                    rng=rng,
+                )
+
+                nome_arquivo = f"{tipo_doc}_{perfil.matricula}_{slug}.pdf"
                 cert = Certificado(
                     aluno=perfil,
                     categoria=categoria,
@@ -156,15 +154,15 @@ class Command(BaseCommand):
                     periodo_realizacao=periodo,
                     horas_declaradas=horas,
                     status='revisao_manual',
-                    motivo_status='Documento gerado automaticamente para testes.',
+                    motivo_status='Documento comprobatório gerado para testes (com templates_base).',
                 )
-                cert.arquivo_pdf.save(nome_arquivo, ContentFile(PDF_MOCK, name=nome_arquivo), save=False)
+                cert.arquivo_pdf.save(nome_arquivo, ContentFile(pdf_bytes, name=nome_arquivo), save=False)
                 cert.save()
                 soma += horas
                 total += 1
 
             self.stdout.write(self.style.SUCCESS(
-                f"  [+] {len(lote)} cert(s) | {perfil.usuario.get_full_name()} "
+                f"  [+] {len(plano)} cert(s) | {perfil.usuario.get_full_name()} "
                 f"| Declarado: {soma}h / Meta: {meta}h"
             ))
 
