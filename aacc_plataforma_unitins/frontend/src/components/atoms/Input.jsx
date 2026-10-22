@@ -23,14 +23,14 @@ export const Input = forwardRef(function Input(
 
   const sizes = {
     sm: 'h-8  text-label px-3',
-    md: 'h-9  text-label px-3',
+    md: 'h-10 text-label px-3',
     lg: 'h-10 text-body  px-4',
   }
 
   return (
-    <div className={cn('flex flex-col gap-1', fullWidth && 'w-full')}>
+    <div className={cn('flex flex-col', fullWidth && 'w-full')}>
       {label && (
-        <label htmlFor={inputId} className="text-label font-medium text-text-primary">
+        <label htmlFor={inputId} className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-text-primary">
           {label}
         </label>
       )}
@@ -47,17 +47,16 @@ export const Input = forwardRef(function Input(
           id={inputId}
           {...props}
           className={cn(
-            'w-full rounded-xs border bg-bg-surface text-text-primary placeholder:text-text-disabled',
+            'w-full rounded-xs border bg-white text-text-primary placeholder:text-text-disabled',
             'transition-colors duration-normal',
-            'focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary',
+            'focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20',
             'disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-bg',
             sizes[size],
             leftIcon  && 'pl-9',
             rightIcon && 'pr-9',
             error
-              ? 'border-danger focus:ring-danger'
-              : 'border-border hover:border-border-strong',
-            'shadow-xs',
+              ? 'border-danger text-danger focus:border-danger focus:ring-danger/20'
+              : 'border-border-strong hover:border-text-disabled',
             className,
           )}
         />
@@ -70,7 +69,7 @@ export const Input = forwardRef(function Input(
       </div>
 
       {(helperText || error) && (
-        <p className={cn('text-helper', error ? 'text-danger' : 'text-text-secondary')}>
+        <p className={cn('mt-1 text-helper', error ? 'text-danger' : 'text-text-secondary')}>
           {error ?? helperText}
         </p>
       )}

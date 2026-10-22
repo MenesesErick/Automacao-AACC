@@ -4,9 +4,6 @@ accounts/views.py
 Views de autenticação da plataforma AACC.
 """
 
-from django.contrib.auth.password_validation import validate_password
-from django.core.exceptions import ValidationError as DjangoValidationError
-from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -25,12 +22,10 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
 class MeView(APIView):
     """
-    GET   /api/accounts/me/ → dados completos do usuário logado + vínculo institucional.
-    PATCH /api/accounts/me/ → atualiza SOMENTE `first_name` e, opcionalmente, a senha
-                              (`senha_atual` + `nova_senha`).
+    GET /api/accounts/me/ → dados completos do usuário logado + vínculo institucional.
 
-    E-mail, CPF, matrícula e curso são dados sincronizados do RM (RNF02) e nunca
-    são alterados por aqui: qualquer outro campo enviado é ignorado.
+    Somente leitura: nome, e-mail, CPF, matrícula, curso e credenciais são dados
+    sincronizados da base da universidade (RNF02) e não são editáveis pela plataforma.
     """
     permission_classes = [IsAuthenticated]
 
@@ -70,47 +65,3 @@ class MeView(APIView):
 
     def get(self, request):
         return Response(self._serializar(request.user))
-
-    def patch(self, request):
-        user = request.user
-        erros = {}
-
-        nome = request.data.get("first_name")
-        if nome is not None:
-            nome = str(nome).strip()
-            if not nome:
-                erros["first_name"] = "O nome não pode ficar em branco."
-            elif len(nome) > 150:
-                erros["first_name"] = "O nome deve ter no máximo 150 caracteres."
-
-        senha_atual = request.data.get("senha_atual")
-        nova_senha = request.data.get("nova_senha")
-        trocar_senha = bool(senha_atual or nova_senha)
-        if trocar_senha:
-            if not senha_atual or not nova_senha:
-                erros["nova_senha"] = "Informe a senha atual e a nova senha."
-            elif not user.check_password(senha_atual):
-                erros["senha_atual"] = "Senha atual incorreta."
-            else:
-                try:
-                    validate_password(nova_senha, user)
-                except DjangoValidationError as exc:
-                    erros["nova_senha"] = " ".join(exc.messages)
-
-        if erros:
-            return Response(
-                {"detail": next(iter(erros.values())), **erros},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        campos = []
-        if nome is not None:
-            user.first_name = nome
-            campos.append("first_name")
-        if trocar_senha:
-            user.set_password(nova_senha)
-            campos.append("password")
-        if campos:
-            user.save(update_fields=campos)
-
-        return Response(self._serializar(user))

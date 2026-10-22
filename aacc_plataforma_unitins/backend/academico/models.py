@@ -150,6 +150,11 @@ class Certificado(models.Model):
     # Novos campos analíticos da IA
     horas_sugeridas_ia = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name="Horas Sugeridas IA")
     confianca_ia = models.IntegerField(null=True, blank=True, verbose_name="Confiança IA (%)")
+
+    # Rastreabilidade de titularidade documental (dupla checagem do nome — RN04)
+    nome_extraido_ocr = models.CharField(max_length=255, blank=True, null=True, verbose_name="Nome Extraído (OCR)")
+    titularidade_confirmada = models.BooleanField(default=True, verbose_name="Titularidade Confirmada")
+    similaridade_titularidade = models.FloatField(default=100.0, verbose_name="Similaridade da Titularidade (%)")
     
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='pendente_ocr', verbose_name="Status")
     motivo_status = models.CharField(max_length=255, blank=True, null=True, verbose_name="Motivo/Justificativa do Status")

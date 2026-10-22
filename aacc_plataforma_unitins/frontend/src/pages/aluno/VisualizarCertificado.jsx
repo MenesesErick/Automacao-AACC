@@ -204,7 +204,7 @@ export default function VisualizarCertificado() {
     <div className="min-h-screen bg-bg flex flex-col">
 
       {/* ── Barra de topo ─────────────────────────────────────────────────── */}
-      <header className="h-14 bg-bg-surface border-b border-border flex items-center gap-4 px-4 shrink-0">
+      <header className="h-16 bg-bg-surface border-b border-border flex items-center gap-4 px-4 shrink-0">
         <button
           onClick={() => navigate(-1)}
           className="flex items-center gap-2 text-label text-text-secondary hover:text-text-primary transition-colors"

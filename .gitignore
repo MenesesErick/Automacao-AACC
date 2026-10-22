@@ -23,6 +23,7 @@ build/
 # IDE / OS
 .vscode/
 .idea/
+.cursor/
 .DS_Store
 
 aacc_plataforma_unitins/frontend/node_modules/

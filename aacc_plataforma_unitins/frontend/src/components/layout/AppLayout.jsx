@@ -11,7 +11,7 @@ export function AppLayout({ children, title, breadcrumb }) {
   const [collapsed, setCollapsed] = useState(false)
 
   return (
-    <div className="min-h-screen bg-white flex">
+    <div className="min-h-screen bg-bg flex">
       <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
 
       {/* Área principal */}
@@ -24,7 +24,7 @@ export function AppLayout({ children, title, breadcrumb }) {
       >
         <Header title={title} breadcrumb={breadcrumb} sidebarCollapsed={collapsed} />
 
-        <main className="flex-1 mt-14 bg-gray-50 p-6 sm:p-8 lg:p-10 overflow-auto">
+        <main className="flex-1 mt-16 bg-bg p-6 sm:p-8 lg:p-10 overflow-auto">
           {children}
         </main>
       </div>

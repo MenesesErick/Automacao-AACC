@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/utils/cn'
+import { AppLayout } from '@/components/layout/AppLayout'
 import { categoriasService, certificadosService } from '@/services/api/endpoints'
 
 // ─── Agrupamento de categorias por eixo ──────────────────────────────────────
@@ -137,6 +138,7 @@ export default function SubmeterCertificado() {
   const [analisando,       setAnalisando]       = useState(false)
   const [coPilotoUsado,    setCoPilotoUsado]    = useState(false)
   const [leituraImagem,    setLeituraImagem]    = useState(false)
+  const [titularidadeInfo, setTitularidadeInfo] = useState(null)
   const [submitting,       setSubmitting]       = useState(false)
   const [sucesso,          setSucesso]          = useState(false)
   const [erros,            setErros]            = useState({
@@ -161,16 +163,26 @@ export default function SubmeterCertificado() {
     setAnalisando(true)
     setCoPilotoUsado(false)
     setLeituraImagem(false)
+    setTitularidadeInfo(null)
 
     try {
       const { data } = await certificadosService.analisarPrevia(file)
       console.log("Resposta da API:", data)
       
-      if (data.titulo_sugerido || data.periodo_sugerido) {
-        setTitulo(data.titulo_sugerido || '')
-        setPeriodo(data.periodo_sugerido || '')
+      if (data.titulo_sugerido) setTitulo(data.titulo_sugerido)
+      if (data.periodo_sugerido) setPeriodo(data.periodo_sugerido)
+      setLeituraImagem(data.leitura_por_imagem === true)
+
+      if (data.titularidade_confirmada !== undefined && data.titularidade_confirmada !== null) {
+        setTitularidadeInfo({
+          confirmada: data.titularidade_confirmada,
+          nome_extraido: data.nome_extraido || data.nome_sugerido || '',
+          similaridade: Math.round(data.similaridade_titularidade ?? 100),
+        })
+      }
+
+      if (data.titulo_sugerido || data.periodo_sugerido || data.titularidade_confirmada !== undefined) {
         setCoPilotoUsado(true)
-        setLeituraImagem(data.leitura_por_imagem === true)
       } else {
         toast.info("A IA não conseguiu ler os dados automaticamente. Preencha manualmente.")
       }
@@ -229,24 +241,20 @@ export default function SubmeterCertificado() {
   const catSelecionada = categorias.find(c => String(c.id) === String(categoriaId))
 
   return (
-    <div className="min-h-screen bg-bg flex flex-col">
-
-      {/* ── Barra de topo ─────────────────────────────────────────────────── */}
-      <header className="h-14 bg-bg-surface border-b border-border flex items-center gap-4 px-4 shrink-0">
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-label text-text-secondary hover:text-text-primary transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Voltar
-        </button>
-        <span className="text-border">|</span>
-        <span className="text-label font-bold text-text-primary">Enviar Certificado AACC</span>
-      </header>
+    <AppLayout title="Enviar Certificado AACC">
 
       {/* ── Corpo centrado ────────────────────────────────────────────────── */}
-      <div className="flex-1 flex items-start justify-center p-6">
+      <div className="flex items-start justify-center">
         <div className="w-full max-w-2xl space-y-5">
+
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2 text-label text-text-secondary hover:text-text-primary transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Voltar
+          </button>
 
           {sucesso ? (
             /* ─ Banner de sucesso ─ */
@@ -376,6 +384,7 @@ export default function SubmeterCertificado() {
                         setTitulo('')
                         setPeriodo('')
                         setCoPilotoUsado(false)
+                        setTitularidadeInfo(null)
                       }}
                       className="mt-1.5 flex items-center gap-1 text-helper text-text-secondary hover:text-danger transition-colors"
                     >
@@ -386,26 +395,58 @@ export default function SubmeterCertificado() {
 
                 {/* ── Callout do Copiloto ──────────────────────────────── */}
                 {coPilotoUsado && (
-                  leituraImagem ? (
-                    // Alerta severo para imagens/PDFs escaneados
-                    <div className="flex gap-2.5 rounded-sm border border-orange-400 bg-orange-50 p-3 text-orange-900">
-                      <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-orange-500" />
-                      <p className="text-helper font-medium leading-relaxed">
-                        <span className="font-bold">Atenção: Este documento é uma imagem ou PDF escaneado.</span>{' '}
-                        A leitura automática pode conter falhas de reconhecimento.{' '}
-                        <span className="font-bold">Revise o Título e a Data com atenção redobrada antes de enviar.</span>
-                      </p>
-                    </div>
-                  ) : (
-                    // Alerta discreto para PDFs com camada de texto
-                    <div className="flex gap-2.5 rounded-sm border border-amber-300 bg-amber-50 p-3 text-amber-800">
-                      <Sparkles className="h-4 w-4 shrink-0 mt-0.5 text-amber-500" />
-                      <p className="text-helper font-medium leading-relaxed">
-                        Extraímos esses dados automaticamente do seu certificado.{' '}
-                        <span className="font-bold">Por favor, revise-os antes de enviar.</span>
-                      </p>
-                    </div>
-                  )
+                  <div className="space-y-2.5">
+                    {leituraImagem ? (
+                      // Alerta severo para imagens/PDFs escaneados
+                      <div className="flex gap-2.5 rounded-sm border border-orange-400 bg-orange-50 p-3 text-orange-900">
+                        <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-orange-500" />
+                        <p className="text-helper font-medium leading-relaxed">
+                          <span className="font-bold">Atenção: Este documento é uma imagem ou PDF escaneado.</span>{' '}
+                          A leitura automática pode conter falhas de reconhecimento.{' '}
+                          <span className="font-bold">Revise o Título e a Data com atenção redobrada antes de enviar.</span>
+                        </p>
+                      </div>
+                    ) : (
+                      // Alerta discreto para PDFs com camada de texto
+                      <div className="flex gap-2.5 rounded-sm border border-amber-300 bg-amber-50 p-3 text-amber-800">
+                        <Sparkles className="h-4 w-4 shrink-0 mt-0.5 text-amber-500" />
+                        <p className="text-helper font-medium leading-relaxed">
+                          Extraímos esses dados automaticamente do seu certificado.{' '}
+                          <span className="font-bold">Por favor, revise-os antes de enviar.</span>
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Verificação de Titularidade (RN04) */}
+                    {titularidadeInfo && (
+                      <div
+                        className={cn(
+                          'flex items-center gap-2.5 rounded-sm border px-3 py-2 text-helper transition-all',
+                          titularidadeInfo.confirmada
+                            ? 'border-success-muted bg-success-light/40 text-success'
+                            : 'border-danger-muted bg-danger-light/40 text-danger',
+                        )}
+                      >
+                        {titularidadeInfo.confirmada ? (
+                          <>
+                            <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
+                            <span className="font-medium">
+                              Titularidade Confirmada:{' '}
+                              {titularidadeInfo.nome_extraido ? `${titularidadeInfo.nome_extraido} ` : ''}
+                              ({titularidadeInfo.similaridade}% compatível)
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <AlertTriangle className="h-4 w-4 text-danger shrink-0" />
+                            <span className="font-medium leading-relaxed">
+                              Alerta de Titularidade (RN04): Nome do discente não identificado com clareza no documento. O envio passará por revisão manual rigorosa da coordenação.
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 )}
 
                 {/* ── Título da Atividade ──────────────────────────────── */}
@@ -488,13 +529,13 @@ export default function SubmeterCertificado() {
                     className={cn(
                       'flex-1 h-10 rounded-xs text-white font-semibold text-label transition-colors flex items-center justify-center gap-2',
                       submitting || loadingCats || analisando
-                        ? 'bg-primary/60 cursor-not-allowed'
-                        : 'bg-primary hover:bg-primary-hover',
+                        ? 'bg-primary/60 cursor-not-allowed text-white/80'
+                        : 'bg-primary hover:bg-primary-hover text-white',
                     )}
                   >
                     {submitting
-                      ? <><Loader2 className="h-4 w-4 animate-spin" /> A enviar...</>
-                      : <><Upload className="h-4 w-4" /> Enviar Certificado</>}
+                      ? <><Loader2 className="h-4 w-4 animate-spin text-white" /> <span className="text-white">A enviar...</span></>
+                      : <><Upload className="h-4 w-4 text-white" /> <span className="text-white">Enviar Certificado</span></>}
                   </button>
                 </div>
 
@@ -520,6 +561,6 @@ export default function SubmeterCertificado() {
 
         </div>
       </div>
-    </div>
+    </AppLayout>
   )
 }

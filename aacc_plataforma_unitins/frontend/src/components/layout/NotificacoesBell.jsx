@@ -62,23 +62,23 @@ export function NotificacoesBell() {
         type="button"
         onClick={() => { setAberto(o => !o); if (!aberto) carregar() }}
         aria-label={`Notificações${itens.length ? ` (${itens.length} não lidas)` : ''}`}
-        className="relative h-9 w-9 flex items-center justify-center rounded-full text-gray-600 hover:bg-gray-100 transition-colors"
+        className="relative h-9 w-9 flex items-center justify-center rounded-xs text-primary hover:bg-primary-light transition-colors"
       >
-        <Bell className="h-5 w-5" />
+        <Bell className="h-5 w-5 text-primary" />
         {itens.length > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center">
+          <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-danger text-white text-[10px] font-bold flex items-center justify-center">
             {itens.length > 9 ? '9+' : itens.length}
           </span>
         )}
       </button>
 
       {aberto && (
-        <div className="absolute right-0 mt-2 w-80 max-w-[90vw] bg-white border border-gray-200 rounded-sm shadow-lg z-50 overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-200 bg-gray-50">
-            <p className="text-label font-semibold text-gray-800">Notificações</p>
+        <div className="absolute right-0 mt-2 w-80 max-w-[90vw] surface z-50 overflow-hidden">
+          <div className="flex items-center justify-between bg-primary text-white text-xs uppercase tracking-wider px-4 py-2.5">
+            <p className="font-semibold text-white">Notificações</p>
             {itens.length > 0 && (
               <button type="button" onClick={marcarTodas}
-                className="flex items-center gap-1 text-helper text-primary hover:underline">
+                className="flex items-center gap-1 text-[11px] text-white/90 hover:text-white hover:underline">
                 <CheckCheck className="h-3.5 w-3.5" /> Marcar todas
               </button>
             )}

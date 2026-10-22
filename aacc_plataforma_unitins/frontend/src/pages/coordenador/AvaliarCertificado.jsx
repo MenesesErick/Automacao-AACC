@@ -18,7 +18,7 @@ import {
   AlertTriangle, Hourglass, Eye, Layers, Hash,
   Calendar, TrendingDown, ShieldCheck, Info, Scissors,
   UserCircle, GraduationCap, BadgeCheck, MessageSquareX,
-  BookOpen, X as XIcon, AlertCircle,
+  BookOpen, X as XIcon, AlertCircle, FileText, CalendarRange, Clock, ChevronDown,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/utils/cn'
@@ -252,7 +252,94 @@ function CardAluno({ cert }) {
   )
 }
 
-// ─── Banner "Já Avaliado" ─────────────────────────────────────────────────────
+// ─── Detalhes do Certificado ──────────────────────────────────────────────────
+
+function fmtHoras(v) {
+  if (v === null || v === undefined || v === '') return '—'
+  const n = Number(v)
+  return Number.isNaN(n) ? '—' : `${n}h`
+}
+
+function fmtData(iso) {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleString('pt-BR', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  })
+}
+
+function DetalhesCertificado({ cert }) {
+  const [verOcr, setVerOcr] = useState(false)
+  const horasDeclaradas = Number(cert.horas_declaradas)
+  const horasOcr = cert.horas_validadas_ocr
+  const divergente =
+    horasDeclaradas > 0 && horasOcr != null && Number(horasOcr) > 0 &&
+    Number(horasOcr) !== horasDeclaradas
+
+  return (
+    <div className="space-y-3">
+      <div className="bg-bg rounded-sm border border-border">
+        <MetaRow icon={FileText} label="Título da Atividade" value={cert.titulo_atividade || '—'} />
+        <MetaRow icon={CalendarRange} label="Período de Realização" value={cert.periodo_realizacao || '—'} />
+        <MetaRow icon={Layers} label="Eixo Formativo" value={cert.categoria_obj?.eixo || '—'} />
+        <MetaRow icon={Hourglass} label="Horas Declaradas pelo Aluno" value={fmtHoras(cert.horas_declaradas)} />
+        <MetaRow
+          icon={Eye}
+          label="Horas Lidas no PDF (OCR)"
+          value={fmtHoras(horasOcr)}
+          valueClass={divergente ? 'text-warning' : ''}
+        />
+        <MetaRow
+          icon={cert.titularidade_confirmada ? ShieldCheck : AlertTriangle}
+          label="Titularidade Documental"
+          value={
+            cert.titularidade_confirmada
+              ? `Confirmada • ${Math.round(cert.similaridade_titularidade ?? 100)}%${cert.nome_extraido_ocr ? ` (${cert.nome_extraido_ocr})` : ''}`
+              : `Divergente / Não identificado — Verificar PDF${cert.nome_extraido_ocr ? ` (Lido: ${cert.nome_extraido_ocr})` : ''}`
+          }
+          valueClass={cert.titularidade_confirmada ? 'text-success' : 'text-danger font-semibold'}
+        />
+      </div>
+
+      {cert.titularidade_confirmada === false && (
+        <div className="flex items-start gap-2 bg-danger-light/60 border border-danger-muted rounded-xs p-2.5 text-danger">
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+          <p className="text-helper font-medium">
+            Alerta de Titularidade (RN04): Nome do discente não identificado com clareza no documento{cert.nome_extraido_ocr ? ` (OCR extraiu "${cert.nome_extraido_ocr}")` : ''}. O envio requer revisão manual rigorosa da coordenação.
+          </p>
+        </div>
+      )}
+
+      {divergente && (
+        <div className="flex items-start gap-2 bg-warning-light/60 border border-warning-muted rounded-xs p-2.5 text-yellow-700">
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+          <p className="text-helper font-medium">
+            O aluno declarou {horasDeclaradas}h, mas o OCR leu {Number(horasOcr)}h no documento. Confira o PDF.
+          </p>
+        </div>
+      )}
+
+      {cert.texto_extraido_ocr && (
+        <div className="bg-bg rounded-sm border border-border">
+          <button
+            type="button"
+            onClick={() => setVerOcr((v) => !v)}
+            className="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-helper font-semibold text-text-primary"
+          >
+            <span>Texto extraído do PDF (OCR)</span>
+            <ChevronDown className={cn('h-4 w-4 transition-transform', verOcr && 'rotate-180')} />
+          </button>
+          {verOcr && (
+            <pre className="px-3 pb-3 max-h-48 overflow-auto whitespace-pre-wrap break-words text-helper text-text-secondary font-sans border-t border-border pt-2">
+              {cert.texto_extraido_ocr}
+            </pre>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 
 function BannerAvaliado({ cert }) {
   const isAprovado = cert.status === 'aprovado'
@@ -548,7 +635,7 @@ export default function AvaliarCertificado() {
       )}
 
       {/* ── Barra de topo ─────────────────────────────────────────────────── */}
-      <header className="h-14 bg-bg-surface border-b border-border flex items-center gap-4 px-4 shrink-0">
+      <header className="h-16 bg-bg-surface border-b border-border flex items-center gap-4 px-4 shrink-0">
         <button
           onClick={() => navigate(-1)}
           className="flex items-center gap-2 text-label text-text-secondary hover:text-text-primary transition-colors"
@@ -617,6 +704,12 @@ export default function AvaliarCertificado() {
               <CardAluno cert={cert} />
             </div>
 
+            {/* 1b. Detalhes do Certificado */}
+            <div>
+              <SectionTitle>Dados do Certificado</SectionTitle>
+              <DetalhesCertificado cert={cert} />
+            </div>
+
             {/* 2. Ideia B: Termômetro de Categoria (com botão Ver Regra – Ideia C) */}
             <div>
               <SectionTitle>Contexto da Categoria</SectionTitle>
@@ -643,6 +736,16 @@ export default function AvaliarCertificado() {
                   value={cert.indice_confianca_ocr != null ? `${cert.indice_confianca_ocr}%` : '—'}
                   valueClass={Number(cert.indice_confianca_ocr) >= 70 ? 'text-success' : 'text-warning'}
                 />
+                <MetaRow
+                  icon={cert.titularidade_confirmada ? ShieldCheck : AlertTriangle}
+                  label="Titularidade Documental"
+                  value={
+                    cert.titularidade_confirmada
+                      ? `Confirmada • ${Math.round(cert.similaridade_titularidade ?? 100)}%`
+                      : 'Divergente / Não identificado — Verificar PDF'
+                  }
+                  valueClass={cert.titularidade_confirmada ? 'text-success' : 'text-danger font-semibold'}
+                />
                 {cert.horas_computadas_final != null && (
                   <MetaRow
                     icon={CheckCircle2}
@@ -659,6 +762,13 @@ export default function AvaliarCertificado() {
                     valueClass="text-danger"
                   />
                 )}
+                <MetaRow
+                  icon={Eye}
+                  label="Confiança da IA"
+                  value={(cert.confianca_ia ?? cert.indice_confianca_ocr) != null ? `${cert.confianca_ia ?? cert.indice_confianca_ocr}%` : '—'}
+                  valueClass={Number(cert.confianca_ia ?? cert.indice_confianca_ocr) >= 70 ? 'text-success' : 'text-warning'}
+                />
+                <MetaRow icon={Clock} label="Última Atualização" value={fmtData(cert.data_atualizacao)} />
                 <MetaRow icon={Hash} label="ID Interno" value={`#${cert.id}`} />
               </div>
             </div>

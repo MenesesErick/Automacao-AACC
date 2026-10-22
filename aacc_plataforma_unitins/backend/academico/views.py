@@ -261,8 +261,20 @@ class CertificadoViewSet(viewsets.ModelViewSet):
 
         # 3. Atualiza o certificado com os dados do OCR nos campos analíticos dedicados
         certificado.horas_sugeridas_ia = ocr.horas_encontradas or 0
+
+        # 2b. Dupla checagem de titularidade (nome lido x nome do aluno) — RN04
+        from academico.services.ocr_service import extrair_e_validar_titularidade
+        nome_aluno = user.get_full_name().strip() or user.first_name or ""
+        titularidade = extrair_e_validar_titularidade(ocr.texto_extraido or "", nome_aluno or None)
+        certificado.nome_extraido_ocr = (titularidade["nome_extraido"] or "")[:255] or None
+        certificado.titularidade_confirmada = titularidade["titularidade_confirmada"]
+        certificado.similaridade_titularidade = titularidade["similaridade_titularidade"]
+        divergencia_titular = bool(nome_aluno) and not titularidade["titularidade_confirmada"]
+        if divergencia_titular and ocr.indice_confianca is not None:
+            # Trava RN04: confiança < 70% → revisão manual obrigatória
+            ocr.indice_confianca = min(float(ocr.indice_confianca), 65.0)
+
         certificado.confianca_ia       = int(ocr.indice_confianca) if ocr.indice_confianca else 0
-        
         # Mantendo para compatibilidade/redundância se necessário
         certificado.horas_validadas_ocr = ocr.horas_encontradas or 0
         certificado.texto_extraido_ocr  = ocr.texto_extraido or ""
@@ -277,8 +289,18 @@ class CertificadoViewSet(viewsets.ModelViewSet):
             else f"OCR não localizou horas. Erro: {ocr.erro or 'texto insuficiente'}. "
                  "Aguarda revisão manual."
         )
+        if divergencia_titular:
+            certificado.motivo_status = (
+                f"ALERTA RN04: divergência de titularidade (nome lido: "
+                f"'{certificado.nome_extraido_ocr or 'não identificado'}', "
+                f"similaridade {titularidade['similaridade_titularidade']}%). "
+                + (certificado.motivo_status or "")
+            )[:255]
 
         certificado.save(update_fields=[
+            "nome_extraido_ocr",
+            "titularidade_confirmada",
+            "similaridade_titularidade",
             "horas_declaradas",
             "horas_validadas_ocr",
             "texto_extraido_ocr",
@@ -623,6 +645,11 @@ class AnalisePreviaView(APIView):
         titulo_sugerido = ""
         periodo_sugerido = ""
         leitura_por_imagem = False
+        nome_sugerido = ""
+        titularidade_confirmada = True
+        similaridade_titularidade = 100.0
+        confianca_ocr = None
+        aviso_titularidade = ""
 
         try:
             import fitz  # PyMuPDF
@@ -759,6 +786,27 @@ class AnalisePreviaView(APIView):
             if not periodo_sugerido:
                 periodo_sugerido = str(datetime.datetime.now().year)
 
+            # --- TITULARIDADE: dupla checagem do nome do aluno (RN04) ---
+            from academico.services.ocr_service import (
+                extrair_e_validar_titularidade, analisar_carga_horaria,
+            )
+            nome_aluno = request.user.get_full_name().strip() or request.user.first_name or ""
+            titularidade = extrair_e_validar_titularidade(texto_completo, nome_aluno or None)
+            nome_sugerido = titularidade["nome_extraido"] or ""
+            titularidade_confirmada = titularidade["titularidade_confirmada"]
+            similaridade_titularidade = titularidade["similaridade_titularidade"]
+
+            try:
+                _, confianca_ocr, _ = analisar_carga_horaria(texto_completo)
+            except Exception:
+                confianca_ocr = None
+            if nome_aluno and not titularidade_confirmada:
+                confianca_ocr = min(confianca_ocr if confianca_ocr is not None else 65, 65)
+                aviso_titularidade = (
+                    "O nome identificado no documento diverge do nome do aluno. "
+                    "O certificado será encaminhado para revisão manual."
+                )
+
         except Exception as exc:
             logger.warning("[AnalisePrévia] Extração falhou para '%s': %s", arquivo.name, exc)
             # Retorna vazio — o aluno preenche manualmente
@@ -767,6 +815,12 @@ class AnalisePreviaView(APIView):
             "titulo_sugerido": titulo_sugerido[:255] if titulo_sugerido else "",
             "periodo_sugerido": periodo_sugerido[:100] if periodo_sugerido else "",
             "leitura_por_imagem": leitura_por_imagem,
+            "nome_sugerido": nome_sugerido,
+            "nome_extraido": nome_sugerido,
+            "titularidade_confirmada": titularidade_confirmada,
+            "similaridade_titularidade": similaridade_titularidade,
+            "confianca_ocr": confianca_ocr,
+            "aviso_titularidade": aviso_titularidade,
         })
 
 

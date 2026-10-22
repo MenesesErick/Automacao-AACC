@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, BookOpen, Users,
-  Settings, PanelLeft, ShieldCheck, LogOut,
+  Settings, PanelLeft, LogOut,
   GraduationCap
 } from 'lucide-react'
 import { cn } from '@/utils/cn'
@@ -25,24 +25,31 @@ function AdminSidebar({ collapsed, onToggle }) {
   return (
     <aside
       className={cn(
-        'fixed left-0 top-0 h-screen z-30',
-        'bg-slate-900 border-r border-slate-800 text-white',
+        'fixed left-0 top-0 h-screen z-30 text-white',
+        'bg-[#051324] border-r border-sidebar-border',
         'flex flex-col transition-[width] duration-300 ease-in-out',
         collapsed ? 'w-16' : 'w-60',
       )}
     >
-      {/* ── Logo ─────────────────────────────────────────────── */}
-      <div className="flex items-center border-b border-slate-800 shrink-0 h-14 px-3 gap-2.5">
-        <div className="h-7 w-7 rounded-xs bg-slate-700 flex items-center justify-center shrink-0">
-          <ShieldCheck className="h-4 w-4 text-white" />
+      {/* ── Marca Unitins Admin ──────────────────────────────── */}
+      <div
+        className={cn(
+          'shrink-0 border-b border-sidebar-border bg-[#06182C]',
+          collapsed
+            ? 'flex flex-col items-center justify-center px-2 py-3 gap-2'
+            : 'h-16 px-4 flex items-center gap-3',
+        )}
+      >
+        <div className="h-9 w-9 rounded-sm border border-gold/60 bg-primary text-gold font-extrabold flex items-center justify-center shrink-0 text-sm">
+          U
         </div>
         {!collapsed && (
           <div className="flex flex-col min-w-0 flex-1">
-            <span className="text-sm font-bold leading-tight truncate text-white">
-              AACC Platform
+            <span className="font-extrabold tracking-widest text-white text-base leading-none truncate">
+              UNITINS
             </span>
-            <span className="text-slate-400 truncate" style={{ fontSize: '10px' }}>
-              Painel Sistêmico
+            <span className="text-gold uppercase tracking-widest text-[10px] font-semibold mt-1 truncate">
+              Administração Sistêmica
             </span>
           </div>
         )}
@@ -50,8 +57,8 @@ function AdminSidebar({ collapsed, onToggle }) {
           onClick={onToggle}
           title={collapsed ? 'Expandir menu' : 'Colapsar menu'}
           className={cn(
-            'rounded-xs p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors',
-            collapsed && 'mx-auto',
+            'rounded-xs p-1.5 text-primary-muted hover:bg-sidebar-hover hover:text-white transition-colors',
+            collapsed && 'mx-auto flex items-center justify-center w-8 h-8',
           )}
         >
           <PanelLeft className={cn('h-4 w-4 transition-transform duration-300', collapsed && 'rotate-180')} />
@@ -61,8 +68,8 @@ function AdminSidebar({ collapsed, onToggle }) {
       {/* ── Navegação ────────────────────────────────────────── */}
       <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
         {!collapsed && (
-          <p className="px-2 mb-2 text-xs text-slate-500 font-semibold uppercase tracking-widest">
-            Administração
+          <p className="text-[10px] font-bold uppercase tracking-widest text-primary-muted/70 px-3 mb-2">
+            Menu
           </p>
         )}
         {NAV_ADMIN.map((item) => (
@@ -71,17 +78,24 @@ function AdminSidebar({ collapsed, onToggle }) {
             to={item.to}
             title={collapsed ? item.label : undefined}
             className={({ isActive }) => cn(
-              'flex items-center gap-3 px-3 py-2 rounded-xs transition-colors duration-200',
-              isActive 
-                ? 'bg-slate-800 text-white font-medium' 
-                : 'text-slate-300 hover:bg-slate-800 hover:text-white',
-              collapsed && 'justify-center'
+              'flex items-center gap-3 px-3 py-2 rounded-xs',
+              'uppercase tracking-wider text-xs font-semibold',
+              'transition-colors duration-normal',
+              isActive
+                ? 'bg-sidebar-active text-white border-l-4 border-gold pl-2'
+                : 'text-gray-300 hover:bg-sidebar-hover hover:text-white',
+              collapsed && 'justify-center',
             )}
           >
             {({ isActive }) => (
               <>
-                <item.icon className={cn('h-4 w-4 shrink-0', isActive ? 'text-white' : 'text-slate-400')} />
-                {!collapsed && <span className="truncate text-sm">{item.label}</span>}
+                <item.icon
+                  className={cn(
+                    'h-4 w-4 shrink-0',
+                    isActive ? 'text-gold' : 'text-primary-muted',
+                  )}
+                />
+                {!collapsed && <span className="truncate">{item.label}</span>}
               </>
             )}
           </NavLink>
@@ -89,22 +103,29 @@ function AdminSidebar({ collapsed, onToggle }) {
       </nav>
 
       {/* ── Rodapé ───────────────────────────────────────────── */}
-      <div className="px-2 py-2 border-t border-slate-800 shrink-0 space-y-0.5">
+      <div className="px-2 py-2 border-t border-sidebar-border shrink-0 space-y-0.5">
         <NavLink
           to="/configuracoes"
           title={collapsed ? 'Configurações' : undefined}
           className={({ isActive }) => cn(
-            'flex items-center gap-3 px-3 py-2 rounded-xs transition-colors duration-200',
-            isActive 
-              ? 'bg-slate-800 text-white font-medium' 
-              : 'text-slate-300 hover:bg-slate-800 hover:text-white',
-            collapsed && 'justify-center'
+            'flex items-center gap-3 px-3 py-2 rounded-xs',
+            'uppercase tracking-wider text-xs font-semibold',
+            'transition-colors duration-normal',
+            isActive
+              ? 'bg-sidebar-active text-white border-l-4 border-gold pl-2'
+              : 'text-gray-300 hover:bg-sidebar-hover hover:text-white',
+            collapsed && 'justify-center',
           )}
         >
           {({ isActive }) => (
             <>
-              <Settings className={cn('h-4 w-4 shrink-0', isActive ? 'text-white' : 'text-slate-400')} />
-              {!collapsed && <span className="truncate text-sm">Configurações</span>}
+              <Settings
+                className={cn(
+                  'h-4 w-4 shrink-0',
+                  isActive ? 'text-gold' : 'text-primary-muted',
+                )}
+              />
+              {!collapsed && <span className="truncate">Configurações</span>}
             </>
           )}
         </NavLink>
@@ -114,13 +135,14 @@ function AdminSidebar({ collapsed, onToggle }) {
           title="Sair"
           className={cn(
             'w-full flex items-center gap-3 px-3 py-2 rounded-xs',
-            'text-slate-300 hover:bg-red-500/10 hover:text-red-400',
-            'transition-colors duration-200 mt-1',
+            'text-gray-300 hover:bg-danger-light hover:text-danger',
+            'uppercase tracking-wider text-xs font-semibold',
+            'transition-colors duration-normal mt-1 group',
             collapsed && 'justify-center',
           )}
         >
-          <LogOut className="h-4 w-4 shrink-0" />
-          {!collapsed && <span className="truncate text-sm">Sair</span>}
+          <LogOut className="h-4 w-4 shrink-0 text-primary-muted group-hover:text-danger" />
+          {!collapsed && <span className="truncate">Sair</span>}
         </button>
       </div>
     </aside>
@@ -128,13 +150,13 @@ function AdminSidebar({ collapsed, onToggle }) {
 }
 
 /**
- * Layout exclusivo para o Administrador, com Sidebar escura.
+ * Layout exclusivo para o Administrador, com Sidebar institucional sóbria.
  */
 export function AdminLayout({ children, title, breadcrumb }) {
   const [collapsed, setCollapsed] = useState(false)
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-bg flex">
       <AdminSidebar collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
 
       {/* Área principal */}
@@ -145,13 +167,13 @@ export function AdminLayout({ children, title, breadcrumb }) {
           collapsed ? 'ml-16' : 'ml-60',
         )}
       >
-        <Header 
-          title={title} 
-          breadcrumb={breadcrumb || 'Painel de Administração Sistêmica'} 
-          sidebarCollapsed={collapsed} 
+        <Header
+          title={title}
+          breadcrumb={breadcrumb || 'Painel de Administração Sistêmica'}
+          sidebarCollapsed={collapsed}
         />
 
-        <main className="flex-1 mt-14 bg-slate-50 p-6 sm:p-8 lg:p-10 overflow-auto">
+        <main className="flex-1 mt-16 bg-bg p-6 sm:p-8 lg:p-10 overflow-auto">
           {children}
         </main>
       </div>

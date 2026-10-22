@@ -23,7 +23,7 @@ const AnexoIPDF = React.forwardRef(function AnexoIPDF({ dados }, ref) {
   const { aluno, certificados = [], total_horas_validadas, data_emissao } = dados
 
   // Mínimo de linhas vazias para manter a tabela com tamanho fixo
-  const MIN_ROWS = 9
+  const MIN_ROWS = 5
   const linhasVazias = Math.max(0, MIN_ROWS - certificados.length)
 
   const styles = {
@@ -32,30 +32,28 @@ const AnexoIPDF = React.forwardRef(function AnexoIPDF({ dados }, ref) {
       color: "#000",
       fontSize: "11.5px",
       maxWidth: "900px",
-      margin: "20px auto",
-      padding: "20px",
+      margin: "0 auto",
+      padding: "0 15mm",
       background: "#fff",
+      boxSizing: "border-box",
+      position: "relative",
     },
     headerImg: {
       width: "100%",
-      maxWidth: "700px",
+      maxWidth: "550px",
       display: "block",
       margin: "0 auto 6px auto",
-    },
-    sgd: {
-      textAlign: "right",
-      fontSize: "11px",
-      marginTop: "-30px",
-      marginBottom: "10px",
     },
     h1: {
       textAlign: "center",
       fontSize: "13px",
+      fontWeight: "bold",
       margin: "10px 0 4px 0",
     },
     h2: {
       textAlign: "center",
       fontSize: "13px",
+      fontWeight: "bold",
       margin: "0 0 18px 0",
     },
     campoLinha: {
@@ -106,7 +104,7 @@ const AnexoIPDF = React.forwardRef(function AnexoIPDF({ dados }, ref) {
     },
     assinatura: {
       textAlign: "center",
-      marginTop: "70px",
+      marginTop: "45px",
       fontSize: "12.5px",
     },
     assinaturaLinha: {
@@ -114,29 +112,10 @@ const AnexoIPDF = React.forwardRef(function AnexoIPDF({ dados }, ref) {
       width: "320px",
       margin: "0 auto 4px auto",
     },
-    rodapeDocTable: {
-      marginTop: "60px",
-      borderCollapse: "collapse",
+    rodapeDoc: {
+      marginTop: "20px",
+      paddingTop: "8px",
       width: "100%",
-    },
-    rodapeDocTd: {
-      border: "none",
-      padding: "0",
-      textAlign: "left",
-      verticalAlign: "top",
-    },
-    qrCell: {
-      border: "none",
-      padding: "0",
-      paddingRight: "10px",
-      textAlign: "left",
-      verticalAlign: "top",
-      width: "78px",
-    },
-    qrImg: {
-      width: "70px",
-      height: "auto",
-      display: "block",
     },
     texto: {
       fontSize: "8px",
@@ -145,153 +124,167 @@ const AnexoIPDF = React.forwardRef(function AnexoIPDF({ dados }, ref) {
   }
 
   return (
-    <div ref={ref} style={styles.page}>
+    <div ref={ref} className="anexo-print-page" style={styles.page}>
       <style type="text/css" media="print">
         {`
-          @page { size: A4 landscape; margin: 15mm; }
-          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          @page {
+            size: A4 landscape;
+            margin: 0;
+          }
+          @media print {
+            html, body {
+              margin: 0 !important;
+              padding: 0 !important;
+              background: #fff !important;
+              background-color: #fff !important;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            .anexo-print-page {
+              margin: 0 auto !important;
+              padding: 0 15mm !important;
+              box-sizing: border-box !important;
+              max-width: 100% !important;
+              background: #fff !important;
+              background-color: #fff !important;
+            }
+            .anexo-rodape-doc {
+              margin-top: 20px !important;
+              padding-top: 8px !important;
+            }
+          }
         `}
       </style>
-      
-      {/* Cabeçalho institucional */}
-      <img style={styles.headerImg} src={logoUnitins} alt="Cabeçalho UNITINS / TOCANTINS" />
 
-      <div style={styles.sgd}>SGD: {data_emissao?.replace(/\//g, "/")}</div>
-
-      <h1 style={styles.h1}>ANEXO I</h1>
-      <h2 style={styles.h2}>REQUERIMENTO DE CONTABILIZAÇÃO DE CARGA HORÁRIA PARA AS ATIVIDADES</h2>
-
-      {/* Campos do aluno */}
-      <div style={styles.campoLinha}>
-        <strong>Nome do aluno</strong>:{" "}
-        <span style={{ ...styles.blank, width: "480px", display: "inline-block" }}>
-          {aluno?.nome ?? ""}
-        </span>
-        {"  "}
-        <strong>Matrícula:</strong>{" "}
-        <span style={{ ...styles.blank, width: "130px", display: "inline-block" }}>
-          {aluno?.matricula ?? ""}
-        </span>
-      </div>
-
-      <div style={styles.campoLinha}>
-        <strong>Curso:</strong>{" "}
-        <span style={{ ...styles.blank, width: "220px", display: "inline-block" }}>
-          {aluno?.curso ?? ""}
-        </span>
-        {"  "}
-        <strong>Câmpus:</strong>{" "}
-        <span style={{ ...styles.blank, width: "150px", display: "inline-block" }}>
-          {aluno?.campus ?? "Palmas - TO"}
-        </span>
-        {"  "}
-        <strong>Semestre:</strong>{" "}
-        <span style={{ ...styles.blank, width: "70px", display: "inline-block" }}>
-          {aluno?.semestre ?? ""}
-        </span>
-        {"  "}
-        <strong>Turno:</strong>{" "}
-        <span style={{ ...styles.blank, width: "100px", display: "inline-block" }}>
-          {aluno?.turno ?? ""}
-        </span>
-      </div>
-
-      {/* Tabela de atividades */}
-      <table style={styles.table}>
+      <table style={{ width: "100%", borderCollapse: "collapse", border: "none" }}>
         <thead>
-          <tr>
-            <th style={{ ...styles.th, width: "32%" }}>Atividade</th>
-            <th style={{ ...styles.th, width: "22%" }}>
-              Especificação<br />
-              (Ensino, Pesquisa ou Extensão)
-            </th>
-            <th style={{ ...styles.th, width: "16%" }}>Período de realização</th>
-            <th style={{ ...styles.th, width: "15%" }}>Total de horas<br />(solicitadas)</th>
-            <th style={{ ...styles.th, width: "15%" }}>Total de horas<br />(validadas)</th>
-          </tr>
+          <tr><td style={{ border: "none", padding: 0, height: "10mm" }} /></tr>
         </thead>
-        <tbody>
-          {certificados.map((cert, i) => (
-            <tr key={i}>
-              <td style={{ ...styles.td, textAlign: "left" }}>{cert.titulo_atividade}</td>
-              <td style={styles.td}>{cert.eixo_formativo}</td>
-              <td style={styles.td}>{cert.periodo_realizacao}</td>
-              <td style={styles.td}>{cert.horas_solicitadas}</td>
-              <td style={styles.td}>{cert.horas_validadas}</td>
-            </tr>
-          ))}
-          {Array.from({ length: linhasVazias }).map((_, i) => (
-            <tr key={`vazia-${i}`}>
-              <td style={styles.tdVazia}>&nbsp;</td>
-              <td style={styles.tdVazia}>&nbsp;</td>
-              <td style={styles.tdVazia}>&nbsp;</td>
-              <td style={styles.tdVazia}>&nbsp;</td>
-              <td style={styles.tdVazia}>&nbsp;</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {/* Rodapé da tabela */}
-      <div style={styles.rodapeTabela}>
-        <div>
-          <strong>Local:</strong>{" "}
-          <span style={{ ...styles.blank, width: "250px", display: "inline-block" }}>
-            {aluno?.campus ?? "Palmas - TO"}
-          </span>
-        </div>
-        <div>
-          <strong>Data:</strong>{" "}
-          <span style={{ ...styles.blank, width: "100px", display: "inline-block" }}>
-            {data_emissao ?? ""}
-          </span>
-        </div>
-      </div>
-
-      {/* Encaminhamento */}
-      <div style={styles.encaminhamento}>
-        Encaminhe-se à Secretária Acadêmica para lançamento do total de{" "}
-        <span style={{ ...styles.blank, width: "50px", display: "inline-block" }}>
-          {total_horas_validadas}
-        </span>{" "}
-        horas atividades no histórico do acadêmico.
-      </div>
-
-      {/* Assinatura */}
-      <div style={styles.assinatura}>
-        <div style={styles.assinaturaLinha} />
-        Coordenação do Curso (assinatura digital)
-      </div>
-
-      {/* Rodapé do documento */}
-      <table style={styles.rodapeDocTable}>
+        <tfoot>
+          <tr><td style={{ border: "none", padding: 0, height: "10mm" }} /></tr>
+        </tfoot>
         <tbody>
           <tr>
-            <td style={styles.qrCell}>
-              {/* QR code placeholder — substituir por QR real se necessário */}
-              <div
-                style={{
-                  width: 70,
-                  height: 70,
-                  border: "1px solid #ccc",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "8px",
-                  color: "#888",
-                }}
-              >
-                QR
+            <td style={{ border: "none", padding: 0 }}>
+
+              {/* Cabeçalho institucional */}
+              <img style={styles.headerImg} src={logoUnitins} alt="Cabeçalho UNITINS / TOCANTINS" />
+
+              <h1 style={styles.h1}>ANEXO I</h1>
+              <h2 style={styles.h2}>REQUERIMENTO DE CONTABILIZAÇÃO DE CARGA HORÁRIA PARA AS ATIVIDADES</h2>
+
+              {/* Campos do aluno */}
+              <div style={styles.campoLinha}>
+                <strong>Nome do aluno</strong>:{" "}
+                <span style={{ ...styles.blank, width: "480px", display: "inline-block" }}>
+                  {aluno?.nome ?? ""}
+                </span>
+                {"  "}
+                <strong>Matrícula:</strong>{" "}
+                <span style={{ ...styles.blank, width: "130px", display: "inline-block" }}>
+                  {aluno?.matricula ?? ""}
+                </span>
               </div>
-            </td>
-            <td style={styles.rodapeDocTd}>
-              <div style={styles.texto}>
-                <p>
-                  Documento gerado eletronicamente pelo Sistema AACC &mdash; Unitins em{" "}
-                  {data_emissao ?? ""}.
-                </p>
-                <p>A autenticidade pode ser verificada junto à Secretaria Acadêmica.</p>
+
+              <div style={styles.campoLinha}>
+                <strong>Curso:</strong>{" "}
+                <span style={{ ...styles.blank, width: "220px", display: "inline-block" }}>
+                  {aluno?.curso ?? ""}
+                </span>
+                {"  "}
+                <strong>Câmpus:</strong>{" "}
+                <span style={{ ...styles.blank, width: "150px", display: "inline-block" }}>
+                  {aluno?.campus ?? "Palmas - TO"}
+                </span>
+                {"  "}
+                <strong>Semestre:</strong>{" "}
+                <span style={{ ...styles.blank, width: "70px", display: "inline-block" }}>
+                  {aluno?.semestre ?? ""}
+                </span>
+                {"  "}
+                <strong>Turno:</strong>{" "}
+                <span style={{ ...styles.blank, width: "100px", display: "inline-block" }}>
+                  {aluno?.turno ?? ""}
+                </span>
               </div>
+
+              {/* Tabela de atividades */}
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    <th style={{ ...styles.th, width: "32%" }}>Atividade</th>
+                    <th style={{ ...styles.th, width: "22%" }}>
+                      Especificação<br />
+                      (Ensino, Pesquisa ou Extensão)
+                    </th>
+                    <th style={{ ...styles.th, width: "16%" }}>Período de realização</th>
+                    <th style={{ ...styles.th, width: "15%" }}>Total de horas<br />(solicitadas)</th>
+                    <th style={{ ...styles.th, width: "15%" }}>Total de horas<br />(validadas)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {certificados.map((cert, i) => (
+                    <tr key={i}>
+                      <td style={{ ...styles.td, textAlign: "left" }}>{cert.titulo_atividade}</td>
+                      <td style={styles.td}>{cert.eixo_formativo}</td>
+                      <td style={styles.td}>{cert.periodo_realizacao}</td>
+                      <td style={styles.td}>{cert.horas_solicitadas}</td>
+                      <td style={styles.td}>{cert.horas_validadas}</td>
+                    </tr>
+                  ))}
+                  {Array.from({ length: linhasVazias }).map((_, i) => (
+                    <tr key={`vazia-${i}`}>
+                      <td style={styles.tdVazia}>&nbsp;</td>
+                      <td style={styles.tdVazia}>&nbsp;</td>
+                      <td style={styles.tdVazia}>&nbsp;</td>
+                      <td style={styles.tdVazia}>&nbsp;</td>
+                      <td style={styles.tdVazia}>&nbsp;</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* Rodapé da tabela */}
+              <div style={styles.rodapeTabela}>
+                <div>
+                  <strong>Local:</strong>{" "}
+                  <span style={{ ...styles.blank, width: "250px", display: "inline-block" }}>
+                    {aluno?.campus ?? "Palmas - TO"}
+                  </span>
+                </div>
+                <div>
+                  <strong>Data:</strong>{" "}
+                  <span style={{ ...styles.blank, width: "100px", display: "inline-block" }}>
+                    {data_emissao ?? ""}
+                  </span>
+                </div>
+              </div>
+
+              {/* Encaminhamento */}
+              <div style={styles.encaminhamento}>
+                Encaminhe-se à Secretária Acadêmica para lançamento do total de{" "}
+                <span style={{ ...styles.blank, width: "50px", display: "inline-block" }}>
+                  {total_horas_validadas}
+                </span>{" "}
+                horas atividades no histórico do acadêmico.
+              </div>
+
+              {/* Assinatura */}
+              <div style={styles.assinatura}>
+                <div style={styles.assinaturaLinha} />
+                Coordenação do Curso (assinatura digital)
+              </div>
+
+              {/* Rodapé do documento */}
+              <div className="anexo-rodape-doc" style={styles.rodapeDoc}>
+                <div style={styles.texto}>
+                  <p style={{ margin: 0 }}>
+                    Documento gerado eletronicamente pelo Sistema AACC &mdash; Unitins em{" "}
+                    {data_emissao ?? ""}.
+                  </p>
+                </div>
+              </div>
+
             </td>
           </tr>
         </tbody>

@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -8,7 +10,7 @@
   }
 
   html {
-    font-family: 'Inter', 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-family: 'Plus Jakarta Sans', 'Raleway', 'Inter', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     scroll-behavior: smooth;
@@ -53,26 +55,59 @@
     overflow: hidden;
   }
 
-  /* ── Surface card padrão ───────────────────────────── */
+  /* ── Surface card institucional ────────────────────── */
   .surface {
-    @apply bg-bg-surface border border-border rounded-sm shadow-sm;
+    background-color: #FFFFFF;
+    border: 1px solid #D1D5DB;
+    box-shadow: 0 1px 2px 0 rgba(0, 51, 102, 0.05);
+    @apply rounded-sm;
   }
 
-  /* ── Sidebar item base ─────────────────────────────── */
+  /* ── Barra ouro institucional ──────────────────────── */
+  .unitins-gold-bar {
+    display: block;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg, #F5A623 0%, #EAB308 50%, #F5A623 100%);
+  }
+
+  /* ── Fundo hero institucional ──────────────────────── */
+  .unitins-hero-pattern {
+    background-color: #003366;
+    background-image:
+      radial-gradient(ellipse 90% 70% at 100% -10%, rgba(245, 166, 35, 0.16) 0%, transparent 52%),
+      radial-gradient(ellipse 70% 60% at 0% 110%, rgba(0, 34, 68, 0.9) 0%, transparent 48%),
+      repeating-linear-gradient(
+        -18deg,
+        transparent 0,
+        transparent 18px,
+        rgba(255, 255, 255, 0.035) 18px,
+        rgba(255, 255, 255, 0.035) 19px
+      ),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 120' preserveAspectRatio='none'%3E%3Cpath fill='none' stroke='rgba(255,255,255,0.08)' stroke-width='1.2' d='M0 72 Q 180 20 360 72 T 720 72 T 1080 72 T 1440 72'/%3E%3Cpath fill='none' stroke='rgba(245,166,35,0.12)' stroke-width='1' d='M0 88 Q 180 40 360 88 T 720 88 T 1080 88 T 1440 88'/%3E%3C/svg%3E");
+    background-repeat: no-repeat, no-repeat, repeat, no-repeat;
+    background-position: top right, bottom left, 0 0, bottom center;
+    background-size: auto, auto, auto, 100% 72px;
+  }
+
+  /* ── Sidebar item base (Unitins / DSGOV) ───────────── */
   .sidebar-item {
     @apply flex items-center gap-3 px-3 py-2 rounded-xs
-           text-sidebar-text text-label font-medium
+           text-gray-300 uppercase tracking-wider text-xs font-semibold
            transition-colors duration-normal cursor-pointer select-none;
   }
   .sidebar-item:hover {
-    @apply bg-sidebar-hover text-text-primary;
+    @apply bg-sidebar-hover text-white;
+  }
+  .sidebar-item:hover .sidebar-icon {
+    @apply text-white;
   }
   .sidebar-item.active {
-    @apply bg-sidebar-active text-sidebar-textActive font-semibold
-           border-l-2 border-sidebar-activeBorder pl-[10px];
+    @apply bg-sidebar-active text-white font-semibold
+           border-l-4 border-gold pl-2;
   }
   .sidebar-item.active .sidebar-icon {
-    @apply text-sidebar-iconActive;
+    @apply text-gold;
   }
 
   /* ── Animação do Drawer ────────────────────────────── */
@@ -84,4 +119,3 @@
     to   { transform: translateX(0); }
   }
 }
-

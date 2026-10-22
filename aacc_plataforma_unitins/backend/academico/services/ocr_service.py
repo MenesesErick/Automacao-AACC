@@ -28,6 +28,8 @@ import io
 import os
 import re
 import logging
+import unicodedata
+from difflib import SequenceMatcher
 from collections import Counter
 from dataclasses import dataclass
 from typing import Optional
@@ -337,6 +339,86 @@ def analisar_carga_horaria(texto: str) -> tuple[float, int, str]:
     return horas, confianca, descricao
 
 
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  Titularidade documental (dupla checagem do nome — gatilho da RN04)
+# ─────────────────────────────────────────────────────────────────────────────
+
+LIMIAR_TITULARIDADE = 78.0
+
+_PADROES_NOME = [
+    r"certificamos\s+que\s+([A-ZÀ-Ÿ\s]{5,80}?)(?:,|\s+inscrit|\s+portador|\s+participou|\s+concluiu|\s+atuou|\s+CPF|\s+matr)",
+    r"declaramos.*?que\s+([A-ZÀ-Ÿ\s]{5,80}?)(?:,|\s+inscrit|\s+portador|\s+participou|\s+concluiu|\s+atuou|\s+é\s+alun|\s+cumpr)",
+    r"conferido\s+a\s+([A-ZÀ-Ÿ\s]{5,80}?)(?:,|\s+pela|\s+por)",
+]
+
+
+def _normalizar_nome(texto: str) -> str:
+    """Remove acentos, converte para MAIÚSCULAS e colapsa espaços."""
+    sem_acentos = "".join(
+        c for c in unicodedata.normalize("NFKD", texto or "") if not unicodedata.combining(c)
+    )
+    return re.sub(r"\s+", " ", sem_acentos.upper()).strip()
+
+
+def extrair_e_validar_titularidade(texto_extraido: str, nome_esperado: str = None) -> dict:
+    """
+    Extrai o nome do titular do documento e, se `nome_esperado` for informado,
+    faz a dupla checagem fuzzy de titularidade.
+
+    Retorna:
+        {"nome_extraido": str|None,
+         "titularidade_confirmada": bool,
+         "similaridade_titularidade": float (0–100)}
+    """
+    texto = texto_extraido or ""
+
+    # ── 1. Extração via Regex ────────────────────────────────────────────────
+    nome_extraido = None
+    for padrao in _PADROES_NOME:
+        m = re.search(padrao, texto, re.IGNORECASE | re.DOTALL)
+        if m:
+            candidato = re.sub(r"\s+", " ", m.group(1)).strip()
+            if candidato:
+                nome_extraido = candidato
+                break
+
+    if not nome_esperado or not nome_esperado.strip():
+        return {
+            "nome_extraido": nome_extraido,
+            "titularidade_confirmada": True,
+            "similaridade_titularidade": 100.0,
+        }
+
+    # ── 2. Dupla checagem fuzzy ──────────────────────────────────────────────
+    esperado = _normalizar_nome(nome_esperado)
+    sim = 0.0
+
+    if nome_extraido:
+        sim = SequenceMatcher(None, esperado, _normalizar_nome(nome_extraido)).ratio() * 100
+
+    # Janela deslizante de palavras sobre o texto completo (fallback p/ ruído severo)
+    palavras = _normalizar_nome(texto).split()
+    n = len(esperado.split())
+    melhor_janela, melhor_sim_janela = None, 0.0
+    for tam in {max(1, n - 1), n, n + 1}:
+        for i in range(0, max(0, len(palavras) - tam + 1)):
+            janela = " ".join(palavras[i:i + tam])
+            r = SequenceMatcher(None, esperado, janela).ratio() * 100
+            if r > melhor_sim_janela:
+                melhor_sim_janela, melhor_janela = r, janela
+
+    if melhor_sim_janela > sim:
+        sim = melhor_sim_janela
+        if not nome_extraido and sim >= LIMIAR_TITULARIDADE:
+            nome_extraido = melhor_janela
+
+    return {
+        "nome_extraido": nome_extraido,
+        "titularidade_confirmada": sim >= LIMIAR_TITULARIDADE,
+        "similaridade_titularidade": round(sim, 1),
+    }
 
 
 # ─────────────────────────────────────────────────────────────────────────────
