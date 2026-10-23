@@ -32,6 +32,8 @@ import os
 import random
 from xml.sax.saxutils import escape
 
+import fitz  # PyMuPDF
+from PIL import Image, ImageFilter
 from django.conf import settings
 from reportlab.lib.colors import HexColor
 from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
@@ -62,6 +64,45 @@ def _aplicar_template_fundo(c, tipo_doc: str, page_w: float, page_h: float, rng:
         return True
     except Exception:
         return False
+
+# ── Estratificação do dataset (Nível 1/2/3) ──────────────────────────────────
+DPI_RASTER = 200
+
+
+def _aplicar_nivel_dificuldade(pdf_bytes: bytes, nivel: int, rng: random.Random) -> bytes:
+    """
+    Nível 1: PDF vetorial nativo (retorna inalterado).
+    Nível 2: rasteriza a 200 DPI e regrava como PDF achatado (sem camada textual).
+    Nível 3: rasteriza, rotaciona (-2°..2°), aplica GaussianBlur(0.8) e regrava achatado.
+    """
+    if nivel not in (1, 2, 3):
+        raise ValueError(f"nivel_dificuldade inválido: {nivel} (use 1, 2 ou 3)")
+    if nivel == 1:
+        return pdf_bytes
+
+    with fitz.open(stream=pdf_bytes, filetype="pdf") as doc:
+        page = doc[0]
+        pix = page.get_pixmap(dpi=DPI_RASTER, alpha=False)
+        largura_pt, altura_pt = page.rect.width, page.rect.height
+
+        if nivel == 2:
+            saida = fitz.open()
+            nova = saida.new_page(width=largura_pt, height=altura_pt)
+            nova.insert_image(nova.rect, pixmap=pix)
+            try:
+                return saida.tobytes(deflate=True)
+            finally:
+                saida.close()
+
+        img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
+
+    angulo = rng.uniform(-2, 2)
+    img = img.rotate(angulo, resample=Image.BICUBIC, expand=False, fillcolor=(255, 255, 255))
+    img = img.filter(ImageFilter.GaussianBlur(radius=0.8))
+    buf = io.BytesIO()
+    img.save(buf, format="PDF", resolution=float(DPI_RASTER))
+    return buf.getvalue()
+
 
 # ── Paleta institucional ─────────────────────────────────────────────────────
 AZUL = HexColor("#003366")
@@ -423,6 +464,7 @@ def gerar_certificado_pdf(
     periodo: str,
     data_fim: datetime.date,
     rng: random.Random | None = None,
+    nivel_dificuldade: int = 1,
 ) -> bytes:
     """Gera um certificado comprobatório A4 paisagem e devolve os bytes do PDF."""
     rng = rng or random.Random()
@@ -534,7 +576,7 @@ def gerar_certificado_pdf(
 
     c.showPage()
     c.save()
-    return buf.getvalue()
+    return _aplicar_nivel_dificuldade(buf.getvalue(), nivel_dificuldade, rng)
 
 
 def gerar_declaracao_pdf(
@@ -550,6 +592,7 @@ def gerar_declaracao_pdf(
     periodo: str,
     data_fim: datetime.date,
     rng: random.Random | None = None,
+    nivel_dificuldade: int = 1,
 ) -> bytes:
     """Gera uma declaração comprobatória A4 retrato e devolve os bytes do PDF."""
     rng = rng or random.Random()
@@ -668,7 +711,7 @@ def gerar_declaracao_pdf(
 
     c.showPage()
     c.save()
-    return buf.getvalue()
+    return _aplicar_nivel_dificuldade(buf.getvalue(), nivel_dificuldade, rng)
 
 
 def gerar_documento_comprobatorio(
@@ -685,6 +728,7 @@ def gerar_documento_comprobatorio(
     data_fim: datetime.date,
     formato: str = "auto",
     rng: random.Random | None = None,
+    nivel_dificuldade: int = 1,
 ) -> tuple[bytes, str]:
     """
     Despachante inteligente:
@@ -703,11 +747,13 @@ def gerar_documento_comprobatorio(
             nome_aluno=nome_aluno, cpf=cpf, matricula=matricula, titulo=titulo,
             slug=slug, emissor=emissor, horas=horas, estilo=estilo,
             periodo=periodo, data_fim=data_fim, rng=rng,
+            nivel_dificuldade=nivel_dificuldade,
         )
     else:
         pdf_bytes = gerar_certificado_pdf(
             nome_aluno=nome_aluno, cpf=cpf, matricula=matricula, titulo=titulo,
             slug=slug, emissor=emissor, horas=horas, estilo=estilo,
             periodo=periodo, data_fim=data_fim, rng=rng,
+            nivel_dificuldade=nivel_dificuldade,
         )
     return pdf_bytes, tipo_doc

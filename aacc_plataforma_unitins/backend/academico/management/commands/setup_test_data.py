@@ -6,13 +6,14 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.core.files.base import ContentFile
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 
 from academico.models import (
     CategoriaAACC, Curso, Eixo, MatrizCurricular, AlunoPerfil,
     CoordenadorPerfil, Certificado, RuleValidationLog, Requerimento, Notificacao
 )
 from academico.rules.resolucao_057 import LIMITES_CATEGORIAS
-from academico.services.ocr_service import processar_pdf
+from academico.services.ocr_service import processar_pdf, extrair_e_validar_titularidade
 from academico.management.gerador_certificados import (
     montar_plano_aluno, gerar_periodo, gerar_documento_comprobatorio,
 )
@@ -82,6 +83,18 @@ class Command(BaseCommand):
         num_notifs, _ = Notificacao.objects.all().delete()
         self.stdout.write(self.style.SUCCESS(
             f'  -> Deletados: {num_certs} certificados, {num_logs} logs, {num_reqs} requerimentos, {num_notifs} notificacoes.'
+        ))
+
+        # Limpeza de perfis de teste antigos (preserva superusuarios, eixos, categorias e cursos)
+        User = get_user_model()
+        usuarios_teste = User.objects.filter(is_superuser=False).filter(
+            Q(is_aluno=True) | Q(is_coordenador=True)
+        )
+        AlunoPerfil.objects.filter(usuario__in=usuarios_teste).delete()
+        CoordenadorPerfil.objects.filter(usuario__in=usuarios_teste).delete()
+        num_users, _ = usuarios_teste.delete()
+        self.stdout.write(self.style.SUCCESS(
+            f'  -> {num_users} registros de alunos/coordenadores de teste antigos removidos (superusuarios preservados).'
         ))
 
         # Limpeza física de arquivos PDF de upload (preservando templates_base intacto!)
@@ -173,11 +186,16 @@ class Command(BaseCommand):
 
         # Alunos
         alunos_seed = [
-            {'username': 'joao.silva@unitins.br',     'first_name': 'Joao',  'last_name': 'Silva',    'matricula': '202311001', 'cpf': '111.111.111-11', 'matriz': matriz_120h},
-            {'username': 'maria.souza@unitins.br',    'first_name': 'Maria', 'last_name': 'Souza',    'matricula': '202311002', 'cpf': '222.222.222-22', 'matriz': matriz_120h},
-            {'username': 'pedro.santos@unitins.br',   'first_name': 'Pedro', 'last_name': 'Santos',   'matricula': '202411001', 'cpf': '333.333.333-33', 'matriz': matriz_180h},
-            {'username': 'ana.costa@unitins.br',      'first_name': 'Ana',   'last_name': 'Costa',    'matricula': '202411002', 'cpf': '444.444.444-44', 'matriz': matriz_180h},
-            {'username': 'lucas.ferreira@unitins.br', 'first_name': 'Lucas', 'last_name': 'Ferreira', 'matricula': '202411003', 'cpf': '555.555.555-55', 'matriz': matriz_180h},
+            # Meta 120h
+            {'username': 'joao.silva@unitins.br',     'first_name': 'Joao',    'last_name': 'Silva',    'matricula': '202311001', 'cpf': '111.111.111-11', 'matriz': matriz_120h},
+            {'username': 'maria.souza@unitins.br',    'first_name': 'Maria',   'last_name': 'Souza',    'matricula': '202311002', 'cpf': '222.222.222-22', 'matriz': matriz_120h},
+            {'username': 'erick.meneses@unitins.br',  'first_name': 'Erick',   'last_name': 'Meneses',  'matricula': '202311003', 'cpf': '666.666.666-66', 'matriz': matriz_120h},
+            {'username': 'beatriz.lima@unitins.br',   'first_name': 'Beatriz', 'last_name': 'Lima',     'matricula': '202311004', 'cpf': '777.777.777-77', 'matriz': matriz_120h},
+            # Meta 180h
+            {'username': 'pedro.santos@unitins.br',   'first_name': 'Pedro',   'last_name': 'Santos',   'matricula': '202411001', 'cpf': '333.333.333-33', 'matriz': matriz_180h},
+            {'username': 'ana.costa@unitins.br',      'first_name': 'Ana',     'last_name': 'Costa',    'matricula': '202411002', 'cpf': '444.444.444-44', 'matriz': matriz_180h},
+            {'username': 'lucas.ferreira@unitins.br', 'first_name': 'Lucas',   'last_name': 'Ferreira', 'matricula': '202411003', 'cpf': '555.555.555-55', 'matriz': matriz_180h},
+            {'username': 'gabriel.rocha@unitins.br',  'first_name': 'Gabriel', 'last_name': 'Rocha',    'matricula': '202411004', 'cpf': '888.888.888-88', 'matriz': matriz_180h},
         ]
 
         perfis = []
@@ -209,10 +227,12 @@ class Command(BaseCommand):
 
     def _gerar_certificados_pipeline(self, perfis):
         import random
+        from collections import Counter
 
         self.stdout.write(self.style.NOTICE('\nGerando certificados realistas e executando pipeline de extracao...'))
 
         total_certs = 0
+        dist_niveis = Counter()
         for perfil in perfis:
             meta = perfil.matriz_curricular.horas_totais_exigidas if perfil.matriz_curricular_id else 120
             rng = random.Random(perfil.id)
@@ -234,8 +254,11 @@ class Command(BaseCommand):
                     continue
 
                 periodo, fim = gerar_periodo(horas, rng)
+                nivel = rng.choices([1, 2, 3], weights=[0.60, 0.25, 0.15])[0]
+                dist_niveis[nivel] += 1
+                nome_completo = perfil.usuario.get_full_name() or perfil.usuario.username
                 pdf_bytes, tipo_doc = gerar_documento_comprobatorio(
-                    nome_aluno=perfil.usuario.get_full_name() or perfil.usuario.username,
+                    nome_aluno=nome_completo,
                     cpf=perfil.usuario.cpf,
                     matricula=perfil.matricula,
                     titulo=titulo,
@@ -247,9 +270,10 @@ class Command(BaseCommand):
                     data_fim=fim,
                     formato="auto",
                     rng=rng,
+                    nivel_dificuldade=nivel,
                 )
 
-                nome_arquivo = f"{tipo_doc}_{perfil.matricula}_{slug}_{idx}.pdf"
+                nome_arquivo = f"{tipo_doc}_n{nivel}_{perfil.matricula}_{slug}_{idx}.pdf"
 
                 # Cria a instância inicial
                 cert = Certificado(
@@ -268,6 +292,12 @@ class Command(BaseCommand):
                 titulo_extraido, periodo_extraido = extrair_metadados_documento(
                     ocr.texto_extraido, titulo_fallback=titulo, periodo_fallback=periodo
                 )
+
+                # Titularidade (dupla checagem do nome — RN04)
+                titularidade = extrair_e_validar_titularidade(ocr.texto_extraido or "", nome_completo)
+                cert.nome_extraido_ocr = (titularidade["nome_extraido"] or "")[:255] or None
+                cert.titularidade_confirmada = titularidade["titularidade_confirmada"]
+                cert.similaridade_titularidade = titularidade["similaridade_titularidade"]
 
                 # Atualiza com dados extraídos e status inicial estrito de pendente
                 cert.titulo_atividade = titulo_extraido
@@ -311,4 +341,9 @@ class Command(BaseCommand):
             ))
 
         self.stdout.write(self.style.SUCCESS(f'\n  => Total de {total_certs} certificados gerados e processados pelo pipeline.'))
+        if total_certs:
+            for n in (1, 2, 3):
+                self.stdout.write(self.style.SUCCESS(
+                    f'     Nivel {n}: {dist_niveis[n]} ({dist_niveis[n] / total_certs:.0%})'
+                ))
 
