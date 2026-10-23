@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import re
@@ -19,6 +20,10 @@ from academico.management.gerador_certificados import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Ground Truth do experimento (preenchida a cada certificado gerado)
+relatorio_dataset = []
+NOME_RELATORIO_JSON = 'relatorio_dataset_tcc.json'
 
 
 def extrair_metadados_documento(texto: str, titulo_fallback: str, periodo_fallback: str):
@@ -223,7 +228,16 @@ class Command(BaseCommand):
 
         # 4. Certificados Pendentes Realistas via Pipeline de Extração
         self._gerar_certificados_pipeline(perfis)
+        self._salvar_relatorio_dataset()
         self.stdout.write(self.style.SUCCESS('\nPovoamento concluido com sucesso! Todos os certificados estao pendentes para auditoria.'))
+
+    def _salvar_relatorio_dataset(self):
+        caminho = os.path.join(settings.BASE_DIR, NOME_RELATORIO_JSON)
+        with open(caminho, 'w', encoding='utf-8') as f:
+            json.dump(relatorio_dataset, f, ensure_ascii=False, indent=2)
+        self.stdout.write(self.style.SUCCESS(
+            f'  => Relatorio Ground Truth salvo: {caminho} ({len(relatorio_dataset)} registros)'
+        ))
 
     def _gerar_certificados_pipeline(self, perfis):
         import random
@@ -233,6 +247,7 @@ class Command(BaseCommand):
 
         total_certs = 0
         dist_niveis = Counter()
+        relatorio_dataset.clear()
         for perfil in perfis:
             meta = perfil.matriz_curricular.horas_totais_exigidas if perfil.matriz_curricular_id else 120
             rng = random.Random(perfil.id)
@@ -257,7 +272,7 @@ class Command(BaseCommand):
                 nivel = rng.choices([1, 2, 3], weights=[0.60, 0.25, 0.15])[0]
                 dist_niveis[nivel] += 1
                 nome_completo = perfil.usuario.get_full_name() or perfil.usuario.username
-                pdf_bytes, tipo_doc = gerar_documento_comprobatorio(
+                pdf_bytes, metadados = gerar_documento_comprobatorio(
                     nome_aluno=nome_completo,
                     cpf=perfil.usuario.cpf,
                     matricula=perfil.matricula,
@@ -273,6 +288,7 @@ class Command(BaseCommand):
                     nivel_dificuldade=nivel,
                 )
 
+                tipo_doc = metadados['tipo_doc']
                 nome_arquivo = f"{tipo_doc}_n{nivel}_{perfil.matricula}_{slug}_{idx}.pdf"
 
                 # Cria a instância inicial
@@ -331,6 +347,20 @@ class Command(BaseCommand):
                     horas_computadas=0,
                     horas_descartadas=0,
                 )
+
+                relatorio_dataset.append({
+                    'aluno_id': perfil.id,
+                    'certificado_id': cert.id,
+                    'arquivo': nome_arquivo,
+                    'metadados': metadados,
+                    'resultado_pipeline': {
+                        'horas_extraidas': float(ocr.horas_encontradas) if ocr.horas_encontradas else None,
+                        'indice_confianca_ocr': float(ocr.indice_confianca) if ocr.indice_confianca else None,
+                        'nome_extraido': cert.nome_extraido_ocr,
+                        'titularidade_confirmada': cert.titularidade_confirmada,
+                        'similaridade_titularidade': cert.similaridade_titularidade,
+                    },
+                })
 
                 soma_horas += horas
                 total_certs += 1

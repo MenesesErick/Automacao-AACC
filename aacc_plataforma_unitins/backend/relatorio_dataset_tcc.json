@@ -1,0 +1,1102 @@
+[
+  {
+    "aluno_id": 14,
+    "certificado_id": 107,
+    "arquivo": "certificado_n2_202311001_escola_linguas_1.pdf",
+    "metadados": {
+      "nivel": 2,
+      "anomalia_texto": false,
+      "template_usado": "extenso",
+      "texto_gabarito": "Certificamos que JOAO SILVA, portador(a) do CPF nº 111.111.111-11, matrícula acadêmica nº 202311001, concluiu o curso de \"Espanhol Básico - Módulo I\", promovido por a Escola de Línguas Unitins, realizado no período de 08/01/2026 a 09/01/2026, perfazendo um total de 20 horas-aula.",
+      "nome_exibido": "Joao Silva",
+      "horas_gabarito": 20,
+      "jpeg_quality": null,
+      "tipo_doc": "certificado"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 20.0,
+      "indice_confianca_ocr": 90.0,
+      "nome_extraido": "JOAO SILVA",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 100.0
+    }
+  },
+  {
+    "aluno_id": 14,
+    "certificado_id": 108,
+    "arquivo": "certificado_n1_202311001_grupos_pesquisa_2.pdf",
+    "metadados": {
+      "nivel": 1,
+      "anomalia_texto": false,
+      "template_usado": "armadilha",
+      "texto_gabarito": "Certificamos que JOAO SILVA, portador(a) do CPF nº 111.111.111-11, matrícula acadêmica nº 202311001, participou do(a) \"Grupo de Pesquisa em Engenharia de Software Empírica\", promovido por a Pró-Reitoria de Pesquisa e Pós-Graduação da UNITINS, realizado no período de 21/11/2025 a 07/03/2026, organizado em módulos de 10 horas (Módulo I), 10 horas (Módulo II) e 10 horas (Módulo III), perfazendo ao final a carga horária total de 30 horas.",
+      "nome_exibido": "Joao Silva",
+      "horas_gabarito": 30,
+      "jpeg_quality": null,
+      "tipo_doc": "certificado"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 30.0,
+      "indice_confianca_ocr": 98.0,
+      "nome_extraido": "JOAO SILVA",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 100.0
+    }
+  },
+  {
+    "aluno_id": 14,
+    "certificado_id": 109,
+    "arquivo": "certificado_n1_202311001_estagios_extracurriculares_3.pdf",
+    "metadados": {
+      "nivel": 1,
+      "anomalia_texto": false,
+      "template_usado": "armadilha",
+      "texto_gabarito": "Certificamos que JOAO SILVA, portador(a) do CPF nº 111.111.111-11, matrícula acadêmica nº 202311001, participou do(a) \"Estágio Extracurricular em Desenvolvimento de Software\", promovido por a Universidade Estadual do Tocantins - UNITINS, realizado no período de 04 de maio a 04 de junho de 2025, organizado em módulos de 20 horas (Módulo I), 20 horas (Módulo II) e 20 horas (Módulo III), perfazendo ao final a carga horária total de 60 horas.",
+      "nome_exibido": "Joao Silva",
+      "horas_gabarito": 60,
+      "jpeg_quality": null,
+      "tipo_doc": "certificado"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 60.0,
+      "indice_confianca_ocr": 98.0,
+      "nome_extraido": "JOAO SILVA",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 100.0
+    }
+  },
+  {
+    "aluno_id": 14,
+    "certificado_id": 110,
+    "arquivo": "declaracao_n1_202311001_representacao_colegiado_4.pdf",
+    "metadados": {
+      "nivel": 1,
+      "anomalia_texto": false,
+      "template_usado": "armadilha",
+      "texto_gabarito": "Declaramos, para os devidos fins de comprovação e cômputo de Atividades Acadêmico-Científico-Culturais (AACC), que o(a) discente JOAO SILVA, portador(a) do CPF nº 111.111.111-11 e matrícula acadêmica nº 202311001, participou do(a) \"Representação Discente no Colegiado do Curso\", promovido por a Universidade Estadual do Tocantins - UNITINS, no período de 06/10/2025 a 26/12/2025, organizado em módulos de 10 horas (Módulo I), 10 horas (Módulo II) e 10 horas (Módulo III), perfazendo ao final a carga horária total de 30 horas, em conformidade com as diretrizes da Resolução CONSUNI Nº 057/2025 da Universidade Estadual do Tocantins - UNITINS.",
+      "nome_exibido": "Joao Silva",
+      "horas_gabarito": 30,
+      "jpeg_quality": null,
+      "tipo_doc": "declaracao"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 30.0,
+      "indice_confianca_ocr": 98.0,
+      "nome_extraido": "JOAO SILVA,",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 95.2
+    }
+  },
+  {
+    "aluno_id": 15,
+    "certificado_id": 111,
+    "arquivo": "certificado_n1_202311002_monitoria_1.pdf",
+    "metadados": {
+      "nivel": 1,
+      "anomalia_texto": false,
+      "template_usado": "extenso",
+      "texto_gabarito": "Certificamos que MARIA SOUZA, portador(a) do CPF nº 222.222.222-22, matrícula acadêmica nº 202311002, participou do(a) \"Monitoria de Algoritmos e Estruturas de Dados\", promovido por a Universidade Estadual do Tocantins - UNITINS, realizado no período de 12 de março a 26 de abril de 2025, perfazendo um total de 30 horas-aula.",
+      "nome_exibido": "Maria Souza",
+      "horas_gabarito": 30,
+      "jpeg_quality": null,
+      "tipo_doc": "certificado"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 30.0,
+      "indice_confianca_ocr": 90.0,
+      "nome_extraido": "MARIA SOUZA",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 100.0
+    }
+  },
+  {
+    "aluno_id": 15,
+    "certificado_id": 112,
+    "arquivo": "declaracao_n2_202311002_projetos_pesquisa_2.pdf",
+    "metadados": {
+      "nivel": 2,
+      "anomalia_texto": false,
+      "template_usado": "armadilha",
+      "texto_gabarito": "Declaramos, para os devidos fins de comprovação e cômputo de Atividades Acadêmico-Científico-Culturais (AACC), que o(a) discente MARIA SOUZA, portador(a) do CPF nº 222.222.222-22 e matrícula acadêmica nº 202311002, participou do(a) \"Projeto de Pesquisa em Visão Computacional para Agricultura\", promovido por a Pró-Reitoria de Pesquisa e Pós-Graduação da UNITINS, no período de 21 de setembro a 17 de outubro de 2025, organizado em módulos de 10 horas (Módulo I), 10 horas (Módulo II) e 10 horas (Módulo III), perfazendo ao final a carga horária total de 30 horas, em conformidade com as diretrizes da Resolução CONSUNI Nº 057/2025 da Universidade Estadual do Tocantins - UNITINS.",
+      "nome_exibido": "Maria Souza",
+      "horas_gabarito": 30,
+      "jpeg_quality": null,
+      "tipo_doc": "declaracao"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 30.0,
+      "indice_confianca_ocr": 98.0,
+      "nome_extraido": "MARIA SOUZA,",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 95.7
+    }
+  },
+  {
+    "aluno_id": 15,
+    "certificado_id": 113,
+    "arquivo": "declaracao_n1_202311002_organizacao_cursos_eventos_3.pdf",
+    "metadados": {
+      "nivel": 1,
+      "anomalia_texto": false,
+      "template_usado": "armadilha",
+      "texto_gabarito": "Declaramos, para os devidos fins de comprovação e cômputo de Atividades Acadêmico-Científico-Culturais (AACC), que o(a) discente MARIA SOUZA, portador(a) do CPF nº 222.222.222-22 e matrícula acadêmica nº 202311002, atuou na organização do evento \"Hackathon UNITINS Inovação - Equipe de Organização\", promovido por a Universidade Estadual do Tocantins - UNITINS, no período de 12 a 14 de abril de 2025, organizado em módulos de 3 horas (Módulo I), 3 horas (Módulo II) e 4 horas (Módulo III), perfazendo ao final a carga horária total de 10 horas, em conformidade com as diretrizes da Resolução CONSUNI Nº 057/2025 da Universidade Estadual do Tocantins - UNITINS.",
+      "nome_exibido": "Maria Souza",
+      "horas_gabarito": 10,
+      "jpeg_quality": null,
+      "tipo_doc": "declaracao"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 10.0,
+      "indice_confianca_ocr": 98.0,
+      "nome_extraido": "MARIA SOUZA,",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 95.7
+    }
+  },
+  {
+    "aluno_id": 15,
+    "certificado_id": 114,
+    "arquivo": "declaracao_n1_202311002_projetos_extensao_4.pdf",
+    "metadados": {
+      "nivel": 1,
+      "anomalia_texto": false,
+      "template_usado": "armadilha",
+      "texto_gabarito": "Declaramos, para os devidos fins de comprovação e cômputo de Atividades Acadêmico-Científico-Culturais (AACC), que o(a) discente MARIA SOUZA, portador(a) do CPF nº 222.222.222-22 e matrícula acadêmica nº 202311002, participou do(a) \"Projeto Robótica nas Escolas Públicas de Palmas\", promovido por a Pró-Reitoria de Extensão, Cultura e Assuntos Comunitários da UNITINS, no período de 25/03/2026 a 28/03/2026, organizado em módulos de 6 horas (Módulo I), 7 horas (Módulo II) e 7 horas (Módulo III), perfazendo ao final a carga horária total de 20 horas, em conformidade com as diretrizes da Resolução CONSUNI Nº 057/2025 da Universidade Estadual do Tocantins - UNITINS.",
+      "nome_exibido": "Maria Souza",
+      "horas_gabarito": 20,
+      "jpeg_quality": null,
+      "tipo_doc": "declaracao"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 20.0,
+      "indice_confianca_ocr": 98.0,
+      "nome_extraido": "MARIA SOUZA,",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 95.7
+    }
+  },
+  {
+    "aluno_id": 15,
+    "certificado_id": 115,
+    "arquivo": "declaracao_n3_202311002_cursos_curta_duracao_5.pdf",
+    "metadados": {
+      "nivel": 3,
+      "anomalia_texto": false,
+      "template_usado": "direto",
+      "texto_gabarito": "Declaramos, para os devidos fins de comprovação e cômputo de Atividades Acadêmico-Científico-Culturais (AACC), que o(a) discente MARIA SOUZA, portador(a) do CPF nº 222.222.222-22 e matrícula acadêmica nº 202311002, concluiu o curso de \"Python para Ciência de Dados\", promovido por a FIAP Online, no período de 28 de julho a 25 de agosto de 2025. Carga horária: 30 horas. Em conformidade com as diretrizes da Resolução CONSUNI Nº 057/2025 da Universidade Estadual do Tocantins - UNITINS.",
+      "nome_exibido": "Maria Souza",
+      "horas_gabarito": 30,
+      "jpeg_quality": 15,
+      "tipo_doc": "declaracao"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 30.0,
+      "indice_confianca_ocr": 95.0,
+      "nome_extraido": "MARIA SOUZA,",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 95.7
+    }
+  },
+  {
+    "aluno_id": 15,
+    "certificado_id": 116,
+    "arquivo": "certificado_n1_202311002_grupos_pesquisa_6.pdf",
+    "metadados": {
+      "nivel": 1,
+      "anomalia_texto": false,
+      "template_usado": "padrao",
+      "texto_gabarito": "Certificamos que MARIA SOUZA, portador(a) do CPF nº 222.222.222-22, matrícula acadêmica nº 202311002, participou do(a) \"Grupo de Pesquisa em Engenharia de Software Empírica\", promovido por a Pró-Reitoria de Pesquisa e Pós-Graduação da UNITINS, realizado no período de 20 de fevereiro a 12 de junho de 2026, com carga horária total de 30 horas.",
+      "nome_exibido": "Maria Souza",
+      "horas_gabarito": 30,
+      "jpeg_quality": null,
+      "tipo_doc": "certificado"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 30.0,
+      "indice_confianca_ocr": 98.0,
+      "nome_extraido": "MARIA SOUZA",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 100.0
+    }
+  },
+  {
+    "aluno_id": 16,
+    "certificado_id": 117,
+    "arquivo": "certificado_n1_202311003_monitoria_1.pdf",
+    "metadados": {
+      "nivel": 1,
+      "anomalia_texto": false,
+      "template_usado": "extenso",
+      "texto_gabarito": "Certificamos que ERICK MENESES, portador(a) do CPF nº 666.666.666-66, matrícula acadêmica nº 202311003, participou do(a) \"Monitoria de Algoritmos e Estruturas de Dados\", promovido por a Universidade Estadual do Tocantins - UNITINS, realizado no período de 22/11/2025 a 04/03/2026, perfazendo um total de 30 horas-aula.",
+      "nome_exibido": "Erick Meneses",
+      "horas_gabarito": 30,
+      "jpeg_quality": null,
+      "tipo_doc": "certificado"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 30.0,
+      "indice_confianca_ocr": 90.0,
+      "nome_extraido": "ERICK MENESES",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 100.0
+    }
+  },
+  {
+    "aluno_id": 16,
+    "certificado_id": 118,
+    "arquivo": "declaracao_n1_202311003_trabalhos_cientificos_2.pdf",
+    "metadados": {
+      "nivel": 1,
+      "anomalia_texto": false,
+      "template_usado": "armadilha",
+      "texto_gabarito": "Declaramos, para os devidos fins de comprovação e cômputo de Atividades Acadêmico-Científico-Culturais (AACC), que o(a) discente ERICK MENESES, portador(a) do CPF nº 666.666.666-66 e matrícula acadêmica nº 202311003, apresentou trabalho científico no evento \"Apresentação de Artigo no Workshop de Computação Aplicada\", promovido por a Sociedade Brasileira de Computação - SBC, no período de 01 a 05 de julho de 2025, organizado em módulos de 6 horas (Módulo I), 7 horas (Módulo II) e 7 horas (Módulo III), perfazendo ao final a carga horária total de 20 horas, em conformidade com as diretrizes da Resolução CONSUNI Nº 057/2025 da Universidade Estadual do Tocantins - UNITINS.",
+      "nome_exibido": "Erick Meneses",
+      "horas_gabarito": 20,
+      "jpeg_quality": null,
+      "tipo_doc": "declaracao"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 20.0,
+      "indice_confianca_ocr": 98.0,
+      "nome_extraido": "ERICK MENESES,",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 96.3
+    }
+  },
+  {
+    "aluno_id": 16,
+    "certificado_id": 119,
+    "arquivo": "certificado_n2_202311003_projetos_extensao_3.pdf",
+    "metadados": {
+      "nivel": 2,
+      "anomalia_texto": false,
+      "template_usado": "armadilha",
+      "texto_gabarito": "Certificamos que ERICK MENESES, portador(a) do CPF nº 666.666.666-66, matrícula acadêmica nº 202311003, participou do(a) \"Projeto Robótica nas Escolas Públicas de Palmas\", promovido por a Pró-Reitoria de Extensão, Cultura e Assuntos Comunitários da UNITINS, realizado no período de 16 a 20 de outubro de 2025, organizado em módulos de 6 horas (Módulo I), 7 horas (Módulo II) e 7 horas (Módulo III), perfazendo ao final a carga horária total de 20 horas.",
+      "nome_exibido": "Erick Meneses",
+      "horas_gabarito": 20,
+      "jpeg_quality": null,
+      "tipo_doc": "certificado"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 20.0,
+      "indice_confianca_ocr": 98.0,
+      "nome_extraido": "ERICK MENESES",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 100.0
+    }
+  },
+  {
+    "aluno_id": 16,
+    "certificado_id": 120,
+    "arquivo": "certificado_n3_202311003_cursos_extensao_4.pdf",
+    "metadados": {
+      "nivel": 3,
+      "anomalia_texto": false,
+      "template_usado": "padrao",
+      "texto_gabarito": "Certificamos que ERICK MENESES, portador(a) do CPF nº 666.666.666-66, matrícula acadêmica nº 202311003, concluiu o curso de \"Curso de Extensão em Desenvolvimento Web com JavaScript\", promovido por a Pró-Reitoria de Extensão, Cultura e Assuntos Comunitários da UNITINS, realizado no período de 28/02/2026 a 18/04/2026, com carga horária total de 40 horas.",
+      "nome_exibido": "Erick Meneses",
+      "horas_gabarito": 40,
+      "jpeg_quality": 15,
+      "tipo_doc": "certificado"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 40.0,
+      "indice_confianca_ocr": 98.0,
+      "nome_extraido": "ERICK MENESES",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 100.0
+    }
+  },
+  {
+    "aluno_id": 16,
+    "certificado_id": 121,
+    "arquivo": "certificado_n1_202311003_pibid_5.pdf",
+    "metadados": {
+      "nivel": 1,
+      "anomalia_texto": false,
+      "template_usado": "padrao",
+      "texto_gabarito": "Certificamos que ERICK MENESES, portador(a) do CPF nº 666.666.666-66, matrícula acadêmica nº 202311003, participou do(a) \"PIBID Unitins 2026 - Residência Pedagógica em Computação\", promovido por a Universidade Estadual do Tocantins - UNITINS, realizado no período de 05/12/2025 a 09/01/2026, com carga horária total de 60 horas.",
+      "nome_exibido": "Erick Meneses",
+      "horas_gabarito": 60,
+      "jpeg_quality": null,
+      "tipo_doc": "certificado"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 60.0,
+      "indice_confianca_ocr": 98.0,
+      "nome_extraido": "ERICK MENESES",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 100.0
+    }
+  },
+  {
+    "aluno_id": 17,
+    "certificado_id": 122,
+    "arquivo": "declaracao_n1_202311004_escola_linguas_1.pdf",
+    "metadados": {
+      "nivel": 1,
+      "anomalia_texto": false,
+      "template_usado": "padrao",
+      "texto_gabarito": "Declaramos, para os devidos fins de comprovação e cômputo de Atividades Acadêmico-Científico-Culturais (AACC), que o(a) discente BEATRIZ LIMA, portador(a) do CPF nº 777.777.777-77 e matrícula acadêmica nº 202311004, concluiu o curso de \"Inglês Intermediário - Módulo II\", promovido por a Escola de Línguas Unitins, no período de 23/04/2026 a 16/07/2026, com carga horária total de 40 horas, em conformidade com as diretrizes da Resolução CONSUNI Nº 057/2025 da Universidade Estadual do Tocantins - UNITINS.",
+      "nome_exibido": "Beatriz Lima",
+      "horas_gabarito": 40,
+      "jpeg_quality": null,
+      "tipo_doc": "declaracao"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 40.0,
+      "indice_confianca_ocr": 98.0,
+      "nome_extraido": "BEATRIZ LIMA,",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 96.0
+    }
+  },
+  {
+    "aluno_id": 17,
+    "certificado_id": 123,
+    "arquivo": "certificado_n1_202311004_trabalhos_cientificos_2.pdf",
+    "metadados": {
+      "nivel": 1,
+      "anomalia_texto": false,
+      "template_usado": "direto",
+      "texto_gabarito": "Certificamos que BEATRIZ LIMA, portador(a) do CPF nº 777.777.777-77, matrícula acadêmica nº 202311004, apresentou trabalho científico no evento \"Apresentação de Pôster no Simpósio Regional de Tecnologia\", promovido por a Sociedade Brasileira de Computação - SBC, realizado no período de 10/09/2025 a 11/09/2025. Carga horária: 10 horas.",
+      "nome_exibido": "Beatriz Lima",
+      "horas_gabarito": 10,
+      "jpeg_quality": null,
+      "tipo_doc": "certificado"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 10.0,
+      "indice_confianca_ocr": 95.0,
+      "nome_extraido": "BEATRIZ LIMA",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 100.0
+    }
+  },
+  {
+    "aluno_id": 17,
+    "certificado_id": 124,
+    "arquivo": "certificado_n2_202311004_organizacao_cursos_eventos_3.pdf",
+    "metadados": {
+      "nivel": 2,
+      "anomalia_texto": false,
+      "template_usado": "extenso",
+      "texto_gabarito": "Certificamos que BEATRIZ LIMA, portador(a) do CPF nº 777.777.777-77, matrícula acadêmica nº 202311004, atuou na organização do evento \"Hackathon UNITINS Inovação - Equipe de Organização\", promovido por a Universidade Estadual do Tocantins - UNITINS, realizado no período de 09 a 12 de abril de 2026, perfazendo um total de 10 horas-aula.",
+      "nome_exibido": "Beatriz Lima",
+      "horas_gabarito": 10,
+      "jpeg_quality": null,
+      "tipo_doc": "certificado"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 10.0,
+      "indice_confianca_ocr": 90.0,
+      "nome_extraido": "BEATRIZ LIMA",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 100.0
+    }
+  },
+  {
+    "aluno_id": 17,
+    "certificado_id": 125,
+    "arquivo": "declaracao_n1_202311004_seminarios_congressos_4.pdf",
+    "metadados": {
+      "nivel": 1,
+      "anomalia_texto": false,
+      "template_usado": "extenso",
+      "texto_gabarito": "Declaramos, para os devidos fins de comprovação e cômputo de Atividades Acadêmico-Científico-Culturais (AACC), que o(a) discente BEATRIZ LIMA, portador(a) do CPF nº 777.777.777-77 e matrícula acadêmica nº 202311004, participou do evento \"Congresso Brasileiro de Software: Teoria e Prática\", promovido por a Sociedade Brasileira de Computação - SBC, no período de 20/08/2025 a 21/09/2025, perfazendo um total de 30 horas-aula, em conformidade com as diretrizes da Resolução CONSUNI Nº 057/2025 da Universidade Estadual do Tocantins - UNITINS.",
+      "nome_exibido": "Beatriz Lima",
+      "horas_gabarito": 30,
+      "jpeg_quality": null,
+      "tipo_doc": "declaracao"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 30.0,
+      "indice_confianca_ocr": 90.0,
+      "nome_extraido": "BEATRIZ LIMA,",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 96.0
+    }
+  },
+  {
+    "aluno_id": 17,
+    "certificado_id": 126,
+    "arquivo": "certificado_n2_202311004_monitoria_5.pdf",
+    "metadados": {
+      "nivel": 2,
+      "anomalia_texto": false,
+      "template_usado": "extenso",
+      "texto_gabarito": "Certificamos que BEATRIZ LIMA, portador(a) do CPF nº 777.777.777-77, matrícula acadêmica nº 202311004, participou do(a) \"Monitoria de Banco de Dados Relacional\", promovido por a Universidade Estadual do Tocantins - UNITINS, realizado no período de 28/10/2025 a 20/02/2026, perfazendo um total de 30 horas-aula.",
+      "nome_exibido": "Beatriz Lima",
+      "horas_gabarito": 30,
+      "jpeg_quality": null,
+      "tipo_doc": "certificado"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 30.0,
+      "indice_confianca_ocr": 90.0,
+      "nome_extraido": "BEATRIZ LIMA",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 100.0
+    }
+  },
+  {
+    "aluno_id": 17,
+    "certificado_id": 127,
+    "arquivo": "declaracao_n2_202311004_trabalhos_cientificos_6.pdf",
+    "metadados": {
+      "nivel": 2,
+      "anomalia_texto": false,
+      "template_usado": "direto",
+      "texto_gabarito": "Declaramos, para os devidos fins de comprovação e cômputo de Atividades Acadêmico-Científico-Culturais (AACC), que o(a) discente BEATRIZ LIMA, portador(a) do CPF nº 777.777.777-77 e matrícula acadêmica nº 202311004, apresentou trabalho científico no evento \"Apresentação de Artigo no Workshop de Computação Aplicada\", promovido por a Sociedade Brasileira de Computação - SBC, no período de 14/01/2026 a 16/01/2026. Carga horária: 20 horas. Em conformidade com as diretrizes da Resolução CONSUNI Nº 057/2025 da Universidade Estadual do Tocantins - UNITINS.",
+      "nome_exibido": "Beatriz Lima",
+      "horas_gabarito": 20,
+      "jpeg_quality": null,
+      "tipo_doc": "declaracao"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 20.0,
+      "indice_confianca_ocr": 95.0,
+      "nome_extraido": "BEATRIZ LIMA,",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 96.0
+    }
+  },
+  {
+    "aluno_id": 18,
+    "certificado_id": 128,
+    "arquivo": "declaracao_n2_202411001_escola_linguas_1.pdf",
+    "metadados": {
+      "nivel": 2,
+      "anomalia_texto": false,
+      "template_usado": "padrao",
+      "texto_gabarito": "Declaramos, para os devidos fins de comprovação e cômputo de Atividades Acadêmico-Científico-Culturais (AACC), que o(a) discente PEDRO SANTOS, portador(a) do CPF nº 333.333.333-33 e matrícula acadêmica nº 202411001, concluiu o curso de \"Inglês Intermediário - Módulo II\", promovido por a Escola de Línguas Unitins, no período de 31/12/2025 a 03/04/2026, com carga horária total de 40 horas, em conformidade com as diretrizes da Resolução CONSUNI Nº 057/2025 da Universidade Estadual do Tocantins - UNITINS.",
+      "nome_exibido": "Pedro Santos",
+      "horas_gabarito": 40,
+      "jpeg_quality": null,
+      "tipo_doc": "declaracao"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 40.0,
+      "indice_confianca_ocr": 98.0,
+      "nome_extraido": "PEDRO SANTOS,",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 96.0
+    }
+  },
+  {
+    "aluno_id": 18,
+    "certificado_id": 129,
+    "arquivo": "certificado_n2_202411001_projetos_pesquisa_2.pdf",
+    "metadados": {
+      "nivel": 2,
+      "anomalia_texto": false,
+      "template_usado": "direto",
+      "texto_gabarito": "Certificamos que PEDRO SANTOS, portador(a) do CPF nº 333.333.333-33, matrícula acadêmica nº 202411001, participou do(a) \"Iniciação Científica: Inteligência Artificial Aplicada à Saúde Pública\", promovido por a Pró-Reitoria de Pesquisa e Pós-Graduação da UNITINS, realizado no período de 11/11/2025 a 26/02/2026. Carga horária: 40 horas.",
+      "nome_exibido": "Pedro Santos",
+      "horas_gabarito": 40,
+      "jpeg_quality": null,
+      "tipo_doc": "certificado"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 40.0,
+      "indice_confianca_ocr": 95.0,
+      "nome_extraido": "PEDRO SANTOS",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 100.0
+    }
+  },
+  {
+    "aluno_id": 18,
+    "certificado_id": 130,
+    "arquivo": "declaracao_n1_202411001_representacao_estudantil_3.pdf",
+    "metadados": {
+      "nivel": 1,
+      "anomalia_texto": false,
+      "template_usado": "extenso",
+      "texto_gabarito": "Declaramos, para os devidos fins de comprovação e cômputo de Atividades Acadêmico-Científico-Culturais (AACC), que o(a) discente PEDRO SANTOS, portador(a) do CPF nº 333.333.333-33 e matrícula acadêmica nº 202411001, participou do(a) \"Gestão do Diretório Central dos Estudantes - Biênio 2025/2026\", promovido por o Diretório Central dos Estudantes da UNITINS, no período de 21/12/2025 a 22/01/2026, perfazendo um total de 30 horas-aula, em conformidade com as diretrizes da Resolução CONSUNI Nº 057/2025 da Universidade Estadual do Tocantins - UNITINS.",
+      "nome_exibido": "Pedro Santos",
+      "horas_gabarito": 30,
+      "jpeg_quality": null,
+      "tipo_doc": "declaracao"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 30.0,
+      "indice_confianca_ocr": 90.0,
+      "nome_extraido": "PEDRO SANTOS,",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 96.0
+    }
+  },
+  {
+    "aluno_id": 18,
+    "certificado_id": 131,
+    "arquivo": "certificado_n1_202411001_seminarios_congressos_4.pdf",
+    "metadados": {
+      "nivel": 1,
+      "anomalia_texto": false,
+      "template_usado": "padrao",
+      "texto_gabarito": "Certificamos que PEDRO SANTOS, portador(a) do CPF nº 333.333.333-33, matrícula acadêmica nº 202411001, participou do evento \"Jornada Acadêmica Integrada da UNITINS\", promovido por a Universidade Estadual do Tocantins - UNITINS, realizado no período de 09/11/2025 a 11/11/2025, com carga horária total de 20 horas.",
+      "nome_exibido": "Pedro Santos",
+      "horas_gabarito": 20,
+      "jpeg_quality": null,
+      "tipo_doc": "certificado"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 20.0,
+      "indice_confianca_ocr": 98.0,
+      "nome_extraido": "PEDRO SANTOS",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 100.0
+    }
+  },
+  {
+    "aluno_id": 18,
+    "certificado_id": 132,
+    "arquivo": "certificado_n2_202411001_escola_linguas_5.pdf",
+    "metadados": {
+      "nivel": 2,
+      "anomalia_texto": false,
+      "template_usado": "armadilha",
+      "texto_gabarito": "Certificamos que PEDRO SANTOS, portador(a) do CPF nº 333.333.333-33, matrícula acadêmica nº 202411001, concluiu o curso de \"Espanhol Básico - Módulo I\", promovido por a Escola de Línguas Unitins, realizado no período de 10/05/2025 a 11/05/2025, organizado em módulos de 6 horas (Módulo I), 7 horas (Módulo II) e 7 horas (Módulo III), perfazendo ao final a carga horária total de 20 horas.",
+      "nome_exibido": "Pedro Santos",
+      "horas_gabarito": 20,
+      "jpeg_quality": null,
+      "tipo_doc": "certificado"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 20.0,
+      "indice_confianca_ocr": 98.0,
+      "nome_extraido": "PEDRO SANTOS",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 100.0
+    }
+  },
+  {
+    "aluno_id": 18,
+    "certificado_id": 133,
+    "arquivo": "declaracao_n1_202411001_publicacoes_6.pdf",
+    "metadados": {
+      "nivel": 1,
+      "anomalia_texto": false,
+      "template_usado": "direto",
+      "texto_gabarito": "Declaramos, para os devidos fins de comprovação e cômputo de Atividades Acadêmico-Científico-Culturais (AACC), que o(a) discente PEDRO SANTOS, portador(a) do CPF nº 333.333.333-33 e matrícula acadêmica nº 202411001, participou do(a) \"Publicação de Resumo Expandido na Revista Científica Multidisciplinar da UNITINS\", promovido por a Pró-Reitoria de Pesquisa e Pós-Graduação da UNITINS, no período de 14 a 17 de fevereiro de 2026. Carga horária: 20 horas. Em conformidade com as diretrizes da Resolução CONSUNI Nº 057/2025 da Universidade Estadual do Tocantins - UNITINS.",
+      "nome_exibido": "Pedro Santos",
+      "horas_gabarito": 20,
+      "jpeg_quality": null,
+      "tipo_doc": "declaracao"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 20.0,
+      "indice_confianca_ocr": 95.0,
+      "nome_extraido": "PEDRO SANTOS,",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 96.0
+    }
+  },
+  {
+    "aluno_id": 18,
+    "certificado_id": 134,
+    "arquivo": "declaracao_n1_202411001_cursos_extensao_7.pdf",
+    "metadados": {
+      "nivel": 1,
+      "anomalia_texto": false,
+      "template_usado": "padrao",
+      "texto_gabarito": "Declaramos, para os devidos fins de comprovação e cômputo de Atividades Acadêmico-Científico-Culturais (AACC), que o(a) discente PEDRO SANTOS, portador(a) do CPF nº 333.333.333-33 e matrícula acadêmica nº 202411001, concluiu o curso de \"Curso de Nivelamento em Matemática para Computação\", promovido por a Pró-Reitoria de Extensão, Cultura e Assuntos Comunitários da UNITINS, no período de 20/12/2025 a 04/03/2026, com carga horária total de 40 horas, em conformidade com as diretrizes da Resolução CONSUNI Nº 057/2025 da Universidade Estadual do Tocantins - UNITINS.",
+      "nome_exibido": "Pedro Santos",
+      "horas_gabarito": 40,
+      "jpeg_quality": null,
+      "tipo_doc": "declaracao"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 40.0,
+      "indice_confianca_ocr": 98.0,
+      "nome_extraido": "PEDRO SANTOS,",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 96.0
+    }
+  },
+  {
+    "aluno_id": 19,
+    "certificado_id": 135,
+    "arquivo": "declaracao_n2_202411002_cursos_curta_duracao_1.pdf",
+    "metadados": {
+      "nivel": 2,
+      "anomalia_texto": false,
+      "template_usado": "direto",
+      "texto_gabarito": "Declaramos, para os devidos fins de comprovação e cômputo de Atividades Acadêmico-Científico-Culturais (AACC), que o(a) discente ANA COSTA, portador(a) do CPF nº 444.444.444-44 e matrícula acadêmica nº 202411002, concluiu o curso de \"Python para Ciência de Dados\", promovido por a FIAP Online, no período de 20/12/2025 a 14/03/2026. Carga horária: 30 horas. Em conformidade com as diretrizes da Resolução CONSUNI Nº 057/2025 da Universidade Estadual do Tocantins - UNITINS.",
+      "nome_exibido": "Ana Costa",
+      "horas_gabarito": 30,
+      "jpeg_quality": null,
+      "tipo_doc": "declaracao"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 30.0,
+      "indice_confianca_ocr": 95.0,
+      "nome_extraido": "ANA COSTA,",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 94.7
+    }
+  },
+  {
+    "aluno_id": 19,
+    "certificado_id": 136,
+    "arquivo": "certificado_n2_202411002_projetos_pesquisa_2.pdf",
+    "metadados": {
+      "nivel": 2,
+      "anomalia_texto": false,
+      "template_usado": "armadilha",
+      "texto_gabarito": "Certificamos que ANA COSTA, portador(a) do CPF nº 444.444.444-44, matrícula acadêmica nº 202411002, participou do(a) \"Projeto de Pesquisa em Otimização de Bancos de Dados Distribuídos\", promovido por a Pró-Reitoria de Pesquisa e Pós-Graduação da UNITINS, realizado no período de 18 de setembro a 01 de novembro de 2025, organizado em módulos de 10 horas (Módulo I), 10 horas (Módulo II) e 10 horas (Módulo III), perfazendo ao final a carga horária total de 30 horas.",
+      "nome_exibido": "Ana Costa",
+      "horas_gabarito": 30,
+      "jpeg_quality": null,
+      "tipo_doc": "certificado"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 30.0,
+      "indice_confianca_ocr": 98.0,
+      "nome_extraido": "ANA COSTA",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 100.0
+    }
+  },
+  {
+    "aluno_id": 19,
+    "certificado_id": 137,
+    "arquivo": "declaracao_n1_202411002_membro_cpa_3.pdf",
+    "metadados": {
+      "nivel": 1,
+      "anomalia_texto": false,
+      "template_usado": "direto",
+      "texto_gabarito": "Declaramos, para os devidos fins de comprovação e cômputo de Atividades Acadêmico-Científico-Culturais (AACC), que o(a) discente ANA COSTA, portador(a) do CPF nº 444.444.444-44 e matrícula acadêmica nº 202411002, participou do(a) \"Membro Discente da Comissão Própria de Avaliação - CPA\", promovido por a Comissão Própria de Avaliação da UNITINS, no período de 24/11/2025 a 13/02/2026. Carga horária: 30 horas. Em conformidade com as diretrizes da Resolução CONSUNI Nº 057/2025 da Universidade Estadual do Tocantins - UNITINS.",
+      "nome_exibido": "Ana Costa",
+      "horas_gabarito": 30,
+      "jpeg_quality": null,
+      "tipo_doc": "declaracao"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 30.0,
+      "indice_confianca_ocr": 95.0,
+      "nome_extraido": "ANA COSTA,",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 94.7
+    }
+  },
+  {
+    "aluno_id": 19,
+    "certificado_id": 138,
+    "arquivo": "declaracao_n2_202411002_organizacao_cursos_eventos_4.pdf",
+    "metadados": {
+      "nivel": 2,
+      "anomalia_texto": false,
+      "template_usado": "direto",
+      "texto_gabarito": "Declaramos, para os devidos fins de comprovação e cômputo de Atividades Acadêmico-Científico-Culturais (AACC), que o(a) discente ANA COSTA, portador(a) do CPF nº 444.444.444-44 e matrícula acadêmica nº 202411002, atuou na organização do evento \"Hackathon UNITINS Inovação - Equipe de Organização\", promovido por a Universidade Estadual do Tocantins - UNITINS, no período de 27/10/2025 a 31/10/2025. Carga horária: 10 horas. Em conformidade com as diretrizes da Resolução CONSUNI Nº 057/2025 da Universidade Estadual do Tocantins - UNITINS.",
+      "nome_exibido": "Ana Costa",
+      "horas_gabarito": 10,
+      "jpeg_quality": null,
+      "tipo_doc": "declaracao"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 10.0,
+      "indice_confianca_ocr": 95.0,
+      "nome_extraido": "ANA COSTA,",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 94.7
+    }
+  },
+  {
+    "aluno_id": 19,
+    "certificado_id": 139,
+    "arquivo": "declaracao_n1_202411002_escola_linguas_5.pdf",
+    "metadados": {
+      "nivel": 1,
+      "anomalia_texto": false,
+      "template_usado": "padrao",
+      "texto_gabarito": "Declaramos, para os devidos fins de comprovação e cômputo de Atividades Acadêmico-Científico-Culturais (AACC), que o(a) discente ANA COSTA, portador(a) do CPF nº 444.444.444-44 e matrícula acadêmica nº 202411002, concluiu o curso de \"Inglês Intermediário - Módulo II\", promovido por a Escola de Línguas Unitins, no período de 31 de julho a 22 de novembro de 2025, com carga horária total de 40 horas, em conformidade com as diretrizes da Resolução CONSUNI Nº 057/2025 da Universidade Estadual do Tocantins - UNITINS.",
+      "nome_exibido": "Ana Costa",
+      "horas_gabarito": 40,
+      "jpeg_quality": null,
+      "tipo_doc": "declaracao"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 40.0,
+      "indice_confianca_ocr": 98.0,
+      "nome_extraido": "ANA COSTA,",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 94.7
+    }
+  },
+  {
+    "aluno_id": 19,
+    "certificado_id": 140,
+    "arquivo": "certificado_n1_202411002_trabalhos_cientificos_6.pdf",
+    "metadados": {
+      "nivel": 1,
+      "anomalia_texto": false,
+      "template_usado": "direto",
+      "texto_gabarito": "Certificamos que ANA COSTA, portador(a) do CPF nº 444.444.444-44, matrícula acadêmica nº 202411002, apresentou trabalho científico no evento \"Apresentação de Artigo no Workshop de Computação Aplicada\", promovido por a Sociedade Brasileira de Computação - SBC, realizado no período de 23 a 27 de abril de 2025. Carga horária: 20 horas.",
+      "nome_exibido": "Ana Costa",
+      "horas_gabarito": 20,
+      "jpeg_quality": null,
+      "tipo_doc": "certificado"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 20.0,
+      "indice_confianca_ocr": 95.0,
+      "nome_extraido": "ANA COSTA",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 100.0
+    }
+  },
+  {
+    "aluno_id": 19,
+    "certificado_id": 141,
+    "arquivo": "declaracao_n1_202411002_organizacao_cursos_eventos_7.pdf",
+    "metadados": {
+      "nivel": 1,
+      "anomalia_texto": false,
+      "template_usado": "padrao",
+      "texto_gabarito": "Declaramos, para os devidos fins de comprovação e cômputo de Atividades Acadêmico-Científico-Culturais (AACC), que o(a) discente ANA COSTA, portador(a) do CPF nº 444.444.444-44 e matrícula acadêmica nº 202411002, atuou na organização do evento \"Semana Acadêmica de Sistemas de Informação 2025 - Comissão Organizadora\", promovido por a Universidade Estadual do Tocantins - UNITINS, no período de 15 a 17 de abril de 2025, com carga horária total de 10 horas, em conformidade com as diretrizes da Resolução CONSUNI Nº 057/2025 da Universidade Estadual do Tocantins - UNITINS.",
+      "nome_exibido": "Ana Costa",
+      "horas_gabarito": 10,
+      "jpeg_quality": null,
+      "tipo_doc": "declaracao"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 10.0,
+      "indice_confianca_ocr": 98.0,
+      "nome_extraido": "ANA COSTA,",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 94.7
+    }
+  },
+  {
+    "aluno_id": 19,
+    "certificado_id": 142,
+    "arquivo": "declaracao_n1_202411002_seminarios_congressos_8.pdf",
+    "metadados": {
+      "nivel": 1,
+      "anomalia_texto": false,
+      "template_usado": "padrao",
+      "texto_gabarito": "Declaramos, para os devidos fins de comprovação e cômputo de Atividades Acadêmico-Científico-Culturais (AACC), que o(a) discente ANA COSTA, portador(a) do CPF nº 444.444.444-44 e matrícula acadêmica nº 202411002, participou do evento \"Semana Acadêmica de Sistemas de Informação 2025\", promovido por a Universidade Estadual do Tocantins - UNITINS, no período de 08 a 10 de outubro de 2025, com carga horária total de 20 horas, em conformidade com as diretrizes da Resolução CONSUNI Nº 057/2025 da Universidade Estadual do Tocantins - UNITINS.",
+      "nome_exibido": "Ana Costa",
+      "horas_gabarito": 20,
+      "jpeg_quality": null,
+      "tipo_doc": "declaracao"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 20.0,
+      "indice_confianca_ocr": 98.0,
+      "nome_extraido": "ANA COSTA,",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 94.7
+    }
+  },
+  {
+    "aluno_id": 20,
+    "certificado_id": 143,
+    "arquivo": "certificado_n1_202411003_pibid_1.pdf",
+    "metadados": {
+      "nivel": 1,
+      "anomalia_texto": false,
+      "template_usado": "direto",
+      "texto_gabarito": "Certificamos que LUCAS FERREIRA, portador(a) do CPF nº 555.555.555-55, matrícula acadêmica nº 202411003, participou do(a) \"PIBID Unitins 2026 - Residência Pedagógica em Computação\", promovido por a Universidade Estadual do Tocantins - UNITINS, realizado no período de 25 de maio a 01 de setembro de 2025. Carga horária: 60 horas.",
+      "nome_exibido": "Lucas Ferreira",
+      "horas_gabarito": 60,
+      "jpeg_quality": null,
+      "tipo_doc": "certificado"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 60.0,
+      "indice_confianca_ocr": 95.0,
+      "nome_extraido": "LUCAS FERREIRA",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 100.0
+    }
+  },
+  {
+    "aluno_id": 20,
+    "certificado_id": 144,
+    "arquivo": "declaracao_n1_202411003_grupos_pesquisa_2.pdf",
+    "metadados": {
+      "nivel": 1,
+      "anomalia_texto": false,
+      "template_usado": "direto",
+      "texto_gabarito": "Declaramos, para os devidos fins de comprovação e cômputo de Atividades Acadêmico-Científico-Culturais (AACC), que o(a) discente LUCAS FERREIRA, portador(a) do CPF nº 555.555.555-55 e matrícula acadêmica nº 202411003, participou do(a) \"Grupo de Trabalho em Ciência de Dados Aplicada\", promovido por a Pró-Reitoria de Pesquisa e Pós-Graduação da UNITINS, no período de 24/07/2025 a 26/07/2025. Carga horária: 20 horas. Em conformidade com as diretrizes da Resolução CONSUNI Nº 057/2025 da Universidade Estadual do Tocantins - UNITINS.",
+      "nome_exibido": "Lucas Ferreira",
+      "horas_gabarito": 20,
+      "jpeg_quality": null,
+      "tipo_doc": "declaracao"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 20.0,
+      "indice_confianca_ocr": 95.0,
+      "nome_extraido": "LUCAS FERREIRA,",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 96.6
+    }
+  },
+  {
+    "aluno_id": 20,
+    "certificado_id": 145,
+    "arquivo": "certificado_n2_202411003_membro_cpa_3.pdf",
+    "metadados": {
+      "nivel": 2,
+      "anomalia_texto": false,
+      "template_usado": "direto",
+      "texto_gabarito": "Certificamos que LUCAS FERREIRA, portador(a) do CPF nº 555.555.555-55, matrícula acadêmica nº 202411003, participou do(a) \"Membro Discente da Comissão Própria de Avaliação - CPA\", promovido por a Comissão Própria de Avaliação da UNITINS, realizado no período de 22 de maio a 02 de julho de 2025. Carga horária: 30 horas.",
+      "nome_exibido": "Lucas Ferreira",
+      "horas_gabarito": 30,
+      "jpeg_quality": null,
+      "tipo_doc": "certificado"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 30.0,
+      "indice_confianca_ocr": 95.0,
+      "nome_extraido": "LUCAS FERREIRA",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 100.0
+    }
+  },
+  {
+    "aluno_id": 20,
+    "certificado_id": 146,
+    "arquivo": "declaracao_n1_202411003_campanhas_unitins_4.pdf",
+    "metadados": {
+      "nivel": 1,
+      "anomalia_texto": false,
+      "template_usado": "direto",
+      "texto_gabarito": "Declaramos, para os devidos fins de comprovação e cômputo de Atividades Acadêmico-Científico-Culturais (AACC), que o(a) discente LUCAS FERREIRA, portador(a) do CPF nº 555.555.555-55 e matrícula acadêmica nº 202411003, participou do evento \"Trote Solidário UNITINS 2025\", promovido por a Universidade Estadual do Tocantins - UNITINS, no período de 08 de janeiro de 2026. Carga horária: 5 horas. Em conformidade com as diretrizes da Resolução CONSUNI Nº 057/2025 da Universidade Estadual do Tocantins - UNITINS.",
+      "nome_exibido": "Lucas Ferreira",
+      "horas_gabarito": 5,
+      "jpeg_quality": null,
+      "tipo_doc": "declaracao"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 5.0,
+      "indice_confianca_ocr": 95.0,
+      "nome_extraido": "LUCAS FERREIRA,",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 96.6
+    }
+  },
+  {
+    "aluno_id": 20,
+    "certificado_id": 147,
+    "arquivo": "declaracao_n2_202411003_escola_linguas_5.pdf",
+    "metadados": {
+      "nivel": 2,
+      "anomalia_texto": false,
+      "template_usado": "armadilha",
+      "texto_gabarito": "Declaramos, para os devidos fins de comprovação e cômputo de Atividades Acadêmico-Científico-Culturais (AACC), que o(a) discente LUCAS FERREIRA, portador(a) do CPF nº 555.555.555-55 e matrícula acadêmica nº 202411003, concluiu o curso de \"Espanhol Básico - Módulo I\", promovido por a Escola de Línguas Unitins, no período de 08 a 11 de abril de 2026, organizado em módulos de 6 horas (Módulo I), 7 horas (Módulo II) e 7 horas (Módulo III), perfazendo ao final a carga horária total de 20 horas, em conformidade com as diretrizes da Resolução CONSUNI Nº 057/2025 da Universidade Estadual do Tocantins - UNITINS.",
+      "nome_exibido": "Lucas Ferreira",
+      "horas_gabarito": 20,
+      "jpeg_quality": null,
+      "tipo_doc": "declaracao"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 20.0,
+      "indice_confianca_ocr": 98.0,
+      "nome_extraido": "LUCAS FERREIRA,",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 96.6
+    }
+  },
+  {
+    "aluno_id": 20,
+    "certificado_id": 148,
+    "arquivo": "certificado_n1_202411003_publicacoes_6.pdf",
+    "metadados": {
+      "nivel": 1,
+      "anomalia_texto": false,
+      "template_usado": "padrao",
+      "texto_gabarito": "Certificamos que LUCAS FERREIRA, portador(a) do CPF nº 555.555.555-55, matrícula acadêmica nº 202411003, participou do(a) \"Publicação de Artigo Completo nos Anais do Encontro de Computação do Norte\", promovido por a Sociedade Brasileira de Computação - SBC, realizado no período de 02/05/2025 a 19/07/2025, com carga horária total de 30 horas.",
+      "nome_exibido": "Lucas Ferreira",
+      "horas_gabarito": 30,
+      "jpeg_quality": null,
+      "tipo_doc": "certificado"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 30.0,
+      "indice_confianca_ocr": 98.0,
+      "nome_extraido": "LUCAS FERREIRA",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 100.0
+    }
+  },
+  {
+    "aluno_id": 20,
+    "certificado_id": 149,
+    "arquivo": "certificado_n1_202411003_visitas_tecnicas_7.pdf",
+    "metadados": {
+      "nivel": 1,
+      "anomalia_texto": false,
+      "template_usado": "direto",
+      "texto_gabarito": "Certificamos que LUCAS FERREIRA, portador(a) do CPF nº 555.555.555-55, matrícula acadêmica nº 202411003, participou do evento \"Visita Técnica ao Centro de Dados do Governo do Tocantins\", promovido por a Universidade Estadual do Tocantins - UNITINS, realizado no período de 05/02/2026 a 06/02/2026. Carga horária: 10 horas.",
+      "nome_exibido": "Lucas Ferreira",
+      "horas_gabarito": 10,
+      "jpeg_quality": null,
+      "tipo_doc": "certificado"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 10.0,
+      "indice_confianca_ocr": 95.0,
+      "nome_extraido": "LUCAS FERREIRA",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 100.0
+    }
+  },
+  {
+    "aluno_id": 20,
+    "certificado_id": 150,
+    "arquivo": "certificado_n1_202411003_seminarios_congressos_8.pdf",
+    "metadados": {
+      "nivel": 1,
+      "anomalia_texto": false,
+      "template_usado": "direto",
+      "texto_gabarito": "Certificamos que LUCAS FERREIRA, portador(a) do CPF nº 555.555.555-55, matrícula acadêmica nº 202411003, participou do evento \"Congresso Brasileiro de Software: Teoria e Prática\", promovido por a Sociedade Brasileira de Computação - SBC, realizado no período de 09 de agosto a 14 de setembro de 2025. Carga horária: 30 horas.",
+      "nome_exibido": "Lucas Ferreira",
+      "horas_gabarito": 30,
+      "jpeg_quality": null,
+      "tipo_doc": "certificado"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 30.0,
+      "indice_confianca_ocr": 95.0,
+      "nome_extraido": "LUCAS FERREIRA",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 100.0
+    }
+  },
+  {
+    "aluno_id": 21,
+    "certificado_id": 151,
+    "arquivo": "declaracao_n2_202411004_disciplinas_outros_cursos_1.pdf",
+    "metadados": {
+      "nivel": 2,
+      "anomalia_texto": false,
+      "template_usado": "direto",
+      "texto_gabarito": "Declaramos, para os devidos fins de comprovação e cômputo de Atividades Acadêmico-Científico-Culturais (AACC), que o(a) discente GABRIEL ROCHA, portador(a) do CPF nº 888.888.888-88 e matrícula acadêmica nº 202411004, participou do(a) \"Disciplina Eletiva de Empreendedorismo e Inovação\", promovido por a Universidade Estadual do Tocantins - UNITINS, no período de 24 de setembro a 15 de dezembro de 2025. Carga horária: 60 horas. Em conformidade com as diretrizes da Resolução CONSUNI Nº 057/2025 da Universidade Estadual do Tocantins - UNITINS.",
+      "nome_exibido": "Gabriel Rocha",
+      "horas_gabarito": 60,
+      "jpeg_quality": null,
+      "tipo_doc": "declaracao"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 60.0,
+      "indice_confianca_ocr": 95.0,
+      "nome_extraido": "GABRIEL ROCHA,",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 96.3
+    }
+  },
+  {
+    "aluno_id": 21,
+    "certificado_id": 152,
+    "arquivo": "declaracao_n1_202411004_trabalhos_cientificos_2.pdf",
+    "metadados": {
+      "nivel": 1,
+      "anomalia_texto": false,
+      "template_usado": "direto",
+      "texto_gabarito": "Declaramos, para os devidos fins de comprovação e cômputo de Atividades Acadêmico-Científico-Culturais (AACC), que o(a) discente GABRIEL ROCHA, portador(a) do CPF nº 888.888.888-88 e matrícula acadêmica nº 202411004, apresentou trabalho científico no evento \"Apresentação de Artigo no Workshop de Computação Aplicada\", promovido por a Sociedade Brasileira de Computação - SBC, no período de 10 a 11 de fevereiro de 2026. Carga horária: 20 horas. Em conformidade com as diretrizes da Resolução CONSUNI Nº 057/2025 da Universidade Estadual do Tocantins - UNITINS.",
+      "nome_exibido": "Gabriel Rocha",
+      "horas_gabarito": 20,
+      "jpeg_quality": null,
+      "tipo_doc": "declaracao"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 20.0,
+      "indice_confianca_ocr": 95.0,
+      "nome_extraido": "GABRIEL ROCHA,",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 96.3
+    }
+  },
+  {
+    "aluno_id": 21,
+    "certificado_id": 153,
+    "arquivo": "declaracao_n1_202411004_seminarios_congressos_3.pdf",
+    "metadados": {
+      "nivel": 1,
+      "anomalia_texto": false,
+      "template_usado": "armadilha",
+      "texto_gabarito": "Declaramos, para os devidos fins de comprovação e cômputo de Atividades Acadêmico-Científico-Culturais (AACC), que o(a) discente GABRIEL ROCHA, portador(a) do CPF nº 888.888.888-88 e matrícula acadêmica nº 202411004, participou do evento \"Congresso Brasileiro de Software: Teoria e Prática\", promovido por a Sociedade Brasileira de Computação - SBC, no período de 30/07/2025 a 04/10/2025, organizado em módulos de 10 horas (Módulo I), 10 horas (Módulo II) e 10 horas (Módulo III), perfazendo ao final a carga horária total de 30 horas, em conformidade com as diretrizes da Resolução CONSUNI Nº 057/2025 da Universidade Estadual do Tocantins - UNITINS.",
+      "nome_exibido": "Gabriel Rocha",
+      "horas_gabarito": 30,
+      "jpeg_quality": null,
+      "tipo_doc": "declaracao"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 30.0,
+      "indice_confianca_ocr": 98.0,
+      "nome_extraido": "GABRIEL ROCHA,",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 96.3
+    }
+  },
+  {
+    "aluno_id": 21,
+    "certificado_id": 154,
+    "arquivo": "certificado_n3_202411004_membro_cpa_4.pdf",
+    "metadados": {
+      "nivel": 3,
+      "anomalia_texto": true,
+      "template_usado": "armadilha",
+      "texto_gabarito": "Certificamos que GABRIEL ROCHA, portador(a) do CPF nº 888.888.888-88, matrícula acadêmica nº 202411004, participou do(a) \"Membro Discente da Comissão Própria de Avaliação - CPA\", promovido por a Comissão Própria de Avaliação da UNITINS, realizado no período de 23/05/2025 a 11/09/2025, organizado em módulos de 10 horas (Módulo I), 10 horas (Módulo II) e 10 horas (Módulo III), perfazendo ao final a carga horária total de 30 horas.",
+      "nome_exibido": "G4BR13L R0CH4",
+      "horas_gabarito": 30,
+      "jpeg_quality": 15,
+      "tipo_doc": "certificado"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 30.0,
+      "indice_confianca_ocr": 98.0,
+      "nome_extraido": null,
+      "titularidade_confirmada": false,
+      "similaridade_titularidade": 69.2
+    }
+  },
+  {
+    "aluno_id": 21,
+    "certificado_id": 155,
+    "arquivo": "certificado_n1_202411004_monitoria_5.pdf",
+    "metadados": {
+      "nivel": 1,
+      "anomalia_texto": false,
+      "template_usado": "direto",
+      "texto_gabarito": "Certificamos que GABRIEL ROCHA, portador(a) do CPF nº 888.888.888-88, matrícula acadêmica nº 202411004, participou do(a) \"Monitoria de Algoritmos e Estruturas de Dados\", promovido por a Universidade Estadual do Tocantins - UNITINS, realizado no período de 27/08/2025 a 22/12/2025. Carga horária: 30 horas.",
+      "nome_exibido": "Gabriel Rocha",
+      "horas_gabarito": 30,
+      "jpeg_quality": null,
+      "tipo_doc": "certificado"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 30.0,
+      "indice_confianca_ocr": 95.0,
+      "nome_extraido": "GABRIEL ROCHA",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 100.0
+    }
+  },
+  {
+    "aluno_id": 21,
+    "certificado_id": 156,
+    "arquivo": "certificado_n2_202411004_projetos_pesquisa_6.pdf",
+    "metadados": {
+      "nivel": 2,
+      "anomalia_texto": false,
+      "template_usado": "armadilha",
+      "texto_gabarito": "Certificamos que GABRIEL ROCHA, portador(a) do CPF nº 888.888.888-88, matrícula acadêmica nº 202411004, participou do(a) \"Projeto de Pesquisa em Visão Computacional para Agricultura\", promovido por a Pró-Reitoria de Pesquisa e Pós-Graduação da UNITINS, realizado no período de 10/09/2025 a 20/10/2025, organizado em módulos de 10 horas (Módulo I), 10 horas (Módulo II) e 10 horas (Módulo III), perfazendo ao final a carga horária total de 30 horas.",
+      "nome_exibido": "Gabriel Rocha",
+      "horas_gabarito": 30,
+      "jpeg_quality": null,
+      "tipo_doc": "certificado"
+    },
+    "resultado_pipeline": {
+      "horas_extraidas": 30.0,
+      "indice_confianca_ocr": 98.0,
+      "nome_extraido": "GABRIEL ROCHA",
+      "titularidade_confirmada": true,
+      "similaridade_titularidade": 100.0
+    }
+  }
+]

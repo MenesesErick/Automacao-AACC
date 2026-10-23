@@ -27,13 +27,15 @@ from __future__ import annotations
 import datetime
 import glob
 import hashlib
+import html as html_lib
 import io
 import os
 import random
+import re
 from xml.sax.saxutils import escape
 
 import fitz  # PyMuPDF
-from PIL import Image, ImageFilter
+from PIL import Image, ImageEnhance, ImageFilter
 from django.conf import settings
 from reportlab.lib.colors import HexColor
 from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
@@ -99,9 +101,81 @@ def _aplicar_nivel_dificuldade(pdf_bytes: bytes, nivel: int, rng: random.Random)
     angulo = rng.uniform(-2, 2)
     img = img.rotate(angulo, resample=Image.BICUBIC, expand=False, fillcolor=(255, 255, 255))
     img = img.filter(ImageFilter.GaussianBlur(radius=0.8))
+
+    # Caos controlado: brilho/contraste drásticos (sorteia lado escuro ou lavado)
+    brilho = rng.choice([rng.uniform(0.60, 0.80), rng.uniform(1.20, 1.45)])
+    contraste = rng.choice([rng.uniform(0.50, 0.75), rng.uniform(1.30, 1.70)])
+    img = ImageEnhance.Brightness(img).enhance(brilho)
+    img = ImageEnhance.Contrast(img).enhance(contraste)
+
+    # Artefatos de compressão JPEG extremos (quality=15) e recarga
+    jpeg_buf = io.BytesIO()
+    img.save(jpeg_buf, format="JPEG", quality=JPEG_QUALITY_N3)
+    jpeg_buf.seek(0)
+    img = Image.open(jpeg_buf).convert("RGB")
+
     buf = io.BytesIO()
     img.save(buf, format="PDF", resolution=float(DPI_RASTER))
     return buf.getvalue()
+
+
+# ── Variabilidade semântica e anomalias (experimento) ────────────────────────────────────
+JPEG_QUALITY_N3 = 15
+PROB_ANOMALIA_N3 = 0.15
+TEMPLATES_HORAS = ("padrao", "direto", "extenso", "armadilha")
+_LEET = str.maketrans({"A": "4", "E": "3", "I": "1", "O": "0", "S": "5"})
+
+
+def _preparar_experimento(nome_aluno: str, nivel: int, rng: random.Random) -> tuple[str, bool, str]:
+    """Sorteia template de horas e (só Nível 3, ~15%) a anomalia de nome estilo OCR falho."""
+    template = rng.choice(TEMPLATES_HORAS)
+    anomalia = nivel == 3 and rng.random() < PROB_ANOMALIA_N3
+    nome_exibido = nome_aluno.upper().translate(_LEET) if anomalia else nome_aluno
+    if anomalia and nome_exibido == nome_aluno.upper():
+        anomalia = False  # nome sem letras trocáveis: nada a corromper
+    return nome_exibido, anomalia, template
+
+
+def _trecho_horas(template: str, horas: int, continuacao: str | None = None) -> str:
+    """
+    Trecho final da frase (inicia logo após o período). `continuacao` (declaração) vem
+    depois das horas; sem ela, a frase termina em ponto.
+    """
+    if template == "direto":
+        base, sep = f". Carga horária: <b>{horas} horas</b>", ". "
+        continuacao = continuacao[:1].upper() + continuacao[1:] if continuacao else None
+    elif template == "extenso":
+        base, sep = f", perfazendo um total de <b>{horas} horas-aula</b>", ", "
+    elif template == "armadilha":
+        a = max(1, horas // 3)
+        b = max(1, (horas - a) // 2)
+        c = max(1, horas - a - b)
+        base = (
+            f", organizado em módulos de {a} horas (Módulo I), {b} horas (Módulo II) "
+            f"e {c} horas (Módulo III), perfazendo ao final a carga horária total de "
+            f"<b>{horas} horas</b>"
+        )
+        sep = ", "
+    else:  # padrao
+        base, sep = f", com carga horária total de <b>{horas} horas</b>", ", "
+    return base + (sep + continuacao if continuacao else ".")
+
+
+def _texto_puro(texto_html: str) -> str:
+    return html_lib.unescape(re.sub(r"<[^>]+>", "", texto_html))
+
+
+def _metadados(nivel: int, anomalia: bool, template: str, texto_gabarito: str,
+               nome_exibido: str, horas: int) -> dict:
+    return {
+        "nivel": nivel,
+        "anomalia_texto": anomalia,
+        "template_usado": template,
+        "texto_gabarito": texto_gabarito,
+        "nome_exibido": nome_exibido,
+        "horas_gabarito": horas,
+        "jpeg_quality": JPEG_QUALITY_N3 if nivel == 3 else None,
+    }
 
 
 # ── Paleta institucional ─────────────────────────────────────────────────────
@@ -465,9 +539,10 @@ def gerar_certificado_pdf(
     data_fim: datetime.date,
     rng: random.Random | None = None,
     nivel_dificuldade: int = 1,
-) -> bytes:
-    """Gera um certificado comprobatório A4 paisagem e devolve os bytes do PDF."""
+) -> tuple[bytes, dict]:
+    """Gera um certificado comprobatório A4 paisagem; devolve (bytes do PDF, metadados do experimento)."""
     rng = rng or random.Random()
+    nome_exibido, anomalia, template = _preparar_experimento(nome_aluno, nivel_dificuldade, rng)
     regra = LIMITES_CATEGORIAS[slug]
     emissor_t = EMISSORES[emissor]
     PW, PH = landscape(A4)
@@ -504,13 +579,16 @@ def gerar_certificado_pdf(
         "corpo", fontName="Times-Roman", fontSize=14, leading=23,
         alignment=TA_CENTER, textColor=HexColor("#111827"),
     )
-    texto = (
-        f"Certificamos que <b>{escape(nome_aluno.upper())}</b>, portador(a) do CPF nº "
-        f"{_cpf_formatado(cpf)}, matrícula acadêmica nº {escape(str(matricula))}, "
-        f"{_frase_atividade(estilo, titulo, slug)}, "
-        f"promovido por {emissor_t[3]}, realizado no período de <b>{periodo}</b>, "
-        f"com carga horária total de <b>{horas} horas</b>."
-    )
+    def _montar_texto(nome_no_doc: str) -> str:
+        return (
+            f"Certificamos que <b>{escape(nome_no_doc.upper())}</b>, portador(a) do CPF nº "
+            f"{_cpf_formatado(cpf)}, matrícula acadêmica nº {escape(str(matricula))}, "
+            f"{_frase_atividade(estilo, titulo, slug)}, "
+            f"promovido por {emissor_t[3]}, realizado no período de <b>{periodo}</b>"
+            f"{_trecho_horas(template, horas)}"
+        )
+    texto = _montar_texto(nome_exibido)
+    texto_gabarito = _texto_puro(_montar_texto(nome_aluno))
     frame_top = y - 1.7 * cm
     frame = Frame(
         3.2 * cm, 6.3 * cm, PW - 6.4 * cm, frame_top - 6.3 * cm,
@@ -560,7 +638,7 @@ def gerar_certificado_pdf(
     c.setFont("Helvetica", 8)
     c.drawCentredString(7.75 * cm, sig_y - 0.85 * cm, cargo[:60])
     c.setFont("Helvetica-Bold", 9)
-    c.drawCentredString(PW - 7.75 * cm, sig_y - 0.45 * cm, nome_aluno)
+    c.drawCentredString(PW - 7.75 * cm, sig_y - 0.45 * cm, nome_exibido)
     c.setFont("Helvetica", 8)
     c.drawCentredString(PW - 7.75 * cm, sig_y - 0.85 * cm, "Discente")
 
@@ -576,7 +654,8 @@ def gerar_certificado_pdf(
 
     c.showPage()
     c.save()
-    return _aplicar_nivel_dificuldade(buf.getvalue(), nivel_dificuldade, rng)
+    pdf = _aplicar_nivel_dificuldade(buf.getvalue(), nivel_dificuldade, rng)
+    return pdf, _metadados(nivel_dificuldade, anomalia, template, texto_gabarito, nome_exibido, horas)
 
 
 def gerar_declaracao_pdf(
@@ -593,9 +672,10 @@ def gerar_declaracao_pdf(
     data_fim: datetime.date,
     rng: random.Random | None = None,
     nivel_dificuldade: int = 1,
-) -> bytes:
-    """Gera uma declaração comprobatória A4 retrato e devolve os bytes do PDF."""
+) -> tuple[bytes, dict]:
+    """Gera uma declaração comprobatória A4 retrato; devolve (bytes do PDF, metadados do experimento)."""
     rng = rng or random.Random()
+    nome_exibido, anomalia, template = _preparar_experimento(nome_aluno, nivel_dificuldade, rng)
     regra = LIMITES_CATEGORIAS[slug]
     emissor_t = EMISSORES[emissor]
     PW, PH = A4
@@ -643,16 +723,23 @@ def gerar_declaracao_pdf(
         "declaracao_corpo", fontName="Times-Roman", fontSize=12.5, leading=22,
         alignment=TA_JUSTIFY, textColor=HexColor("#111827"),
     )
-    texto = (
-        f"Declaramos, para os devidos fins de comprovação e cômputo de Atividades "
-        f"Acadêmico-Científico-Culturais (AACC), que o(a) discente "
-        f"<b>{escape(nome_aluno.upper())}</b>, portador(a) do CPF nº {_cpf_formatado(cpf)} "
-        f"e matrícula acadêmica nº {escape(str(matricula))}, "
-        f"{_frase_atividade(estilo, titulo, slug)}, promovido por {emissor_t[3]}, "
-        f"no período de <b>{periodo}</b>, cumprindo integralmente a "
-        f"carga horária total de <b>{horas} horas</b>, em conformidade com as diretrizes da "
-        f"Resolução CONSUNI Nº 057/2025 da Universidade Estadual do Tocantins - UNITINS."
+    _conformidade = (
+        "em conformidade com as diretrizes da Resolução CONSUNI Nº 057/2025 "
+        "da Universidade Estadual do Tocantins - UNITINS."
     )
+
+    def _montar_texto(nome_no_doc: str) -> str:
+        return (
+            f"Declaramos, para os devidos fins de comprovação e cômputo de Atividades "
+            f"Acadêmico-Científico-Culturais (AACC), que o(a) discente "
+            f"<b>{escape(nome_no_doc.upper())}</b>, portador(a) do CPF nº {_cpf_formatado(cpf)} "
+            f"e matrícula acadêmica nº {escape(str(matricula))}, "
+            f"{_frase_atividade(estilo, titulo, slug)}, promovido por {emissor_t[3]}, "
+            f"no período de <b>{periodo}</b>"
+            f"{_trecho_horas(template, horas, _conformidade)}"
+        )
+    texto = _montar_texto(nome_exibido)
+    texto_gabarito = _texto_puro(_montar_texto(nome_aluno))
     frame_top = y - 1.5 * cm
     frame = Frame(
         2.5 * cm, 9.0 * cm, PW - 5.0 * cm, frame_top - 9.0 * cm,
@@ -711,7 +798,8 @@ def gerar_declaracao_pdf(
 
     c.showPage()
     c.save()
-    return _aplicar_nivel_dificuldade(buf.getvalue(), nivel_dificuldade, rng)
+    pdf = _aplicar_nivel_dificuldade(buf.getvalue(), nivel_dificuldade, rng)
+    return pdf, _metadados(nivel_dificuldade, anomalia, template, texto_gabarito, nome_exibido, horas)
 
 
 def gerar_documento_comprobatorio(
@@ -729,12 +817,12 @@ def gerar_documento_comprobatorio(
     formato: str = "auto",
     rng: random.Random | None = None,
     nivel_dificuldade: int = 1,
-) -> tuple[bytes, str]:
+) -> tuple[bytes, dict]:
     """
     Despachante inteligente:
     formato: 'auto' (sorteia certificado landscape ou declaração portrait),
              'certificado' (landscape) ou 'declaracao' (portrait).
-    Retorna: (pdf_bytes, tipo_doc)
+    Retorna: (pdf_bytes, metadados_experimento) — metadados inclui `tipo_doc`.
     """
     rng = rng or random.Random()
     if formato == "auto":
@@ -743,17 +831,18 @@ def gerar_documento_comprobatorio(
         tipo_doc = formato
 
     if tipo_doc == "declaracao":
-        pdf_bytes = gerar_declaracao_pdf(
+        pdf_bytes, metadados = gerar_declaracao_pdf(
             nome_aluno=nome_aluno, cpf=cpf, matricula=matricula, titulo=titulo,
             slug=slug, emissor=emissor, horas=horas, estilo=estilo,
             periodo=periodo, data_fim=data_fim, rng=rng,
             nivel_dificuldade=nivel_dificuldade,
         )
     else:
-        pdf_bytes = gerar_certificado_pdf(
+        pdf_bytes, metadados = gerar_certificado_pdf(
             nome_aluno=nome_aluno, cpf=cpf, matricula=matricula, titulo=titulo,
             slug=slug, emissor=emissor, horas=horas, estilo=estilo,
             periodo=periodo, data_fim=data_fim, rng=rng,
             nivel_dificuldade=nivel_dificuldade,
         )
-    return pdf_bytes, tipo_doc
+    metadados["tipo_doc"] = tipo_doc
+    return pdf_bytes, metadados
