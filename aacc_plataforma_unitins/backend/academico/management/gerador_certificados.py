@@ -98,6 +98,21 @@ def _aplicar_nivel_dificuldade(pdf_bytes: bytes, nivel: int, rng: random.Random)
 
         img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
 
+    # Distorção de perspectiva (keystone), simulando foto de smartphone: cada canto da
+    # região-fonte é deslocado para dentro em 2%–5% da largura/altura (sem bordas vazias).
+    w, h = img.size
+    def _off(dim):
+        return rng.uniform(0.02, 0.05) * dim
+    # Ordem do QUAD do Pillow: NO (sup-esq), SO (inf-esq), SE (inf-dir), NE (sup-dir)
+    quad = (
+        _off(w), _off(h),                # canto superior esquerdo
+        _off(w), h - _off(h),            # canto inferior esquerdo
+        w - _off(w), h - _off(h),        # canto inferior direito
+        w - _off(w), _off(h),            # canto superior direito
+    )
+    img = img.transform((w, h), Image.QUAD, data=quad, resample=Image.BICUBIC,
+                        fillcolor=(255, 255, 255))
+
     angulo = rng.uniform(-2, 2)
     img = img.rotate(angulo, resample=Image.BICUBIC, expand=False, fillcolor=(255, 255, 255))
     img = img.filter(ImageFilter.GaussianBlur(radius=0.8))
@@ -175,6 +190,7 @@ def _metadados(nivel: int, anomalia: bool, template: str, texto_gabarito: str,
         "nome_exibido": nome_exibido,
         "horas_gabarito": horas,
         "jpeg_quality": JPEG_QUALITY_N3 if nivel == 3 else None,
+        **({"distorcao_perspectiva": True} if nivel == 3 else {}),
     }
 
 
