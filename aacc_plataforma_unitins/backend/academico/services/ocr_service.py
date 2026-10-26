@@ -345,7 +345,23 @@ def analisar_carga_horaria(texto: str) -> tuple[float, int, str]:
 #  Titularidade documental (dupla checagem do nome — gatilho da RN04)
 # ─────────────────────────────────────────────────────────────────────────────
 
-LIMIAR_TITULARIDADE = 78.0
+LIMIAR_TITULARIDADE = 80.0
+
+# Teto da confiança global quando a titularidade falha (RN04): abaixo do
+# limiar de 70% que aciona o Gatilho de Alerta Cognitivo do Coordenador.
+TETO_CONFIANCA_TITULARIDADE = 65.0
+
+
+def aplicar_trava_titularidade(confianca, titularidade_confirmada):
+    """
+    Trava final absoluta (RN04): se titularidade_confirmada == False,
+    confianca_ocr = min(confianca_ocr, 65). Confiança ausente (None/0) com
+    titularidade falha também resulta em 65, nunca acima.
+    """
+    if titularidade_confirmada:
+        return confianca
+    base = float(confianca) if confianca else TETO_CONFIANCA_TITULARIDADE
+    return min(base, TETO_CONFIANCA_TITULARIDADE)
 
 _PADROES_NOME = [
     r"certificamos\s+que\s+([A-ZÀ-Ÿ\s]{5,80}?)(?:,|\s+inscrit|\s+portador|\s+participou|\s+concluiu|\s+atuou|\s+CPF|\s+matr)",

@@ -270,9 +270,10 @@ class CertificadoViewSet(viewsets.ModelViewSet):
         certificado.titularidade_confirmada = titularidade["titularidade_confirmada"]
         certificado.similaridade_titularidade = titularidade["similaridade_titularidade"]
         divergencia_titular = bool(nome_aluno) and not titularidade["titularidade_confirmada"]
-        if divergencia_titular and ocr.indice_confianca is not None:
-            # Trava RN04: confiança < 70% → revisão manual obrigatória
-            ocr.indice_confianca = min(float(ocr.indice_confianca), 65.0)
+        if divergencia_titular:
+            # Trava RN04: titularidade falha → confiança <= 65% (revisão manual obrigatória)
+            from academico.services.ocr_service import aplicar_trava_titularidade
+            ocr.indice_confianca = aplicar_trava_titularidade(ocr.indice_confianca, False)
 
         certificado.confianca_ia       = int(ocr.indice_confianca) if ocr.indice_confianca else 0
         # Mantendo para compatibilidade/redundância se necessário
@@ -801,7 +802,8 @@ class AnalisePreviaView(APIView):
             except Exception:
                 confianca_ocr = None
             if nome_aluno and not titularidade_confirmada:
-                confianca_ocr = min(confianca_ocr if confianca_ocr is not None else 65, 65)
+                from academico.services.ocr_service import aplicar_trava_titularidade
+                confianca_ocr = aplicar_trava_titularidade(confianca_ocr, False)
                 aviso_titularidade = (
                     "O nome identificado no documento diverge do nome do aluno. "
                     "O certificado será encaminhado para revisão manual."

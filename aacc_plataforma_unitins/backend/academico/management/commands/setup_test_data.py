@@ -14,7 +14,9 @@ from academico.models import (
     CoordenadorPerfil, Certificado, RuleValidationLog, Requerimento, Notificacao
 )
 from academico.rules.resolucao_057 import LIMITES_CATEGORIAS
-from academico.services.ocr_service import processar_pdf, extrair_e_validar_titularidade
+from academico.services.ocr_service import (
+    processar_pdf, extrair_e_validar_titularidade, aplicar_trava_titularidade,
+)
 from academico.management.gerador_certificados import (
     montar_plano_aluno, gerar_periodo, gerar_documento_comprobatorio,
 )
@@ -314,6 +316,10 @@ class Command(BaseCommand):
                 cert.nome_extraido_ocr = (titularidade["nome_extraido"] or "")[:255] or None
                 cert.titularidade_confirmada = titularidade["titularidade_confirmada"]
                 cert.similaridade_titularidade = titularidade["similaridade_titularidade"]
+                # Trava final absoluta RN04: titularidade falha → confiança <= 65%
+                ocr.indice_confianca = aplicar_trava_titularidade(
+                    ocr.indice_confianca, cert.titularidade_confirmada
+                )
 
                 # Atualiza com dados extraídos e status inicial estrito de pendente
                 cert.titulo_atividade = titulo_extraido
