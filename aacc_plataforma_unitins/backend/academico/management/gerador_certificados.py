@@ -272,6 +272,11 @@ EMISSORES = {
     ),
 }
 
+
+def _is_unitins(emissor: str) -> bool:
+    """Verifica se a entidade emissora é a própria UNITINS ou órgão vinculado."""
+    return emissor.startswith("unitins") or emissor in ("escola_linguas", "dce", "cpa")
+
 # ── Catálogo de atividades ───────────────────────────────────────────────────
 # (slug da categoria, título, emissor, carga horária, estilo de frase)
 #   estilo: 'participou' -> participou do(a) "T"
@@ -336,12 +341,63 @@ NOMES_COORDENADORES = [
     "Prof. Me. Rogério Dantas Figueiredo",
     "Profa. Dra. Sandra Maria Moreira",
 ]
-CARGOS = [
-    "Coordenação de Atividades Acadêmico-Científico-Culturais",
-    "Coordenação Geral do Evento",
-    "Coordenação do Projeto",
-    "Direção Acadêmica",
-]
+CARGOS_POR_EMISSOR: dict[str, list[str]] = {
+    "sbc": [
+        "Presidente",
+        "Diretor de Educação",
+    ],
+    "sebrae": [
+        "Diretor Regional",
+        "Diretor Superintendente",
+    ],
+    "senai": [
+        "Diretor Regional",
+        "Gerente de Educação Profissional",
+    ],
+    "fiap": [
+        "Diretor Acadêmico",
+        "Coordenador de Cursos",
+    ],
+    "cambridge": [
+        "Academic Coordinator",
+        "Diretor do Centro Preparatório",
+    ],
+    "prefeitura": [
+        "Secretário Municipal de Desenvolvimento Social",
+        "Coordenador de Projetos Sociais",
+    ],
+    "unitins": [
+        "Pró-Reitor de Graduação",
+        "Pró-Reitor de Extensão",
+        "Coordenador de Curso",
+    ],
+    "unitins_pesquisa": [
+        "Pró-Reitor de Pesquisa e Pós-Graduação",
+    ],
+    "unitins_extensao": [
+        "Pró-Reitor de Extensão, Cultura e Assuntos Comunitários",
+    ],
+    "escola_linguas": [
+        "Coordenador da Escola de Línguas",
+    ],
+    "dce": [
+        "Presidente do DCE",
+    ],
+    "cpa": [
+        "Presidente da Comissão Própria de Avaliação",
+    ],
+}
+
+
+def _obter_cargo_assinatura(emissor: str, rng: random.Random) -> str:
+    """Retorna um cargo plausível e coerente com a instituição emissora."""
+    cargos = CARGOS_POR_EMISSOR.get(emissor)
+    if not cargos:
+        if _is_unitins(emissor):
+            cargos = ["Pró-Reitor", "Coordenador de Curso"]
+        else:
+            cargos = ["Diretor Geral", "Coordenador Geral"]
+    return rng.choice(cargos)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -459,9 +515,10 @@ def _cpf_formatado(cpf: str | None) -> str:
     return cpf or "000.000.000-00"
 
 
-def _codigo_autenticidade(nome: str, titulo: str, emissao: datetime.date) -> str:
+def _codigo_autenticidade(nome: str, titulo: str, emissao: datetime.date, emissor: str = "unitins") -> str:
     h = hashlib.sha1(f"{nome}|{titulo}|{emissao.isoformat()}".encode()).hexdigest().upper()
-    return f"UNITINS-{emissao.year}-{h[:4]}-{h[4:8]}"
+    prefixo = "UNITINS" if _is_unitins(emissor) else emissor.upper()[:7]
+    return f"{prefixo}-{emissao.year}-{h[:4]}-{h[4:8]}"
 
 
 def _subtitulo_tipo(estilo: str, slug: str) -> str:
@@ -596,9 +653,11 @@ def gerar_certificado_pdf(
         alignment=TA_CENTER, textColor=HexColor("#111827"),
     )
     def _montar_texto(nome_no_doc: str) -> str:
+        dados_aluno = f"portador(a) do CPF nº {_cpf_formatado(cpf)}"
+        if _is_unitins(emissor):
+            dados_aluno += f", matrícula acadêmica nº {escape(str(matricula))}"
         return (
-            f"Certificamos que <b>{escape(nome_no_doc.upper())}</b>, portador(a) do CPF nº "
-            f"{_cpf_formatado(cpf)}, matrícula acadêmica nº {escape(str(matricula))}, "
+            f"Certificamos que <b>{escape(nome_no_doc.upper())}</b>, {dados_aluno}, "
             f"{_frase_atividade(estilo, titulo, slug)}, "
             f"promovido por {emissor_t[3]}, realizado no período de <b>{periodo}</b>"
             f"{_trecho_horas(template, horas)}"
@@ -613,24 +672,25 @@ def gerar_certificado_pdf(
     frame.addFromList([Paragraph(texto, est)], c)
 
     # ── Faixa normativa (Eixo / Categoria / Resolução) ─────────────────────
-    box_y = 5.0 * cm
-    box_h = 1.35 * cm
-    c.setFillColor(HexColor("#EBF2F7"))
-    c.setStrokeColor(AZUL)
-    c.setLineWidth(0.8)
-    c.rect(3.2 * cm, box_y, PW - 6.4 * cm, box_h, fill=1, stroke=1)
-    c.setFillColor(AZUL)
-    c.setFont("Helvetica-Bold", 8.5)
-    c.drawString(3.5 * cm, box_y + 0.8 * cm,
-                 f"EIXO FORMATIVO: {EIXO_EXIBICAO[regra.eixo].upper()}")
-    c.setFont("Helvetica", 8.5)
-    c.setFillColor(HexColor("#111827"))
-    c.drawString(3.5 * cm, box_y + 0.3 * cm,
-                 f"Categoria AACC: {regra.nome[:78]}")
-    c.setFont("Helvetica-Oblique", 8.5)
-    c.setFillColor(CINZA)
-    c.drawRightString(PW - 3.5 * cm, box_y + 0.55 * cm,
-                      "Resolução CONSUNI Nº 057/2025")
+    if _is_unitins(emissor):
+        box_y = 5.0 * cm
+        box_h = 1.35 * cm
+        c.setFillColor(HexColor("#EBF2F7"))
+        c.setStrokeColor(AZUL)
+        c.setLineWidth(0.8)
+        c.rect(3.2 * cm, box_y, PW - 6.4 * cm, box_h, fill=1, stroke=1)
+        c.setFillColor(AZUL)
+        c.setFont("Helvetica-Bold", 8.5)
+        c.drawString(3.5 * cm, box_y + 0.8 * cm,
+                     f"EIXO FORMATIVO: {EIXO_EXIBICAO[regra.eixo].upper()}")
+        c.setFont("Helvetica", 8.5)
+        c.setFillColor(HexColor("#111827"))
+        c.drawString(3.5 * cm, box_y + 0.3 * cm,
+                     f"Categoria AACC: {regra.nome[:78]}")
+        c.setFont("Helvetica-Oblique", 8.5)
+        c.setFillColor(CINZA)
+        c.drawRightString(PW - 3.5 * cm, box_y + 0.55 * cm,
+                          "Resolução CONSUNI Nº 057/2025")
 
     # ── Local e data de emissão ────────────────────────────────────────────
     emissao = data_fim + datetime.timedelta(days=rng.randint(3, 30))
@@ -641,32 +701,28 @@ def gerar_certificado_pdf(
         f"Palmas - TO, {emissao.day:02d} de {MESES[emissao.month - 1]} de {emissao.year}",
     )
 
-    # ── Assinaturas ────────────────────────────────────────────────────────
+    # ── Assinatura ─────────────────────────────────────────────────────────
     sig_y = 3.35 * cm
-    nome_coord = rng.choice(NOMES_COORDENADORES)
-    cargo = rng.choice(CARGOS)
+    nome_autoridade = rng.choice(NOMES_COORDENADORES)
+    cargo = _obter_cargo_assinatura(emissor, rng)
     c.setStrokeColor(HexColor("#111827"))
     c.setLineWidth(0.6)
-    c.line(4.0 * cm, sig_y, 11.5 * cm, sig_y)
-    c.line(PW - 11.5 * cm, sig_y, PW - 4.0 * cm, sig_y)
+    c.line(PW / 2 - 4.5 * cm, sig_y, PW / 2 + 4.5 * cm, sig_y)
     c.setFont("Helvetica-Bold", 9)
-    c.drawCentredString(7.75 * cm, sig_y - 0.45 * cm, nome_coord)
+    c.drawCentredString(PW / 2, sig_y - 0.45 * cm, nome_autoridade)
     c.setFont("Helvetica", 8)
-    c.drawCentredString(7.75 * cm, sig_y - 0.85 * cm, cargo[:60])
-    c.setFont("Helvetica-Bold", 9)
-    c.drawCentredString(PW - 7.75 * cm, sig_y - 0.45 * cm, nome_exibido)
-    c.setFont("Helvetica", 8)
-    c.drawCentredString(PW - 7.75 * cm, sig_y - 0.85 * cm, "Discente")
+    c.drawCentredString(PW / 2, sig_y - 0.85 * cm, cargo)
 
     # ── Rodapé de autenticidade ────────────────────────────────────────────
-    codigo = _codigo_autenticidade(nome_aluno, titulo, emissao)
+    codigo = _codigo_autenticidade(nome_aluno, titulo, emissao, emissor)
     c.setFont("Courier", 8)
     c.setFillColor(CINZA)
     c.drawCentredString(PW / 2, 1.85 * cm,
                         f"Código de Autenticidade: {codigo}")
     c.setFont("Courier", 7)
+    url_val = "www.unitins.br/validar-certificado" if _is_unitins(emissor) else f"validacao.{emissor}.org.br/autenticidade"
     c.drawCentredString(PW / 2, 1.55 * cm,
-                        "Valide este documento em www.unitins.br/validar-certificado")
+                        f"Valide este documento em {url_val}")
 
     c.showPage()
     c.save()
@@ -745,14 +801,26 @@ def gerar_declaracao_pdf(
     )
 
     def _montar_texto(nome_no_doc: str) -> str:
+        if _is_unitins(emissor):
+            inicio = (
+                f"Declaramos, para os devidos fins de comprovação e cômputo de Atividades "
+                f"Acadêmico-Científico-Culturais (AACC), que o(a) discente "
+                f"<b>{escape(nome_no_doc.upper())}</b>, portador(a) do CPF nº {_cpf_formatado(cpf)} "
+                f"e matrícula acadêmica nº {escape(str(matricula))}, "
+            )
+            continuacao = _conformidade
+        else:
+            inicio = (
+                f"Declaramos, para os devidos fins de comprovação, que "
+                f"<b>{escape(nome_no_doc.upper())}</b>, portador(a) do CPF nº {_cpf_formatado(cpf)}, "
+            )
+            continuacao = None
+
         return (
-            f"Declaramos, para os devidos fins de comprovação e cômputo de Atividades "
-            f"Acadêmico-Científico-Culturais (AACC), que o(a) discente "
-            f"<b>{escape(nome_no_doc.upper())}</b>, portador(a) do CPF nº {_cpf_formatado(cpf)} "
-            f"e matrícula acadêmica nº {escape(str(matricula))}, "
+            f"{inicio}"
             f"{_frase_atividade(estilo, titulo, slug)}, promovido por {emissor_t[3]}, "
             f"no período de <b>{periodo}</b>"
-            f"{_trecho_horas(template, horas, _conformidade)}"
+            f"{_trecho_horas(template, horas, continuacao)}"
         )
     texto = _montar_texto(nome_exibido)
     texto_gabarito = _texto_puro(_montar_texto(nome_aluno))
@@ -764,24 +832,25 @@ def gerar_declaracao_pdf(
     frame.addFromList([Paragraph(texto, est_corpo)], c)
 
     # Faixa normativa (Eixo / Categoria)
-    box_y = 7.4 * cm
-    box_h = 1.35 * cm
-    c.setFillColor(HexColor("#EBF2F7"))
-    c.setStrokeColor(AZUL)
-    c.setLineWidth(0.8)
-    c.rect(2.5 * cm, box_y, PW - 5.0 * cm, box_h, fill=1, stroke=1)
-    c.setFillColor(AZUL)
-    c.setFont("Helvetica-Bold", 8.5)
-    c.drawString(2.8 * cm, box_y + 0.8 * cm,
-                 f"EIXO FORMATIVO: {EIXO_EXIBICAO[regra.eixo].upper()}")
-    c.setFont("Helvetica", 8.5)
-    c.setFillColor(HexColor("#111827"))
-    c.drawString(2.8 * cm, box_y + 0.3 * cm,
-                 f"Categoria AACC: {regra.nome[:68]}")
-    c.setFont("Helvetica-Oblique", 8)
-    c.setFillColor(CINZA)
-    c.drawRightString(PW - 2.8 * cm, box_y + 0.55 * cm,
-                      "Resolução CONSUNI Nº 057/2025")
+    if _is_unitins(emissor):
+        box_y = 7.4 * cm
+        box_h = 1.35 * cm
+        c.setFillColor(HexColor("#EBF2F7"))
+        c.setStrokeColor(AZUL)
+        c.setLineWidth(0.8)
+        c.rect(2.5 * cm, box_y, PW - 5.0 * cm, box_h, fill=1, stroke=1)
+        c.setFillColor(AZUL)
+        c.setFont("Helvetica-Bold", 8.5)
+        c.drawString(2.8 * cm, box_y + 0.8 * cm,
+                     f"EIXO FORMATIVO: {EIXO_EXIBICAO[regra.eixo].upper()}")
+        c.setFont("Helvetica", 8.5)
+        c.setFillColor(HexColor("#111827"))
+        c.drawString(2.8 * cm, box_y + 0.3 * cm,
+                     f"Categoria AACC: {regra.nome[:68]}")
+        c.setFont("Helvetica-Oblique", 8)
+        c.setFillColor(CINZA)
+        c.drawRightString(PW - 2.8 * cm, box_y + 0.55 * cm,
+                          "Resolução CONSUNI Nº 057/2025")
 
     # Local e data
     emissao = data_fim + datetime.timedelta(days=rng.randint(3, 30))
@@ -792,25 +861,26 @@ def gerar_declaracao_pdf(
         f"Palmas - TO, {emissao.day:02d} de {MESES[emissao.month - 1]} de {emissao.year}",
     )
 
-    # Assinaturas
+    # Assinatura
     sig_y = 5.2 * cm
-    nome_coord = rng.choice(NOMES_COORDENADORES)
-    cargo = rng.choice(CARGOS)
+    nome_autoridade = rng.choice(NOMES_COORDENADORES)
+    cargo = _obter_cargo_assinatura(emissor, rng)
     c.setStrokeColor(HexColor("#111827"))
     c.setLineWidth(0.6)
     c.line(PW / 2 - 4.5 * cm, sig_y, PW / 2 + 4.5 * cm, sig_y)
     c.setFont("Helvetica-Bold", 9)
-    c.drawCentredString(PW / 2, sig_y - 0.45 * cm, nome_coord)
+    c.drawCentredString(PW / 2, sig_y - 0.45 * cm, nome_autoridade)
     c.setFont("Helvetica", 8)
-    c.drawCentredString(PW / 2, sig_y - 0.85 * cm, f"{cargo} - {emissor_t[0][:40]}")
+    c.drawCentredString(PW / 2, sig_y - 0.85 * cm, cargo)
 
     # Rodapé autenticidade
-    codigo = _codigo_autenticidade(nome_aluno, titulo, emissao)
+    codigo = _codigo_autenticidade(nome_aluno, titulo, emissao, emissor)
     c.setFont("Courier", 8)
     c.setFillColor(CINZA)
     c.drawCentredString(PW / 2, 2.5 * cm, f"Código de Autenticidade: {codigo}")
     c.setFont("Courier", 7)
-    c.drawCentredString(PW / 2, 2.15 * cm, "Valide este documento em www.unitins.br/validar-certificado")
+    url_val = "www.unitins.br/validar-certificado" if _is_unitins(emissor) else f"validacao.{emissor}.org.br/autenticidade"
+    c.drawCentredString(PW / 2, 2.15 * cm, f"Valide este documento em {url_val}")
 
     c.showPage()
     c.save()
