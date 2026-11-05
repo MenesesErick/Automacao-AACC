@@ -1,586 +1,356 @@
-# AACC Platform — Plataforma de Gestão de Atividades Acadêmico-Científico-Culturais
+# Plataforma AACC — Automação e Validação de Atividades Complementares (UNITINS)
 
 > **Universidade Estadual do Tocantins — UNITINS**  
-> Curso de Sistemas de Informação  
-> Versão atual: `0.1.0` · Status: **Em desenvolvimento ativo**
+> **Curso:** Sistemas de Informação · **Regulamentação Base:** Resolução CONSUNI/UNITINS nº 057/2025  
+> **Arquitetura:** Full-Stack (Django REST Framework + React/Vite + Pipeline OCR Híbrido + Motor de Regras Determinístico SEBR)
 
 ---
 
-## Índice
+## Sumário
 
-1. [Contexto e Motivação](#1-contexto-e-motivação)
-2. [Regras de Negócio (RNs)](#2-regras-de-negócio-rns)
-3. [Arquitetura do Sistema](#3-arquitetura-do-sistema)
-4. [Stack Tecnológica](#4-stack-tecnológica)
-5. [Estrutura de Diretórios](#5-estrutura-de-diretórios)
-6. [Modelos de Dados (Backend)](#6-modelos-de-dados-backend)
-7. [API REST — Endpoints](#7-api-rest--endpoints)
-8. [Perfis de Utilizador e Permissões](#8-perfis-de-utilizador-e-permissões)
-9. [Frontend — Componentes e Páginas](#9-frontend--componentes-e-páginas)
-10. [Fluxos Principais (User Journeys)](#10-fluxos-principais-user-journeys)
-11. [Motor de Regras (Rule Engine)](#11-motor-de-regras-rule-engine)
-12. [Infraestrutura de Testes — Fábrica Sintética](#12-infraestrutura-de-testes--fábrica-sintética)
-13. [Guia de Configuração e Desenvolvimento](#13-guia-de-configuração-e-desenvolvimento)
-14. [Variáveis de Ambiente](#14-variáveis-de-ambiente)
-15. [Comandos de Gestão Django](#15-comandos-de-gestão-django)
-16. [Decisões de Design e Filosofia](#16-decisões-de-design-e-filosofia)
-17. [Roadmap — Funcionalidades Pendentes](#17-roadmap--funcionalidades-pendentes)
+1. [Sobre o Projeto](#1-sobre-o-projeto)
+2. [Principais Funcionalidades e Regras de Negócio](#2-principais-funcionalidades-e-regras-de-negócio)
+3. [Arquitetura e Fluxo de Funcionamento](#3-arquitetura-e-fluxo-de-funcionamento)
+4. [Dependências e Requisitos do Sistema](#4-dependências-e-requisitos-do-sistema)
+5. [Mini-Tutorial: Como Rodar em Outra Máquina (Passo a Passo)](#5-mini-tutorial-como-rodar-em-outra-máquina-passo-a-passo)
+6. [Credenciais de Teste (Geradas pelo Seed)](#6-credenciais-de-teste-geradas-pelo-seed)
+7. [Executando o Benchmark Estatístico do TCC (300 Documentos)](#7-executando-o-benchmark-estatístico-do-tcc-300-documentos)
+8. [Estrutura de Diretórios](#8-estrutura-de-diretórios)
+9. [Principais Endpoints da API REST](#9-principais-endpoints-da-api-rest)
+10. [Comandos Úteis do Django](#10-comandos-úteis-do-django)
 
 ---
 
-## 1. Contexto e Motivação
+## 1. Sobre o Projeto
 
-As **Atividades Acadêmico-Científico-Culturais (AACC)** são requisito obrigatório para a conclusão do curso de Sistemas de Informação da UNITINS, regulamentadas pela **Resolução CONSUNI nº 057/2025**. Os alunos devem acumular um número mínimo de horas em atividades complementares distribuídas por três eixos curriculares: **Ensino**, **Pesquisa** e **Extensão**.
+As **Atividades Acadêmico-Científico-Culturais (AACC)** são requisito curricular obrigatório para a colação de grau nos cursos de graduação da **UNITINS**, regulamentadas pela **Resolução CONSUNI nº 057/2025**. Os acadêmicos devem cumprir a carga horária exigida pela sua matriz curricular (ex.: **120h** ou **180h**) distribuída entre os eixos formativos de **Ensino**, **Pesquisa** e **Extensão**.
 
-**O problema atual:**
-- O processo é inteiramente manual: os alunos entregam documentos em papel ou PDFs por e-mail.
-- A coordenação valida cada documento individualmente, sem sistematização.
-- Não há rastreabilidade do histórico, nem alertas automáticos de eligibilidade para formatura.
-- O processo é propenso a erros, fraudes por documentos forjados e inconsistências nos cálculos de horas.
+### O Problema
+No fluxo tradicional, o envio de certificados, a leitura de carga horária, a verificação de titularidade, o cálculo de tetos por atividade/categoria e o preenchimento do **Requerimento de Contabilização (Anexo I)** ocorrem manualmente, gerando sobrecarga para as coordenações de curso, lentidão no parecer e risco de erros de cálculo.
 
-**A solução — AACC Platform:**
-
-Uma plataforma web full-stack que digitaliza e automatiza todo o ciclo de vida dos certificados AACC:
-
-```
-Submissão (Aluno) → OCR Engine (Regex) → IA Sugere Horas → Motor de Regras → Revisão Manual (Human-in-the-Loop) → Dashboard
-```
-
-A plataforma implementa um **pipeline de auditoria rastreável**: cada decisão sobre um certificado é gravada com justificativa, artigo da resolução aplicado, horas computadas e horas descartadas.
+### A Solução
+A **Plataforma AACC** digitaliza e automatiza o ciclo completo em paradigma **Human-in-the-Loop**:
+1. **Copiloto de Pré-Submissão (Aluno):** Ao anexar o PDF/imagem do certificado, o sistema extrai automaticamente **Título da Atividade**, **Período de Realização**, **Carga Horária** e valida a **Titularidade (Nome do Discente)** antes mesmo do envio definitivo, permitindo ao aluno revisar e ajustar os dados.
+2. **Pipeline OCR Híbrido (PyMuPDF + Tesseract + Motor de Consenso Regex):** Extrai o texto nativo de PDFs vetoriais (Fase 1) e aplica fallback automático de rasterização a 300 DPI + OCR via **Tesseract** para documentos escaneados ou fotografados (Fase 2).
+3. **Motor de Regras Determinístico (SEBR — Resolução 057/2025):** Calcula os limites por certificado/evento e tetos máximos por categoria, registrando a memória de cálculo auditável (`RuleValidationLog`) sem descartar horas silenciosamente.
+4. **Mesa de Avaliação do Coordenador & Geração do Anexo I:** Permite ao coordenador auditar lado a lado o PDF original e os metadados extraídos, deferir/indeferir com um clique e emitir o **Anexo I oficial em PDF** assim que o aluno atingir a meta de horas e a diversificação mínima de eixos.
 
 ---
 
-## 2. Regras de Negócio (RNs)
+## 2. Principais Funcionalidades e Regras de Negócio
 
-As regras derivam diretamente da Resolução CONSUNI nº 057/2025 e são implementadas no `rule_engine/`.
+Todas as decisões acadêmicas seguem estritamente a **Resolução CONSUNI nº 057/2025**:
 
-| ID | Nome | Descrição | Status |
-|----|------|-----------|--------|
-| **RN01** | Extração OCR | Extrair texto e horas via Regex + PyMuPDF em paradigma Human-in-the-Loop | Implementado |
-| **RN02** | Diversidade de Eixos | O aluno deve ter horas em pelo menos 2 dos 3 eixos (Ensino, Pesquisa, Extensão) para ser apto | Implementado |
-| **RN03** | Teto por Categoria | Horas aprovadas em cada categoria são limitadas ao `limite_maximo_horas` | Implementado |
-| **RN04** | Detecção de Duplicatas | Documentos com hash idêntico devem ser rejeitados automaticamente | Planejado |
-| **RN05** | Revisão Manual (Human-in-the-Loop) | Coordenadores podem deferir/indeferir certificados | Implementado |
-| **RN06** | Requerimento Final (Anexo I) | Geração automática do PDF "Anexo I" para alunos aptos | Planejado |
-
-### Fórmula de Aptidão para Formatura (RN02)
-
-```
-apto_formatura = (total_horas_aprovadas >= meta_horas) AND (eixos_com_horas >= 2)
-```
+| Código | Regra / Funcionalidade | Descrição Técnica |
+|:------:|:-----------------------|:------------------|
+| **RN01** | **Extração OCR Híbrida + Consenso** | Extração textual via `PyMuPDF` (camada nativa) com fallback para `pytesseract` (imagens/PDFs achatados) e votação de carga horária por consenso de padrões Regex. |
+| **RN02** | **Diversificação de Eixos Formativos** | Para estar apto à formatura e liberar a emissão do **Anexo I**, o aluno deve simultaneamente atingir a meta da matriz (`total_horas >= meta_horas`) **E** possuir horas validadas em **pelo menos 2 eixos distintos** (`Ensino`, `Pesquisa`, `Extensão`). |
+| **RN03** | **Tetos por Evento e por Categoria** | O motor SEBR (`resolucao_057.py`) aplica automaticamente o limite máximo por certificado (`teto_por_evento`) e o limite acumulado na categoria (`teto_total`), exigindo justificativa em caso de indeferimento. |
+| **RN04** | **Dupla Checagem de Titularidade e Trava Cognitiva** | Compara o nome extraído no documento com o nome do aluno logado via similaridade fuzzy (`SequenceMatcher`). Se a titularidade não for confirmada (`similaridade < 80%`), aplica-se a trava `confianca_ocr = min(confianca_ocr, 65%)`, acionando o alerta de revisão manual rigorosa para o coordenador. |
+| **RN05** | **Auditoria Imutável & Human-in-the-Loop** | Todo certificado passa pela curadoria final da coordenação e gera registros imutáveis em `RuleValidationLog` (horas enviadas, horas computadas, horas descartadas e artigo da resolução). |
+| **RN06** | **Isolamento por Curso e Emissão do Anexo I** | Coordenadores visualizam exclusivamente os alunos e certificados do seu curso e emitem o **Anexo I** oficial (`AnexoIPDF.jsx` / `GerarAnexoIView`) com as cargas horárias originais e validadas. |
 
 ---
 
-## 3. Arquitetura do Sistema
+## 3. Arquitetura e Fluxo de Funcionamento
 
-```
-+-------------------------------------------------------------+
-|                       AACC Platform                         |
-|                                                             |
-|  +------------------+          +-------------------------+  |
-|  |    Frontend      |  HTTP/S  |        Backend          |  |
-|  |  React + Vite   |<-------->|  Django REST Framework  |  |
-|  |  Tailwind CSS   |   JWT    |  PostgreSQL / Redis      |  |
-|  +------------------+          +-------------------------+  |
-|        :5173                             :8000              |
-|                                                             |
-|  Módulos Backend:                                           |
-|  +-------------+  +------------+  +----------------+       |
-|  |  accounts   |  |  academico |  |  rule_engine   |       |
-|  | (Auth/JWT)  |  | (Core API) |  |  (RN01-RN04)   |       |
-|  +-------------+  +------------+  +----------------+       |
-+-------------------------------------------------------------+
-```
-
-### Fluxo de dados de um certificado
-
-```
-Aluno → [POST /certificados/] → Salva PDF em media/
-    → ocr_service (PyMuPDF + Regex) extrai texto e sugere horas
-    → ValidadorCertificado.processar_certificado()
-        → Aplica RN03 (teto por categoria)
-        → Grava RuleValidationLog (Auditoria)
-        → Define status: pendente_ocr | revisao_manual | aprovado | rejeitado
-    → Coordenador revisa via [PATCH /certificados/{id}/avaliar/]
-    → Status final refletido no dashboard do aluno
+```text
++-------------------------------------------------------------------------+
+|                            Plataforma AACC                              |
+|                                                                         |
+|  +------------------------+     REST / JWT     +---------------------+  |
+|  |   Frontend (SPA)       | <================> |  Backend (API)      |  |
+|  |   React 18 + Vite 5    |   JSON / FormData  |  Django 4.2 + DRF   |  |
+|  |   Tailwind CSS 3       |                    |  SQLite / Postgres  |  |
+|  +------------------------+                    +---------------------+  |
+|        Porta :5173                                   Porta :8000        |
+|                                                           |             |
+|                         +---------------------------------+             |
+|                         |                                               |
+|                         v                                               |
+|  +-------------------------------------------------------------------+  |
+|  | Núcleo do Backend                                                 |  |
+|  |  - accounts/       -> Autenticação JWT e Perfis (Admin/Coord/Aluno)|  |
+|  |  - academico/      -> Certificados, Extrato, Dossiê, Anexo I      |  |
+|  |  - ocr_service.py  -> PyMuPDF + Pillow + Tesseract + Titularidade |  |
+|  |  - resolucao_057.py-> Motor Determinístico SEBR (Tetos e Regras)  |  |
+|  +-------------------------------------------------------------------+  |
++-------------------------------------------------------------------------+
 ```
 
 ---
 
-## 4. Stack Tecnológica
+## 4. Dependências e Requisitos do Sistema
 
-### Backend
+### 4.1. Requisitos Globais da Máquina
+- **Git** (para clonar e versionar o repositório)
+- **Python 3.11 ou superior** (compatível até Python 3.14)
+- **Node.js 18+ e npm** (para rodar o frontend React/Vite)
+- **Tesseract OCR** *(Opcional para PDFs digitais nativos; **Obrigatório** para leitura OCR de imagens `.jpg`/`.png` e PDFs escaneados de Nível 2 e 3)*
+  - **Windows:** Baixe o instalador em [UB-Mannheim Tesseract OCR](https://github.com/UB-Mannheim/tesseract/wiki) e marque o idioma **Portuguese (`por`)** durante a instalação (caminho padrão: `C:\Program Files\Tesseract-OCR\tesseract.exe`).
+  - **Linux (Ubuntu/Debian):** `sudo apt update && sudo apt install -y tesseract-ocr tesseract-ocr-por`
+  - **macOS (Homebrew):** `brew install tesseract tesseract-lang`
+- **Banco de Dados:**
+  - Por padrão, em desenvolvimento local, o sistema utiliza **SQLite (`db.sqlite3`)** automaticamente caso `DATABASE_URL` não seja informada — **não é necessário instalar banco externo para testar rapidamente**.
+  - Caso deseje rodar com **PostgreSQL 15 + pgAdmin 4**, há um arquivo `docker-compose.yml` pronto no projeto.
 
-| Tecnologia | Versão | Função |
-|---|---|---|
-| Python | 3.14 | Linguagem principal |
-| Django | 4.2.30 | Framework web principal |
-| Django REST Framework | 3.17.1 | Construção da API REST |
-| djangorestframework-simplejwt | 5.5.1 | Autenticação JWT stateless |
-| django-cors-headers | 4.9.0 | Política CORS para o frontend |
-| psycopg2-binary | 2.9.12 | Driver PostgreSQL |
-| python-decouple | 3.8 | Gestão de variáveis de ambiente (.env) |
-| ReportLab | 5.0.0 | Geração de PDFs (sintéticos e Anexo I) |
-| PyMuPDF (fitz) | 1.28.0 | Extração de texto para o Pipeline de OCR |
-| Pillow | 12.3.0 | Processamento de imagens (fundos de PDF) |
-| Faker | 40.31.0 | Dados fictícios para a fábrica sintética |
-| Celery | 5.6.3 | Filas de tarefas assíncronas |
-| Redis | 8.0.1 | Broker para Celery |
+### 4.2. Principais Dependências do Backend (`backend/requirements.txt`)
+| Pacote | Versão | Finalidade |
+|:-------|:------:|:-----------|
+| `Django` | `4.2.30` | Framework web principal e ORM |
+| `djangorestframework` | `3.17.1` | Construção da API RESTful |
+| `djangorestframework_simplejwt` | `5.5.1` | Autenticação stateless via tokens JWT (Bearer) |
+| `django-cors-headers` | `4.9.0` | Liberação segura de CORS entre Frontend e Backend |
+| `python-decouple` / `dj-database-url` | `3.8` / `3.1.2` | Leitura de variáveis de ambiente (`.env`) e conexão de banco |
+| `pymupdf` (`fitz`) | `1.28.0` | Extração nativa de texto de PDFs e rasterização de páginas |
+| `pytesseract` | `0.3.13` | Wrapper Python para o motor Tesseract OCR |
+| `pillow` | `12.3.0` | Manipulação e pré-processamento de imagens em memória |
+| `reportlab` / `xhtml2pdf` | `5.0.0` / `0.2.20` | Geração de certificados sintéticos realistas e relatórios PDF |
+| `psycopg2-binary` | `2.9.12` | Driver para conexão com PostgreSQL |
+| `Faker` | `40.31.0` | Geração de dados sintéticos em conformidade com a LGPD |
+| `jiwer` / `matplotlib` | — | Cálculo de métricas científicas (CER/WER) e gráficos do TCC |
 
-### Frontend
-
-| Tecnologia | Versão | Função |
-|---|---|---|
-| React | 18.3.1 | Biblioteca de UI |
-| Vite | 5.3.1 | Build tool e dev server |
-| Tailwind CSS | 3.4.4 | Framework de estilos utilitários |
-| React Router DOM | 6.24.0 | Roteamento SPA |
-| Axios | 1.7.2 | Cliente HTTP (integração com API) |
-| Recharts | 3.9.2 | Gráficos (dashboard de extrato) |
-| Lucide React | 0.395.0 | Biblioteca de ícones |
-| jwt-decode | 4.0.0 | Decodificação de tokens JWT no cliente |
-| clsx + tailwind-merge | — | Utilitários de classnames condicionais |
+### 4.3. Principais Dependências do Frontend (`frontend/package.json`)
+| Pacote | Versão | Finalidade |
+|:-------|:------:|:-----------|
+| `react` / `react-dom` | `^18.3.1` | Biblioteca de construção da interface de usuário |
+| `vite` | `^5.3.1` | Servidor de desenvolvimento rápido (HMR) e bundler |
+| `tailwindcss` | `^3.4.4` | Estilização padronizada com identidade visual da UNITINS |
+| `react-router-dom` | `^6.24.0` | Roteamento SPA e proteção de rotas por perfil |
+| `axios` | `^1.7.2` | Cliente HTTP com interceptors automáticos de JWT |
+| `lucide-react` | `^0.395.0` | Ícones consistentes na interface |
+| `recharts` | `^3.9.2` | Gráficos de progresso de horas e distribuição por eixos |
+| `react-to-print` | `^3.3.0` | Impressão/exportação fiel do Requerimento Anexo I em PDF |
+| `sonner` | `^2.0.8` | Notificações estilo toast em tempo real |
+| `jwt-decode` | `^4.0.0` | Decodificação do token JWT no cliente |
 
 ---
 
-## 5. Estrutura de Diretórios
+## 5. Mini-Tutorial: Como Rodar em Outra Máquina (Passo a Passo)
 
+Siga os passos abaixo para subir todo o ambiente (Backend + Banco de Dados + Dados de Teste + Frontend) em qualquer computador novo:
+
+### Passo 1 — Clonar o Repositório
+
+```bash
+git clone https://github.com/MenesesErick/Automacao-AACC.git
+cd Automacao-AACC
 ```
+
+---
+
+### Passo 2 — Configurar e Rodar o Backend (Django)
+
+Abra um terminal na raiz do projeto e entre na pasta do backend:
+
+```bash
+cd aacc_plataforma_unitins/backend
+```
+
+#### 2.1. Criar e ativar o ambiente virtual (`venv`)
+- **No Windows (PowerShell ou CMD):**
+  ```powershell
+  python -m venv venv
+  .\venv\Scripts\activate
+  ```
+- **No Linux / macOS:**
+  ```bash
+  python3 -m venv venv
+  source venv/bin/activate
+  ```
+
+#### 2.2. Instalar as dependências Python
+```bash
+pip install --upgrade pip
+pip install -r requirements.txt
+pip install jiwer matplotlib
+```
+
+#### 2.3. Criar o arquivo `.env` no Backend
+Crie um arquivo chamado `.env` dentro de `aacc_plataforma_unitins/backend/.env` com o seguinte conteúdo:
+
+```env
+SECRET_KEY=chave-secreta-desenvolvimento-unitins-aacc-2026
+DEBUG=True
+
+# Opcional: caminho do executável do Tesseract no Windows (caso não esteja no PATH global)
+TESSERACT_CMD=C:\Program Files\Tesseract-OCR\tesseract.exe
+
+# Opcional: descomente a linha abaixo APENAS se quiser usar PostgreSQL via Docker em vez do SQLite padrão
+# DATABASE_URL=postgres://aacc_user:aacc_pass@localhost:5432/aacc_db
+```
+
+> **Dica:** Se você deixar `DATABASE_URL` comentado ou vazio, o Django criará e usará automaticamente o banco local `db.sqlite3` sem precisar configurar o PostgreSQL.  
+> Caso prefira usar PostgreSQL via Docker, basta executar `docker compose up -d` na pasta `aacc_plataforma_unitins/` antes de rodar as migrações.
+
+#### 2.4. Executar as migrações e popular o banco com dados de teste
+```bash
+python manage.py migrate
+python manage.py setup_test_data
+```
+*(O comando `setup_test_data` cria automaticamente os 3 eixos formativos, todas as categorias da Resolução 057/2025, o curso de Sistemas de Informação com matrizes de 120h e 180h, as contas de Admin, Coordenador e 8 Alunos com certificados PDF sintéticos prontos para teste!)*
+
+#### 2.5. Iniciar o servidor do Backend
+```bash
+python manage.py runserver
+```
+O backend estará disponível em: **`http://127.0.0.1:8000`**
+
+---
+
+### Passo 3 — Configurar e Rodar o Frontend (React + Vite)
+
+Abra um **segundo terminal** (mantenha o terminal do backend rodando) e acesse a pasta do frontend:
+
+```bash
+cd aacc_plataforma_unitins/frontend
+```
+
+#### 3.1. Instalar os pacotes Node.js
+```bash
+npm install
+```
+
+#### 3.2. Iniciar o servidor de desenvolvimento Vite
+```bash
+npm run dev
+```
+O frontend estará disponível em: **`http://localhost:5173`**
+
+---
+
+## 6. Credenciais de Teste (Geradas pelo Seed)
+
+Após rodar `python manage.py setup_test_data`, utilize qualquer uma das contas abaixo na tela de login (`http://localhost:5173/login`).  
+A senha padrão para **todos** os usuários de teste é: **`unitins2026`**
+
+| Perfil | E-mail (Login) | Senha | Matriz / Curso |
+|:------:|:---------------|:-----:|:---------------|
+| **Administrador** | `admin@unitins.br` | `unitins2026` | Acesso global (Cursos, Eixos, Categorias, Coordenadores) |
+| **Coordenador** | `coord@unitins.br` | `unitins2026` | Coordenador de Sistemas de Informação |
+| **Aluno (120h)** | `erick.meneses@unitins.br` | `unitins2026` | Sistemas de Informação — Matriz 120h |
+| **Aluno (120h)** | `joao.silva@unitins.br` | `unitins2026` | Sistemas de Informação — Matriz 120h |
+| **Aluno (120h)** | `maria.souza@unitins.br` | `unitins2026` | Sistemas de Informação — Matriz 120h |
+| **Aluno (120h)** | `beatriz.lima@unitins.br` | `unitins2026` | Sistemas de Informação — Matriz 120h |
+| **Aluno (180h)** | `pedro.santos@unitins.br` | `unitins2026` | Sistemas de Informação — Matriz 180h |
+| **Aluno (180h)** | `ana.costa@unitins.br` | `unitins2026` | Sistemas de Informação — Matriz 180h |
+| **Aluno (180h)** | `lucas.ferreira@unitins.br` | `unitins2026` | Sistemas de Informação — Matriz 180h |
+| **Aluno (180h)** | `gabriel.rocha@unitins.br` | `unitins2026` | Sistemas de Informação — Matriz 180h |
+
+---
+
+## 7. Executando o Benchmark Estatístico do TCC (300 Documentos)
+
+O projeto conta com um motor de benchmark 100% em memória (`io.BytesIO`) para validação científica do pipeline de OCR e da trava de segurança **RN04** (Capítulo 4 do TCC), gerando 300 documentos estratificados em:
+- **60% Nível 1:** PDFs vetoriais nativos;
+- **25% Nível 2:** PDFs achatados/rasterizados a 200 DPI (sem camada textual, exigindo Tesseract OCR);
+- **15% Nível 3:** PDFs com degradação severa (distorção de perspectiva keystone, rotação, desfoque gaussiano, variação de brilho/contraste, compressão JPEG `quality=15` e anomalias de caracteres).
+
+Para reproduzir o experimento completo no terminal (dentro de `aacc_plataforma_unitins/backend` com a `venv` ativa):
+
+```bash
+# 1. Gera os 300 documentos em memória, processa no OCR e exporta relatorio_dataset_massivo.json
+python manage.py gerar_experimento_tcc
+
+# 2. Calcula CER, WER, Acurácia de Horas, eficácia da Trava RN04 e gera os gráficos em resultados_tcc/
+python avaliar_ocr_tcc.py
+```
+
+Os gráficos gerados em alta resolução (300 DPI) ficam salvos em:
+- `aacc_plataforma_unitins/backend/resultados_tcc/grafico1_cer_por_nivel.png`
+- `aacc_plataforma_unitins/backend/resultados_tcc/grafico2_eficacia_rn04_nivel3.png`
+
+---
+
+## 8. Estrutura de Diretórios
+
+```text
 Automacao-AACC/
-├── README.md
-├── Contexto.md                        ← SSOT das regras de negócio
+├── README.md                              ← Documentação principal e tutorial de execução
+├── Contexto.md                            ← Especificação de domínio e regras de negócio
 │
 └── aacc_plataforma_unitins/
-    ├── backend/
-    │   ├── manage.py
-    │   ├── requirements.txt
-    │   ├── .env                       ← (não versionado)
-    │   ├── aacc_core/                 ← Configurações globais Django
-    │   │   ├── settings.py
-    │   │   ├── urls.py
-    │   │   ├── wsgi.py
-    │   │   └── asgi.py
-    │   ├── accounts/                  ← App de Autenticação
-    │   │   ├── models.py              ← Usuario (custom AbstractUser)
-    │   │   ├── serializers.py
-    │   │   ├── views.py
-    │   │   └── urls.py
-    │   ├── academico/                 ← App Core do Domínio
-    │   │   ├── models.py
-    │   │   ├── serializers.py
-    │   │   ├── views.py
-    │   │   ├── urls.py
-    │   │   └── management/commands/
-    │   │       ├── seed_database.py   ← Seed de dados para UI/UX
-    │   │       └── gerar_dataset.py   ← Fábrica de PDFs sintéticos
-    │   ├── rule_engine/               ← Motor de Regras (RN01-RN04)
-    │   │   ├── validator.py
-    │   │   └── consuni_057.py
-    │   ├── ocr_engine/               ← Pipeline OCR (em construção)
-    │   └── media/
-    │       ├── uploads_alunos/       ← PDFs de certificados
-    │       ├── requerimentos_gerados/
-    │       └── templates_base/       ← Fundos PNG para fábrica sintética
+    ├── docker-compose.yml                 ← PostgreSQL 15 + pgAdmin 4 (opcional)
     │
-    └── frontend/
+    ├── backend/                           ← API Django REST Framework
+    │   ├── manage.py
+    │   ├── requirements.txt               ← Dependências Python
+    │   ├── avaliar_ocr_tcc.py             ← Avaliador científico (CER/WER/FAR/RN04 + gráficos)
+    │   ├── relatorio_dataset_massivo.json ← Dataset resultante do experimento de 300 docs
+    │   ├── resultados_tcc/                ← Gráficos gerados pelo avaliador
+    │   ├── aacc_core/                     ← Configurações globais (settings.py, urls.py)
+    │   ├── accounts/                      ← Autenticação JWT e modelo customizado Usuario
+    │   ├── rule_engine/                   ← Validador determinístico legado/auxiliar
+    │   └── academico/                     ← App principal do domínio AACC
+    │       ├── models.py                  ← Eixo, Curso, Matriz, CategoriaAACC, Certificado, Log
+    │       ├── serializers.py             ← Serializers DRF
+    │       ├── views.py                   ← ViewSets, AnalisePreviaView, Extrato, GerarAnexoIView
+    │       ├── rules/
+    │       │   └── resolucao_057.py       ← Motor SEBR (Regras e tetos da Resolução 057/2025)
+    │       ├── services/
+    │       │   ├── ocr_service.py         ← Extrator híbrido PyMuPDF + Tesseract + Titularidade
+    │       │   └── avaliacao_service.py   ← Deferimento/Indeferimento com memória de cálculo
+    │       └── management/
+    │           ├── gerador_certificados.py        ← Fábrica sintética ReportLab (Níveis 1, 2 e 3)
+    │           └── commands/
+    │               ├── setup_test_data.py         ← Povoamento completo de usuários e certificados
+    │               ├── gerar_experimento_tcc.py   ← Benchmark in-memory de 300 documentos
+    │               └── popular_categorias.py      ← Sincronização das categorias da Resolução
+    │
+    └── frontend/                          ← Aplicação React + Vite + Tailwind CSS
         ├── package.json
         ├── vite.config.js
         ├── tailwind.config.js
         └── src/
-            ├── main.jsx
-            ├── App.jsx
             ├── components/
-            │   ├── atoms/             ← Button, Input, Badge, Avatar
-            │   ├── organisms/         ← CertificadoDrawer, AlunoRaioXDrawer,
-            │   │                          ExtratoCharts, DataTable, StatsCard
-            │   └── layout/            ← AppLayout, Sidebar, Header
+            │   ├── AnexoIPDF.jsx          ← Template oficial de impressão do Anexo I
+            │   ├── layout/                ← AppLayout, Sidebar, Header, NotificationBell
+            │   └── organisms/             ← Modais e componentes compostos
+            ├── contexts/
+            │   └── AuthContext.jsx        ← Gestão de sessão e autenticação JWT
             ├── pages/
-            │   ├── auth/Login.jsx
-            │   ├── aluno/             ← DashboardAluno, HistoricoAluno, EnviarCertificado
-            │   └── coordenador/       ← DashboardCoordenador, FilaRevisao, GestaoAlunos
-            ├── contexts/AuthContext.jsx
-            ├── routes/index.jsx
-            ├── services/api/
-            │   ├── client.js          ← Axios com interceptor JWT
-            │   └── endpoints.js       ← Funções de chamada à API
-            ├── styles/global.css
-            └── utils/cn.js
+            │   ├── auth/                  ← Login e Cadastro de Aluno
+            │   ├── aluno/                 ← DashboardAluno, SubmeterCertificado, HistoricoAluno
+            │   ├── coordenador/           ← MesaAvaliacao, AvaliarCertificado, DossieAluno
+            │   └── admin/                 ← Gestão de Cursos, Eixos, Categorias e Coordenadores
+            └── services/api/
+                ├── client.js              ← Instância Axios com injeção e refresh de token JWT
+                └── endpoints.js           ← Mapeamento de todos os serviços da API
 ```
 
 ---
 
-## 6. Modelos de Dados (Backend)
+## 9. Principais Endpoints da API REST
 
-### `accounts.Usuario` (Custom User)
+**URL Base Local:** `http://127.0.0.1:8000/api/`
 
-Extende `AbstractUser` do Django.
-
-| Campo | Tipo | Descrição |
-|---|---|---|
-| `email` | EmailField (único) | Login via e-mail `@unitins.br` |
-| `is_aluno` | BooleanField | Perfil de aluno ativo |
-| `is_coordenador` | BooleanField | Perfil de coordenador ativo |
-
-### `academico.CategoriaAACC`
-
-| Campo | Tipo | Descrição |
-|---|---|---|
-| `nome` | CharField | Ex: "Monitoria e Tutoria" |
-| `eixo` | CharField (choices) | `Ensino` / `Pesquisa` / `Extensao` |
-| `limite_maximo_horas` | IntegerField | Teto de horas computáveis (RN03) |
-
-### `academico.Certificado` (modelo central)
-
-| Campo | Tipo | Descrição |
-|---|---|---|
-| `aluno` | FK → AlunoPerfil | Proprietário |
-| `categoria` | FK → CategoriaAACC | Tipo de atividade |
-| `arquivo_pdf` | FileField | PDF submetido |
-| `horas_declaradas` | DecimalField | (Deprecado/Anulável) Horas preenchidas pelo aluno |
-| `texto_extraido_ocr` | TextField | Texto bruto extraído pelo OCR |
-| `horas_sugeridas_ia` | IntegerField | Horas encontradas pelo OCR/Regex |
-| `confianca_ia` | IntegerField | Confiança do OCR em % |
-| `horas_computadas_final` | IntegerField | Horas efetivamente aprovadas pelo coordenador |
-| `horas_descartadas` | IntegerField | Horas cortadas pelo RN03 ou pela revisão |
-| `status` | CharField (choices) | Ver ciclo de vida abaixo |
-| `motivo_status` | CharField | Justificativa da decisão |
-| `data_envio` | DateTimeField | Auto-preenchido |
-| `data_atualizacao` | DateTimeField | Auto-atualizado |
-
-**Ciclo de vida do `status`:**
-
-```
-pendente_ocr ──→ revisao_manual (baixa confiança OCR)
-             ──→ aprovado       (alta confiança + RN03 OK)
-             ──→ rejeitado      (duplicata / RN03 zera horas)
-
-revisao_manual ──→ [Coordenador] ──→ aprovado | rejeitado
-aprovado       ──→ requerimento_gerado (RN06)
-```
-
-### `academico.RuleValidationLog` (Auditoria Imutável)
-
-| Campo | Tipo | Descrição |
-|---|---|---|
-| `certificado` | FK → Certificado | Certificado avaliado |
-| `usuario_responsavel` | FK → Usuario | Coordenador (se manual) |
-| `regra_aplicada` | CharField | Ex: "RN03 - Teto por Categoria" |
-| `artigo_resolucao` | CharField | "Resolução CONSUNI nº 057/2025" |
-| `justificativa` | TextField | Descrição da decisão |
-| `horas_enviadas` | IntegerField | Horas declaradas |
-| `horas_computadas` | IntegerField | Horas aprovadas |
-| `horas_descartadas` | IntegerField | Horas rejeitadas |
+| Método | Endpoint | Acesso | Descrição |
+|:------:|:---------|:------:|:----------|
+| `POST` | `/accounts/token/` | Público | Autenticação (retorna tokens `access` e `refresh`) |
+| `GET` | `/accounts/me/` | Autenticado | Dados e papel do usuário logado |
+| `GET` | `/academico/categorias/` | Autenticado | Lista categorias AACC agrupadas por eixo formativo |
+| `POST` | `/academico/certificados/analise-previa/` | Aluno | **Copiloto Pré-Submissão:** extrai título, período, carga horária (`horas_sugeridas`) e titularidade sem salvar no banco |
+| `GET` / `POST` | `/academico/certificados/` | Aluno / Coord. | Lista certificados ou submete novo certificado com `horas_declaradas` revisadas |
+| `PATCH` | `/academico/certificados/{id}/avaliar/` | Coordenador | Deferir (`acao: "aprovar"`) ou indeferir (`acao: "rejeitar"`) aplicando o motor SEBR |
+| `GET` | `/academico/alunos/meu-extrato/` | Aluno | Progresso de horas por eixo, meta da matriz e elegibilidade |
+| `GET` | `/academico/alunos/{id}/extrato/` | Coordenador | Extrato detalhado de um aluno específico |
+| `GET` | `/academico/alunos/{id}/gerar-anexo-i/` | Coordenador | Valida meta + diversificação (mínimo 2 eixos) e retorna o JSON oficial para emissão do Anexo I |
 
 ---
 
-## 7. API REST — Endpoints
+## 10. Comandos Úteis do Django
 
-**Base URL:** `http://127.0.0.1:8000/api/`
+Execute sempre dentro de `aacc_plataforma_unitins/backend` com o ambiente virtual (`venv`) ativo:
 
-Todos os endpoints requerem `Authorization: Bearer <token>`.
-
-### Autenticação
-
-| Método | Endpoint | Descrição |
-|---|---|---|
-| `POST` | `/accounts/token/` | Login — retorna access + refresh |
-| `POST` | `/accounts/token/refresh/` | Renovar token |
-| `GET` | `/accounts/me/` | Perfil do utilizador logado |
-
-### Certificados
-
-| Método | Endpoint | Permissão | Descrição |
-|---|---|---|---|
-| `GET` | `/academico/certificados/` | Aluno / Coord. | Lista (filtrada por papel) |
-| `POST` | `/academico/certificados/` | Aluno | Submeter novo certificado |
-| `PATCH` | `/academico/certificados/{id}/avaliar/` | Coord. only | Deferir / Indeferir (RN05) |
-
-**Payload de `avaliar`:**
-```json
-{
-  "status": "aprovado",
-  "horas_computadas_final": 20,
-  "motivo_status": "Documento verificado e válido."
-}
-```
-
-### Extrato (RN02)
-
-| Método | Endpoint | Permissão | Descrição |
-|---|---|---|---|
-| `GET` | `/academico/alunos/meu-extrato/` | Aluno | Extrato do próprio aluno |
-| `GET` | `/academico/alunos/{id}/extrato/` | Coord. | Extrato de aluno específico |
-| `GET` | `/academico/alunos/` | Coord. | Lista todos os alunos |
-
-**Resposta de `/meu-extrato/`:**
-```json
-{
-  "aluno": "João Silva",
-  "matricula": "2023001SI",
-  "total_horas": 85,
-  "meta": 200,
-  "percentual": 42.5,
-  "apto_formatura": false,
-  "eixos_contemplados": 2,
-  "eixos": {
-    "Ensino":   { "horas": 40 },
-    "Pesquisa": { "horas": 30 },
-    "Extensao": { "horas": 15 }
-  }
-}
-```
+| Comando | O que faz |
+|:--------|:----------|
+| `python manage.py migrate` | Cria ou atualiza as tabelas do banco de dados |
+| `python manage.py setup_test_data` | Limpa dados de teste anteriores e recria categorias, coordenador, 8 alunos e certificados PDF sintéticos |
+| `python manage.py popular_categorias` | Sincroniza apenas os eixos e categorias da Resolução CONSUNI nº 057/2025 |
+| `python manage.py gerar_experimento_tcc --total 300 --seed 42` | Executa o benchmark estatístico de 300 documentos 100% em memória |
+| `python avaliar_ocr_tcc.py` | Processa `relatorio_dataset_massivo.json`, exibe as tabelas de CER/WER/RN04 e salva os gráficos em `resultados_tcc/` |
+| `python manage.py createsuperuser` | Cria manualmente um novo superusuário administrador |
 
 ---
 
-## 8. Perfis de Utilizador e Permissões
-
-| Perfil | Acesso | Páginas disponíveis |
-|---|---|---|
-| **Aluno** | Apenas os seus próprios certificados | Dashboard, Enviar, Histórico |
-| **Coordenador** | Visibilidade total | Dashboard Coord., Fila de Revisão, Gestão de Alunos |
-| **Admin Django** | Painel `/admin/` completo | Gestão de dados brutos |
-
----
-
-## 9. Frontend — Componentes e Páginas
-
-### Design System — Tokens CSS
-
-```css
---color-primary:      hsl(220, 90%, 56%);
---color-bg-surface:   hsl(220, 20%, 10%);
---color-text-primary: hsl(220, 15%, 95%);
---color-success:      hsl(142, 70%, 45%);
---color-danger:       hsl(0, 70%, 55%);
---color-warning:      hsl(38, 90%, 50%);
-```
-
-### Componentes-chave
-
-**`CertificadoDrawer.jsx`** — Painel lateral de detalhes de certificado:
-- Badge de status, metadados, iframe com PDF, formulário de decisão para coordenadores.
-
-**`ExtratoCharts.jsx`** — Gráficos partilhados da RN02 (usados em 2 views):
-- `BannerFormatura` — alerta de aptidão
-- `GraficoProgresso` — barra radial de progresso total
-- `GraficoEixos` — barras por eixo (Ensino / Pesquisa / Extensão)
-
-**`AlunoRaioXDrawer.jsx`** — Drawer exclusivo do coordenador com extrato completo do aluno.
-
-### Páginas
-
-| Página | Rota | Perfil |
-|---|---|---|
-| Login | `/login` | Público |
-| Dashboard Aluno | `/aluno/dashboard` | Aluno |
-| Enviar Certificado | `/aluno/enviar` | Aluno |
-| Meu Histórico | `/aluno/historico` | Aluno |
-| Dashboard Coordenador | `/coordenador/dashboard` | Coordenador |
-| Fila de Revisão | `/coordenador/revisao` | Coordenador |
-| Gestão de Alunos | `/coordenador/alunos` | Coordenador |
-
----
-
-## 10. Fluxos Principais (User Journeys)
-
-### Aluno — Submissão de Certificado
-
-```
-1. Acede a /aluno/enviar
-2. Seleciona a Categoria e anexa o PDF (Aluno **não digita** horas)
-3. POST /api/academico/certificados/ (multipart/form-data)
-4. Backend:
-   a. Associa ao AlunoPerfil do utilizador logado
-   b. Executa `ocr_service.processar_pdf()` para extrair `horas_sugeridas_ia`
-   c. Certificado entra em `revisao_manual` (Paradigma Human-in-the-Loop)
-   d. Grava RuleValidationLog (auditoria imutável)
-5. Aluno vê atualização no Dashboard e Histórico
-```
-
-### Coordenador — Revisão Manual
-
-```
-1. Acede a /coordenador/revisao
-2. Seleciona certificado → CertificadoDrawer abre
-3. Lê o PDF no iframe, analisa metadados
-4. Preenche horas validadas + motivo
-5. Clica "Deferir" ou "Indeferir"
-6. PATCH /api/academico/certificados/{id}/avaliar/
-7. Dashboard do aluno reflete novo estado
-```
-
----
-
-## 11. Motor de Regras (Rule Engine)
-
-> **Princípio:** "O Rule Engine decide. O OCR apenas extrai. O Regex apenas higieniza. Todo cálculo deve ser reproduzível e auditável."
-
-**Ficheiros-chave:** `rule_engine/validator.py` e `services/ocr_service.py`
-
-```python
-# Fluxo simplificado de processar_certificado()
-
-# 1. Consulta saldo atual do aluno na categoria
-saldo_atual = Certificado.objects.filter(
-    aluno_id=perfil_id,
-    categoria=certificado.categoria,
-    status='aprovado'
-).aggregate(total=Sum('horas_computadas_final'))['total'] or 0
-
-# 2. Aplica RN03 — Teto por categoria
-espaco_disponivel = categoria.limite_maximo_horas - saldo_atual
-horas_aprovadas   = min(horas_ocr, espaco_disponivel)
-horas_descartadas = horas_ocr - horas_aprovadas
-
-# 3. Grava log de auditoria (imutável)
-RuleValidationLog.objects.create(...)
-```
-
----
-
-## 12. Infraestrutura de Testes — Fábrica Sintética
-
-**Ficheiro:** `academico/management/commands/gerar_dataset.py`
-
-Gera PDFs sintéticos ultra-realistas para validar o OCR e o Motor de Regras, sem usar dados reais (conformidade LGPD).
-
-### Tipos de documento
-
-| Tipo | Orientação | Características |
-|---|---|---|
-| `certificado` | A4 Landscape | 2 sub-layouts (bordas duplas / blocos em colunas), Times-Bold |
-| `declaracao` | A4 Portrait | Fundo PNG timbrado, texto justificado via `Paragraph+Frame`, CNPJ fictício no corpo |
-
-### Stress para OCR/Regex
-
-- 3 variações de frase de certificação com estruturas sintáticas distintas
-- 3 variações de texto burocrático formal
-- Código de validação falso no rodapé (`Courier 7pt`)
-- Múltiplos templates de fundo via `glob` (`certificado_bg*.png`)
-
-### Segurança idempotente
-
-- Apaga fisicamente `sintetico_*` e `dummy_*` de `uploads_alunos/`
-- Sincroniza o BD removendo registos com `icontains=sintetico/dummy`
-- **Nunca** toca em certificados `aprovado` ou `rejeitado`
-
-```bash
-python manage.py gerar_dataset
-python manage.py gerar_dataset --aluno x@unitins.br
-python manage.py gerar_dataset --qtd 3
-```
-
----
-
-## 13. Guia de Configuração e Desenvolvimento
-
-### Pré-requisitos
-
-- Python 3.11+, Node.js 18+, PostgreSQL 14+, Redis
-
-### Backend
-
-```bash
-cd aacc_plataforma_unitins/backend
-python -m venv venv
-venv\Scripts\activate           # Windows
-pip install -r requirements.txt
-python manage.py migrate
-python manage.py createsuperuser
-python manage.py seed_database
-python manage.py runserver       # http://127.0.0.1:8000
-```
-
-### Frontend
-
-```bash
-cd aacc_plataforma_unitins/frontend
-npm install
-npm run dev                      # http://localhost:5173
-```
-
----
-
-## 14. Variáveis de Ambiente
-
-Ficheiro: `backend/.env` (não versionado)
-
-```env
-SECRET_KEY=sua-chave-secreta-aqui
-DEBUG=True
-
-DB_NAME=aacc_db
-DB_USER=postgres
-DB_PASSWORD=sua-senha
-DB_HOST=localhost
-DB_PORT=5432
-
-REDIS_URL=redis://localhost:6379/0
-```
-
----
-
-## 15. Comandos de Gestão Django
-
-| Comando | Descrição |
-|---|---|
-| `python manage.py migrate` | Aplica migrações |
-| `python manage.py seed_database` | Popula o banco com dados de teste (alunos, certificados variados) |
-| `python manage.py gerar_dataset` | Gera PDFs sintéticos ultra-realistas (`pendente_ocr`) |
-| `python manage.py gerar_dataset --aluno x@unitins.br` | Dataset para aluno específico |
-| `python manage.py gerar_dataset --qtd N` | Quantidade fixa de documentos por aluno |
-| `python manage.py createsuperuser` | Cria administrador para `/admin/` |
-| `python manage.py shell` | Shell interativo com contexto Django |
-
----
-
-## 16. Decisões de Design e Filosofia
-
-### Backend
-
-- **Separação de responsabilidades:** `rule_engine/` é independente da camada de views. A lógica de negócio nunca vive numa view.
-- **Auditabilidade total:** Todo certificado processado gera um `RuleValidationLog` imutável com justificativa e artigo da resolução.
-- **Segurança por defeito:** `get_queryset` é blindado por papel — alunos nunca recebem dados de outros alunos.
-- **Zero I/O temporário:** `gerar_dataset` usa `io.BytesIO` exclusivamente — sem ficheiros temporários em disco.
-
-### Frontend
-
-- **DRY:** `ExtratoCharts.jsx` é partilhado entre o Dashboard do Aluno e o RaioX do Coordenador.
-- **Design System centralizado:** Tokens em `global.css` como variáveis CSS, consumidas pelo Tailwind.
-- **Componentização Atómica:** `atoms/` → `organisms/` → `pages/`.
-
-### Geral
-
-- **LGPD:** A fábrica sintética nunca usa dados reais. Todos os documentos são gerados por `Faker`.
-- **Acessos institucionais:** Apenas e-mails `@unitins.br` são aceites.
-
----
-
-## 17. Roadmap — Funcionalidades Pendentes
-
-### Curto prazo
-
-| Feature | Descrição |
-|---|---|
-| **Detecção de Duplicatas (RN04)** | Hash SHA-256 do PDF no upload para bloquear documentos idênticos. |
-| **Requerimento Final (RN06)** | Gerar PDF do "Anexo I" para alunos com `apto_formatura=True`. |
-
-### Médio prazo
-
-| Feature | Descrição |
-|---|---|
-| **Notificações** | E-mails automáticos (Celery) ao aluno quando o status muda. |
-| **Relatórios** | Dashboard analítico com estatísticas da turma (taxa de aprovação, eixos mais populares). |
-| **Gestão de Categorias** | CRUD de categorias AACC pela interface do coordenador. |
-
-### Longo prazo
-
-| Feature | Descrição |
-|---|---|
-| **Containerização** | Docker Compose completo (Django + PostgreSQL + Redis + Celery + Nginx). |
-| **CI/CD** | Pipeline com GitHub Actions para deploy automatizado. |
-| **Mobile** | React Native para submissão via câmera. |
-
----
-
-*AACC Platform · Desenvolvido para UNITINS — Sistemas de Informação · Resolução CONSUNI nº 057/2025 · v0.1.0*
+*Plataforma AACC · Universidade Estadual do Tocantins (UNITINS) — Curso de Sistemas de Informação · Resolução CONSUNI nº 057/2025*
