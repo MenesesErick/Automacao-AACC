@@ -367,6 +367,10 @@ export default function DossieAluno() {
   const pct  = extrato?.progresso_percentual ?? 0
   const total = extrato?.total_horas_aprovadas ?? 0
   const meta  = extrato?.meta_horas ?? 120
+  const eixosContemplados = extrato?.eixos_contemplados ?? 0
+  const podeEmitirAnexo = Boolean(
+    extrato?.apto_formatura && total >= meta && eixosContemplados >= 2
+  )
 
   // ── Loading global ──────────────────────────────────────────────────────────
   if (loading) {
@@ -443,8 +447,8 @@ export default function DossieAluno() {
                 {certs.filter(c => ['pendente_ocr', 'revisao_manual'].includes(c.status)).length} pendente(s)
               </p>
 
-              {/* Botão RN05 — só aparece quando aluno atingiu 100% */}
-              {pct >= 100 && (
+              {/* Botão RN05 / RN02 — só aparece quando o aluno atingiu a meta E diversificou em >= 2 eixos */}
+              {podeEmitirAnexo && (
                 <button
                   id="btn-gerar-anexo-i"
                   onClick={gerarAnexoI}

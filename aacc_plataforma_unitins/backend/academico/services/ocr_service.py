@@ -113,8 +113,20 @@ def _extrair_texto_pdf(caminho_pdf: str) -> str:
     """
     import fitz  # PyMuPDF
 
+    # Aceita também bytes (PDF em memória) — usado pelo benchmark do TCC.
+    conteudo_em_memoria = None
+    if isinstance(caminho_pdf, io.BytesIO):
+        conteudo_em_memoria = caminho_pdf.getvalue()
+        caminho_pdf = "<memoria>"
+    if isinstance(caminho_pdf, (bytes, bytearray)):
+        conteudo_em_memoria = bytes(caminho_pdf)
+        caminho_pdf = "<memoria>"
+
     try:
-        doc = fitz.open(caminho_pdf)
+        if conteudo_em_memoria is not None:
+            doc = fitz.open(stream=conteudo_em_memoria, filetype="pdf")
+        else:
+            doc = fitz.open(caminho_pdf)
     except Exception as exc:
         raise RuntimeError(f"PyMuPDF não conseguiu abrir '{caminho_pdf}': {exc}") from exc
 
@@ -154,6 +166,9 @@ def _extrair_texto_pdf(caminho_pdf: str) -> str:
                 img = Image.open(buffer)
                 texto_pag = pytesseract.image_to_string(img, lang="por")
                 paginas_ocr.append(texto_pag)
+                img.close()
+                buffer.close()
+                pix = None
                 logger.debug("[Tesseract] Página %d: %d chars extraídos.",
                              num_pag, len(texto_pag))
             except Exception as exc_pag:
@@ -454,9 +469,16 @@ def processar_pdf(caminho_pdf: str) -> OcrResultado:
     """
     resultado = OcrResultado()
 
+    # Entrada pode ser caminho (str) ou bytes do PDF em memória.
+    entrada_pdf = caminho_pdf
+    if isinstance(caminho_pdf, io.BytesIO):
+        caminho_pdf = "<memoria>"
+    if isinstance(caminho_pdf, (bytes, bytearray)):
+        caminho_pdf = "<memoria>"  # rótulo para logs
+
     # ── Passo 1: Extracção de texto ──────────────────────────────────────────
     try:
-        texto = _extrair_texto_pdf(caminho_pdf)
+        texto = _extrair_texto_pdf(entrada_pdf)
         resultado.texto_extraido = texto
     except RuntimeError as exc:
         resultado.erro = str(exc)

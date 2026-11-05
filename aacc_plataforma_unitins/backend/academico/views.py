@@ -248,7 +248,7 @@ class CertificadoViewSet(viewsets.ModelViewSet):
         certificado: Certificado = serializer.save(
             aluno=aluno,
             status="pendente_ocr",
-            horas_declaradas=None,
+            horas_declaradas=serializer.validated_data.get("horas_declaradas") or None,
         )
 
         # 2. Invoca o OCR Service de forma síncrona
@@ -258,6 +258,8 @@ class CertificadoViewSet(viewsets.ModelViewSet):
 
         caminho_pdf = os.path.join(settings.MEDIA_ROOT, certificado.arquivo_pdf.name)
         ocr = processar_pdf(caminho_pdf)
+        if not certificado.horas_declaradas and ocr.horas_encontradas:
+            certificado.horas_declaradas = ocr.horas_encontradas
 
         # 3. Atualiza o certificado com os dados do OCR nos campos analíticos dedicados
         certificado.horas_sugeridas_ia = ocr.horas_encontradas or 0
@@ -320,7 +322,7 @@ class CertificadoViewSet(viewsets.ModelViewSet):
             regra_aplicada="RN01 — Extração OCR (PyMuPDF + Regex)",
             artigo_resolucao="Resolução CONSUNI nº 057/2025 — Art. OCR",
             justificativa=certificado.motivo_status,
-            horas_enviadas=ocr.horas_encontradas or 0,
+            horas_enviadas=int(certificado.horas_declaradas or ocr.horas_encontradas or 0),
             horas_computadas=ocr.horas_encontradas or 0,
             horas_descartadas=0,
         )
@@ -604,6 +606,7 @@ def _calcular_extrato(perfil: AlunoPerfil) -> dict:
         "horas_por_eixo": horas_por_eixo,
         "eixos_contemplados": eixos_contemplados,
         "apto_formatura": apto_formatura,
+        "pode_emitir_anexo": apto_formatura,
         "progresso_percentual": progresso_percentual,
         # Detalhe útil para o frontend mostrar o que falta
         "faltam_horas": max(META - total_horas, 0),
@@ -651,6 +654,7 @@ class AnalisePreviaView(APIView):
         similaridade_titularidade = 100.0
         confianca_ocr = None
         aviso_titularidade = ""
+        horas_sugeridas = None
 
         try:
             import fitz  # PyMuPDF
@@ -798,7 +802,13 @@ class AnalisePreviaView(APIView):
             similaridade_titularidade = titularidade["similaridade_titularidade"]
 
             try:
-                _, confianca_ocr, _ = analisar_carga_horaria(texto_completo)
+                horas_extraidas, confianca_ocr, _ = analisar_carga_horaria(texto_completo)
+                if horas_extraidas and horas_extraidas > 0:
+                    horas_sugeridas = (
+                        int(horas_extraidas)
+                        if float(horas_extraidas).is_integer()
+                        else horas_extraidas
+                    )
             except Exception:
                 confianca_ocr = None
             if nome_aluno and not titularidade_confirmada:
@@ -816,6 +826,7 @@ class AnalisePreviaView(APIView):
         return Response({
             "titulo_sugerido": titulo_sugerido[:255] if titulo_sugerido else "",
             "periodo_sugerido": periodo_sugerido[:100] if periodo_sugerido else "",
+            "horas_sugeridas": horas_sugeridas,
             "leitura_por_imagem": leitura_por_imagem,
             "nome_sugerido": nome_sugerido,
             "nome_extraido": nome_sugerido,
@@ -959,7 +970,32 @@ class GerarAnexoIView(APIView):
         )
 
         # ── RN05: meta da matriz deve ser atingida ────────────────────────────
-        meta = aluno.matriz_curricular.horas_totais_exigidas
+        meta = (
+            aluno.matriz_curricular.horas_totais_exigidas
+            if aluno.matriz_curricular_id
+            else 120
+        )
+        eixos_contemplados = (
+            certificados
+            .filter(horas_computadas_final__gt=0)
+            .values("categoria__eixo_id")
+            .distinct()
+            .count()
+        )
+        if total_horas >= meta and eixos_contemplados < 2:
+            return Response(
+                {
+                    "detail": (
+                        f"Diversificação insuficiente (RN02). O aluno possui {total_horas}h "
+                        f"validadas, mas concentradas em apenas {eixos_contemplados} eixo "
+                        f"formativo (mínimo exigido: 2 eixos distintos)."
+                    ),
+                    "total_horas_validadas": float(total_horas),
+                    "meta_horas": meta,
+                    "eixos_contemplados": eixos_contemplados,
+                },
+                status=http_status.HTTP_400_BAD_REQUEST,
+            )
         if total_horas < meta:
             return Response(
                 {
@@ -974,12 +1010,20 @@ class GerarAnexoIView(APIView):
             )
 
         # ── Monta payload JSON para o react-to-print ─────────────────────────
+        def _horas_originais(cert):
+            # Carga horária ORIGINAL do documento (nunca a computada com teto).
+            # horas_declaradas é nulo por design; o OCR grava em horas_sugeridas_ia.
+            for valor in (cert.horas_declaradas, cert.horas_sugeridas_ia, cert.horas_validadas_ocr):
+                if valor:
+                    return float(valor)
+            return 0.0
+
         lista_certificados = [
             {
                 "titulo_atividade":  cert.titulo_atividade or "",
                 "eixo_formativo":    cert.categoria.eixo.nome if cert.categoria else "",
                 "periodo_realizacao": cert.periodo_realizacao or "",
-                "horas_solicitadas": float(cert.horas_declaradas or 0),
+                "horas_solicitadas": _horas_originais(cert),
                 "horas_validadas":   float(cert.horas_computadas_final or 0),
             }
             for cert in certificados

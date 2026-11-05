@@ -2,7 +2,7 @@
 """
 Avaliação científica do pipeline OCR (TCC - Fase 3 / Capítulo 4).
 
-Lê `relatorio_dataset_tcc.json` e calcula:
+Lê `relatorio_dataset_massivo.json` (gerado por `manage.py gerar_experimento_tcc`) e calcula:
   - CER/WER do nome (normalizado: maiúsculas, sem acentos)
   - Acurácia booleana da carga horária
   - Taxa de Falso Aceite (FAR) e Gatilho Correto da trava RN04
@@ -25,7 +25,7 @@ matplotlib.use("Agg")  # backend sem janela (script standalone)
 import matplotlib.pyplot as plt
 
 BASE_DIR = Path(__file__).resolve().parent
-ARQUIVO_JSON = BASE_DIR / "relatorio_dataset_tcc.json"
+ARQUIVO_JSON = BASE_DIR / "relatorio_dataset_massivo.json"
 PASTA_SAIDA = BASE_DIR / "resultados_tcc"
 
 AZUL_UNITINS = "#003366"

@@ -14,7 +14,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Upload, FileText, CheckCircle2,
   Loader2, AlertTriangle, FolderOpen, Layers, X, Info,
-  Sparkles, Calendar, Type,
+  Sparkles, Calendar, Type, Clock,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/utils/cn'
@@ -135,6 +135,7 @@ export default function SubmeterCertificado() {
   const [arquivo,          setArquivo]          = useState(null)
   const [titulo,           setTitulo]           = useState('')
   const [periodo,          setPeriodo]          = useState('')
+  const [horas,            setHoras]            = useState('')
   const [analisando,       setAnalisando]       = useState(false)
   const [coPilotoUsado,    setCoPilotoUsado]    = useState(false)
   const [leituraImagem,    setLeituraImagem]    = useState(false)
@@ -142,7 +143,7 @@ export default function SubmeterCertificado() {
   const [submitting,       setSubmitting]       = useState(false)
   const [sucesso,          setSucesso]          = useState(false)
   const [erros,            setErros]            = useState({
-    categoria: '', arquivo: '', titulo: '', periodo: '',
+    categoria: '', arquivo: '', titulo: '', periodo: '', horas: '',
   })
 
   // Busca categorias ao montar
@@ -152,7 +153,15 @@ export default function SubmeterCertificado() {
         const lista = Array.isArray(data) ? data : (data.results ?? [])
         setCategorias(lista)
       })
-      .catch(() => setErroCats('Não foi possível carregar as categorias.'))
+      .catch(() => new Promise((r) => setTimeout(r, 1500))
+        .then(() => categoriasService.listar())
+        .then(({ data }) => setCategorias(Array.isArray(data) ? data : (data.results ?? [])))
+        .catch(() => new Promise((r) => setTimeout(r, 2000))
+          .then(() => categoriasService.listar())
+          .then(({ data }) => setCategorias(Array.isArray(data) ? data : (data.results ?? [])))
+          .catch(() => setErroCats('Não foi possível carregar as categorias.'))
+        )
+      )
       .finally(() => setLoadingCats(false))
   }, [])
 
@@ -171,6 +180,9 @@ export default function SubmeterCertificado() {
       
       if (data.titulo_sugerido) setTitulo(data.titulo_sugerido)
       if (data.periodo_sugerido) setPeriodo(data.periodo_sugerido)
+      if (data.horas_sugeridas !== undefined && data.horas_sugeridas !== null && data.horas_sugeridas !== '') {
+        setHoras(String(data.horas_sugeridas))
+      }
       setLeituraImagem(data.leitura_por_imagem === true)
 
       if (data.titularidade_confirmada !== undefined && data.titularidade_confirmada !== null) {
@@ -181,7 +193,7 @@ export default function SubmeterCertificado() {
         })
       }
 
-      if (data.titulo_sugerido || data.periodo_sugerido || data.titularidade_confirmada !== undefined) {
+      if (data.titulo_sugerido || data.periodo_sugerido || data.horas_sugeridas != null || data.titularidade_confirmada !== undefined) {
         setCoPilotoUsado(true)
       } else {
         toast.info("A IA não conseguiu ler os dados automaticamente. Preencha manualmente.")
@@ -195,13 +207,16 @@ export default function SubmeterCertificado() {
 
   // ── Validação ─────────────────────────────────────────────────────────────
   const validar = () => {
-    const e = { categoria: '', arquivo: '', titulo: '', periodo: '' }
+    const e = { categoria: '', arquivo: '', titulo: '', periodo: '', horas: '' }
     if (!categoriaId)    e.categoria = 'Selecione a categoria da atividade.'
     if (!arquivo)        e.arquivo   = 'Selecione o ficheiro do certificado.'
     if (!titulo.trim())  e.titulo    = 'Informe o título da atividade.'
     if (!periodo.trim()) e.periodo   = 'Informe o período de realização.'
+    if (!String(horas).trim() || isNaN(Number(horas)) || Number(horas) <= 0) {
+      e.horas = 'Informe a carga horária em horas (número maior que zero).'
+    }
     setErros(e)
-    return !e.categoria && !e.arquivo && !e.titulo && !e.periodo
+    return !e.categoria && !e.arquivo && !e.titulo && !e.periodo && !e.horas
   }
 
   // ── Envio ─────────────────────────────────────────────────────────────────
@@ -214,6 +229,7 @@ export default function SubmeterCertificado() {
     formData.append('arquivo_pdf', arquivo)
     formData.append('titulo_atividade', titulo.trim())
     formData.append('periodo_realizacao', periodo.trim())
+    formData.append('horas_declaradas', String(horas).trim())
 
     try {
       setSubmitting(true)
@@ -302,6 +318,20 @@ export default function SubmeterCertificado() {
                   ) : erroCats ? (
                     <p className="flex items-center gap-1.5 text-helper text-danger">
                       <AlertTriangle className="h-3.5 w-3.5" /> {erroCats}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLoadingCats(true)
+                          setErroCats(null)
+                          categoriasService.listar()
+                            .then(({ data }) => setCategorias(Array.isArray(data) ? data : (data.results ?? [])))
+                            .catch(() => setErroCats('Não foi possível carregar as categorias.'))
+                            .finally(() => setLoadingCats(false))
+                        }}
+                        className="ml-2 underline text-primary hover:text-primary-hover font-medium"
+                      >
+                        Tentar novamente
+                      </button>
                     </p>
                   ) : (
                     <select
@@ -383,6 +413,7 @@ export default function SubmeterCertificado() {
                         setArquivo(null)
                         setTitulo('')
                         setPeriodo('')
+                        setHoras('')
                         setCoPilotoUsado(false)
                         setTitularidadeInfo(null)
                       }}
@@ -509,6 +540,40 @@ export default function SubmeterCertificado() {
                   {erros.periodo && (
                     <p className="flex items-center gap-1.5 text-helper text-danger mt-1.5">
                       <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> {erros.periodo}
+                    </p>
+                  )}
+                </div>
+
+                {/* ── Carga Horária ──────────────────────────────────── */}
+                <div>
+                  <label
+                    htmlFor="horas-input"
+                    className="text-label font-semibold text-text-primary mb-1.5 flex items-center gap-1.5"
+                  >
+                    <Clock className="h-4 w-4 text-text-secondary" />
+                    Carga Horária (horas) <span className="text-danger">*</span>
+                    {analisando && <Loader2 className="h-3.5 w-3.5 animate-spin text-primary ml-1" />}
+                  </label>
+                  <input
+                    id="horas-input"
+                    type="number"
+                    step="any"
+                    min="0.5"
+                    value={horas}
+                    onChange={(e) => {
+                      setHoras(e.target.value)
+                      setErros(prev => ({ ...prev, horas: '' }))
+                    }}
+                    placeholder="Ex: 40"
+                    disabled={analisando}
+                    className={cn(
+                      'w-full h-10 rounded-xs border px-3 text-label bg-bg focus:ring-2 focus:ring-primary outline-none transition-shadow disabled:opacity-50',
+                      erros.horas ? 'border-danger' : 'border-border',
+                    )}
+                  />
+                  {erros.horas && (
+                    <p className="flex items-center gap-1.5 text-helper text-danger mt-1.5">
+                      <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> {erros.horas}
                     </p>
                   )}
                 </div>
