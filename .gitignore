@@ -5,6 +5,7 @@ __pycache__/
 *.sqlite3
 backend/venv/
 venv/
+.venv/
 aacc_plataforma_unitins/backend/venv/
 aacc_plataforma_unitins/backend/.env
 .env
