@@ -41,7 +41,6 @@ A plataforma deve ser capaz de:
 - Aplicar automaticamente as regras da Resolução CONSUNI 057/2025;
 - Calcular a carga horária válida;
 - Detectar horas excedentes;
-- Detectar atividades duplicadas;
 - Gerar automaticamente o Requerimento de Contabilização (Anexo I);
 - Disponibilizar dashboards para alunos e coordenadores.
 
