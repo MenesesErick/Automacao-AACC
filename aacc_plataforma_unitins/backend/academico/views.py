@@ -36,7 +36,6 @@ from academico.serializers import (
     EixoSerializer,
     NotificacaoSerializer,
 )
-from rule_engine.validator import ValidadorCertificado
 
 logger = logging.getLogger(__name__)
 

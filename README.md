@@ -268,6 +268,7 @@ Os gráficos gerados em alta resolução (300 DPI) ficam salvos em:
 Automacao-AACC/
 ├── README.md                              ← Documentação principal e tutorial de execução
 ├── Contexto.md                            ← Especificação de domínio e regras de negócio
+├── documentos_comprobatorios_300/         ← Dataset sintético (300 PDFs Níveis 1, 2 e 3)
 │
 └── aacc_plataforma_unitins/
     ├── docker-compose.yml                 ← PostgreSQL 15 + pgAdmin 4 (opcional)
@@ -278,9 +279,10 @@ Automacao-AACC/
     │   ├── avaliar_ocr_tcc.py             ← Avaliador científico (CER/WER/FAR/RN04 + gráficos)
     │   ├── relatorio_dataset_massivo.json ← Dataset resultante do experimento de 300 docs
     │   ├── resultados_tcc/                ← Gráficos gerados pelo avaliador
+    │   ├── media/                         ← Templates de fundo (templates_base/) e uploads
+    │   ├── scripts/                       ← Utilitários (atualizar_regras_pdf.py)
     │   ├── aacc_core/                     ← Configurações globais (settings.py, urls.py)
     │   ├── accounts/                      ← Autenticação JWT e modelo customizado Usuario
-    │   ├── rule_engine/                   ← Validador determinístico legado/auxiliar
     │   └── academico/                     ← App principal do domínio AACC
     │       ├── models.py                  ← Eixo, Curso, Matriz, CategoriaAACC, Certificado, Log
     │       ├── serializers.py             ← Serializers DRF

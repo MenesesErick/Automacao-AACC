@@ -1,1 +1,0 @@
-# Todo: aacc_plataforma_unitins/backend/ocr_engine/extractors.py
